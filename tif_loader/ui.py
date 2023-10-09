@@ -11,14 +11,12 @@ from bpy.types import (Panel,
 class TIFLoadPanel(bpy.types.Panel):
     bl_idname = "SCENE_PT_zstackpanel"
     bl_label = "zstacker wrapper"
-    # bl_space_type = "VIEW_3D"   
-    # bl_region_type = "UI"
-    # bl_category = "Tools"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "scene"
 
     def draw(self, context):
+        print('drawing tifloadpanel')
         layout = self.layout
         scn = bpy.context.scene
         col = layout.column(align=True)

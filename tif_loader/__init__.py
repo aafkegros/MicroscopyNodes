@@ -11,6 +11,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# Parts of this are based on or taken from Brady Johnston's MolecularNodes
+
 bl_info = {
     "name" : "tif loader",
     "author" : "Oane Gros",
