@@ -30,6 +30,7 @@ auto_load.init()
 
 def register():
     auto_load.register()
+    # utils.template_install()
 
 def unregister():
     auto_load.unregister()

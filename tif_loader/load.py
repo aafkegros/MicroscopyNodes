@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 import pip
 import numpy as np
-import tifffile
 
 bpy.types.Scene.path_zstack = StringProperty(
         name="",
@@ -48,6 +47,7 @@ bpy.types.Scene.z_size = FloatProperty(
 # in the same folder, but with different data, will change the previously loaded data.
 
 def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, zstacker_path, z_scale, xy_scale):
+    import tifffile
     # unpacks z stack into x/y slices in tmp tif files
     # calls zstacker, which assembles this into a vdb
     # deletes tmp files
@@ -73,7 +73,7 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, zstacker_path,
     return bpy.context.view_layer.objects.active
 
 def load_tif(input_file, zstacker_path, xy_scale, z_scale, axes_order):
-    
+    import tifffile
     tif = Path(input_file)
 
     with tifffile.TiffFile(input_file) as ifstif:
