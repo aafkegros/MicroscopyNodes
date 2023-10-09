@@ -1,34 +1,6 @@
-# MIT License
-
-# Copyright (c) 2023 Oane Gros
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 import bpy
-
 from bpy.props import (StringProperty, FloatProperty,
                         PointerProperty,
-                        )
-
-from bpy.types import (Panel,
-                        Operator,
-                        AddonPreferences,
-                        PropertyGroup,
                         )
 
 import subprocess
@@ -36,13 +8,11 @@ from pathlib import Path
 import os
 import pip
 import numpy as np
-try:
+try: # TODO make this compliant with blender ui
     import tifffile
 except:
     pip.main(['install', 'tifffile'])
     import tifffile
-
-
 
 bpy.types.Scene.path_zstack = StringProperty(
         name="",
@@ -163,77 +133,3 @@ def load_tif(input_file, zstacker_path, xy_scale, z_scale, axes_order):
 
 
 
-class TifLoadOperator(bpy.types.Operator):
-    bl_idname = "tiftool.load"
-    bl_label = "Load TIF"
-    
-    def execute(self, context):
-        scn = context.scene
-        print(scn.path_zstack)
-        load_tif(input_file = scn.path_tif, zstacker_path=scn.path_zstack, xy_scale=scn.xy_size, z_scale=scn.z_size, axes_order=scn.axes_order)
-        return {'FINISHED'}
-
-
-
-class TIFLoadPanel(bpy.types.Panel):
-    bl_idname = "SCENE_PT_zstackpanel"
-    bl_label = "zstacker wrapper"
-    # bl_space_type = "VIEW_3D"   
-    # bl_region_type = "UI"
-    # bl_category = "Tools"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "scene"
-
-    def draw(self, context):
-        layout = self.layout
-        scn = bpy.context.scene
-        col = layout.column(align=True)
-        col.label(text="RGB .tif file:")
-        col.prop(context.scene, "path_tif", text="")
-        col.label(text="zstacker executable:")
-        col.prop(scn, "path_zstack", text="")
-
-        split = layout.split()
-        col = split.column()
-        col.label(text="xy pixel size (µm):")
-        col.prop(scn, "xy_size")
-
-
-        col = split.column(align=True)
-        col.label(text="z pixel size (µm):")
-        col.prop(scn, "z_size")
-        
-        col = layout.column(align=True)
-#        col.label(text="axis order:")
-        col.prop(scn, "axes_order", text="axes")
-        
-#        layout.label(text="Big Button:")
-        layout.operator("tiftool.load")
-
-
-# ------------------------------------------------------------------------
-#    Registration
-# ------------------------------------------------------------------------
-
-classes = (
-    TifLoadOperator,
-    TIFLoadPanel,
-    
-)
-
-def register():
-    from bpy.utils import register_class
-    for cls in classes:
-        register_class(cls)
-
-
-def unregister():
-    from bpy.utils import unregister_class
-    for cls in reversed(classes):
-        unregister_class(cls)
-    del bpy.types.Scene.tiftool
-
-
-if __name__ == "__main__":
-    register()
