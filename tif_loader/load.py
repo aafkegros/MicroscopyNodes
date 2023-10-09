@@ -8,11 +8,7 @@ from pathlib import Path
 import os
 import pip
 import numpy as np
-try: # TODO make this compliant with blender ui
-    import tifffile
-except:
-    pip.main(['install', 'tifffile'])
-    import tifffile
+import tifffile
 
 bpy.types.Scene.path_zstack = StringProperty(
         name="",
