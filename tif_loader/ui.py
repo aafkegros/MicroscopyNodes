@@ -16,7 +16,7 @@ class TIFLoadPanel(bpy.types.Panel):
     bl_context = "scene"
 
     def draw(self, context):
-        print('drawing tifloadpanel')
+        # print('drawing tifloadpanel')
         layout = self.layout
         scn = bpy.context.scene
         col = layout.column(align=True)
