@@ -58,7 +58,7 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
         chdata = imgdata.take(indices=ch,axis=chax)
         slice_axes = axes_order.replace("c","")
         print(slice_axes)
-        chdata = np.moveaxis(chdata, [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2]).copy()
+        chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
     #    chata = chdata
         
         grid = vdb.FloatGrid()
