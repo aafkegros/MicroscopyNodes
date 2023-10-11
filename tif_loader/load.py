@@ -55,12 +55,12 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
     grids = []
     for ch in range(imgdata.shape[chax]):
     #    chdata = imgdata[:,:,:,ch].astype(np.float64)
-        chdata = imgdata.take(indices=ch,axis=chax).astype(np.float64)
+        chdata = imgdata.take(indices=ch,axis=chax)
         slice_axes = axes_order.replace("c","")
         print(slice_axes)
         chdata = np.moveaxis(chdata, [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2]).copy()
     #    chata = chdata
-        chdata /= np.max(chdata)
+        
         grid = vdb.FloatGrid()
         grid.name = "channel " + str(ch)
         grid.copyFromArray(chdata)
@@ -97,35 +97,45 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
     if len(axes_order) != len(imgdata.shape):
         raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
+    imgdata = imgdata.astype(np.float64)
+    # normalize entire space per axis
+    if 'c' in axes_order:
+        ch_first = np.moveaxis(imgdata, axes_order.find('c'), 0)
+        for chix, chdata in enumerate(ch_first):
+            ch_first[chix] /= np.max(chdata)
+    else:
+        imgdata /= np.max(imgdata)
+    # raise Exception
     # (tif.parents[0] / "tmp_zstacker/").mkdir(exist_ok=True)
 
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
-    n_splits = [(dim // 2048)+ 1 for dim in imgdata.shape]
+    xyz = [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]
+    n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in xyz]
     arrays = [imgdata]
 
 
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
     volumes =[]
-    a_chunks = np.array_split(imgdata, n_splits[0], axis=0)
+    a_chunks = np.array_split(imgdata, n_splits[0], axis=axes_order.find('x'))
     for a_ix, a_chunk in enumerate(a_chunks):
-        b_chunks = np.array_split(a_chunk, n_splits[1], axis=1)
+        b_chunks = np.array_split(a_chunk, n_splits[1], axis=axes_order.find('y'))
         for b_ix, b_chunk in enumerate(b_chunks):
-            c_chunks = np.array_split(b_chunk, n_splits[2], axis=2)
+            c_chunks = np.array_split(b_chunk, n_splits[2], axis=axes_order.find('z'))
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
                 vol = make_and_load_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, tif, z_scale, xy_scale)
-                bbox = np.array([c_chunk.shape[2],c_chunk.shape[1],c_chunk.shape[0]*(z_scale/xy_scale)])
-                scale = np.ones(3)*0.02
+                bbox = np.array([c_chunk.shape[xyz[0]],c_chunk.shape[xyz[1]],c_chunk.shape[xyz[2]]])
+                scale = np.array([1,1,z_scale/xy_scale])*0.02
                 vol.scale = scale
                 print(c_ix, b_ix, a_ix)
-                offset = np.array([-c_ix-1,-b_ix-1,-a_ix-1])
+                offset = np.array([a_ix,b_ix,c_ix])
                 
                 vol.location = tuple(offset*bbox*scale)
                 volumes.append(vol)
 
 
     # recenter x, y, keep z at bottom
-    center = np.array([0.5,0.5,1]) * np.array([c_chunk.shape[2] * (-len(c_chunks)), c_chunk.shape[1] * (-len(b_chunks)), c_chunk.shape[0] * (-len(a_chunks)*(z_scale/xy_scale))])
+    center = np.array([0.5,0.5,1]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
     empty = bpy.ops.object.empty_add(location=tuple(center*0.02))
 
     empty = bpy.context.view_layer.objects.active
