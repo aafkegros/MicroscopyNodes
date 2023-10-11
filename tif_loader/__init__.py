@@ -17,7 +17,7 @@ bl_info = {
     "name" : "tif loader",
     "author" : "Oane Gros",
     "description" : "",
-    "blender" : (2, 80, 0),
+    "blender" : (3, 5, 0),
     "version" : (0, 0, 1),
     "location" : "",
     "warning" : "",

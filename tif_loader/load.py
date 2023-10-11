@@ -13,15 +13,7 @@ try: # TODO make this compliant with blender ui
 except:
     pip.main(['install', 'tifffile'])
     import tifffile
-
-
-bpy.types.Scene.path_zstack = StringProperty(
-        name="",
-        description="Zstacker executable",
-        options = {'TEXTEDIT_UPDATE'},
-        default="",
-        maxlen=1024,
-        subtype='FILE_PATH')
+import pyopenvdb as vdb
 
 bpy.types.Scene.path_tif = StringProperty(
         name="",
@@ -52,45 +44,60 @@ bpy.types.Scene.z_size = FloatProperty(
 # note that this will write a dynamically linked vdb file, so rerunning the script on a file with the same name
 # in the same folder, but with different data, will change the previously loaded data.
 
-def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, zstacker_path, z_scale, xy_scale):
-    # import tifffile
-    # unpacks z stack into x/y slices in tmp tif files
-    # calls zstacker, which assembles this into a vdb
-    # deletes tmp files
-    # returns the added volume object blender pointer
-    # TODO redo x and y orientation from axes_order; rewrite with pyopenvdb
-    tmpfiles = []
-    zax =  axes_order.find('z')
-    for z in range(imgdata.shape[zax]):
-        fname = tif.parents[0] / f"tmp_zstacker/{z:04}.tif"
-        plane = imgdata.take(indices=z,axis=zax)
-        # if axes_order.find('x') > axes_order.find('y'):
-        #     plane = plane.T
-        tifffile.imwrite(fname, plane)
-        tmpfiles.append(fname)
+def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_scale):
+    chax =  axes_order.find('c')
+    if chax == -1:
+    #    if len(imgdata.shape) == len(axes_order):
+        imgdata = imgdata[:,:,:,np.newaxis]
+        axes_order = axes_order + "c"
+        # break and try with last axis (works for RGB)
+
+    grids = []
+    for ch in range(imgdata.shape[chax]):
+    #    chdata = imgdata[:,:,:,ch].astype(np.float64)
+        chdata = imgdata.take(indices=ch,axis=chax).astype(np.float64)
+        slice_axes = axes_order.replace("c","")
+        print(slice_axes)
+        chdata = np.moveaxis(chdata, [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2]).copy()
+    #    chata = chdata
+        chdata /= np.max(chdata)
+        grid = vdb.FloatGrid()
+        grid.name = "channel " + str(ch)
+        grid.copyFromArray(chdata)
+        grids.append(grid)
+
     identifier = str(x_ix)+str(y_ix)+str(z_ix)
+    vdb.write(str(tif.with_name(tif.stem + identifier +".vdb")), grids=grids)
+    # tmpfiles = []
+    # zax =  axes_order.find('z')
+    # for z in range(imgdata.shape[zax]):
+    #     fname = tif.parents[0] / f"tmp_zstacker/{z:04}.tif"
+    #     plane = imgdata.take(indices=z,axis=zax)
+    #     # if axes_order.find('x') > axes_order.find('y'):
+    #     #     plane = plane.T
+    #     tifffile.imwrite(fname, plane)
+    #     tmpfiles.append(fname)
+    # identifier = str(x_ix)+str(y_ix)+str(z_ix)
 
-    subprocess.run(" ".join([zstacker_path, "-t 1 -z", str(z_scale/xy_scale) ,str(tif.parents[0] / "tmp_zstacker"),  str(tif.with_name(tif.stem + identifier +".vdb"))]), shell=True)
+    # subprocess.run(" ".join([zstacker_path, "-t 1 -z", str(z_scale/xy_scale) ,str(tif.parents[0] / "tmp_zstacker"),  )]), shell=True)
 
-    for tmpfile in tmpfiles:
-        tmpfile.unlink()
+    # for tmpfile in tmpfiles:
+    #     tmpfile.unlink()
     
     bpy.ops.object.volume_import(filepath=str(tif.with_name(tif.stem + identifier +".vdb")), align='WORLD', location=(0, 0, 0))
     return bpy.context.view_layer.objects.active
 
-def load_tif(input_file, zstacker_path, xy_scale, z_scale, axes_order):
+def load_tif(input_file, xy_scale, z_scale, axes_order):
     # import tifffile
     tif = Path(input_file)
 
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
-        print(imgdata.shape)
-        imgdata = np.moveaxis(imgdata, 1,2)
-        print(imgdata.shape)
         metadata = dict(ifstif.imagej_metadata)
+    if len(axes_order) != len(imgdata.shape):
+        raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
-
-    (tif.parents[0] / "tmp_zstacker/").mkdir(exist_ok=True)
+    # (tif.parents[0] / "tmp_zstacker/").mkdir(exist_ok=True)
 
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     n_splits = [(dim // 2048)+ 1 for dim in imgdata.shape]
@@ -106,7 +113,7 @@ def load_tif(input_file, zstacker_path, xy_scale, z_scale, axes_order):
         for b_ix, b_chunk in enumerate(b_chunks):
             c_chunks = np.array_split(b_chunk, n_splits[2], axis=2)
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
-                vol = make_and_load_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, tif, zstacker_path, z_scale, xy_scale)
+                vol = make_and_load_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, tif, z_scale, xy_scale)
                 bbox = np.array([c_chunk.shape[2],c_chunk.shape[1],c_chunk.shape[0]*(z_scale/xy_scale)])
                 scale = np.ones(3)*0.02
                 vol.scale = scale
