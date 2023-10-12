@@ -20,7 +20,7 @@ class TIFLoadPanel(bpy.types.Panel):
         layout = self.layout
         scn = bpy.context.scene
         col = layout.column(align=True)
-        col.label(text="RGB .tif file:")
+        col.label(text=".tif file:")
         col.prop(context.scene, "path_tif", text="")
 
         split = layout.split()
