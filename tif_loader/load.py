@@ -8,11 +8,11 @@ from pathlib import Path
 import os
 import pip
 import numpy as np
-try: # TODO make this compliant with blender ui
-    import tifffile
-except:
-    pip.main(['install', 'tifffile'])
-    import tifffile
+# try: # TODO make this compliant with blender ui
+#     import tifffile
+# except:
+#     pip.main(['install', 'tifffile'])
+#     import tifffile
 import pyopenvdb as vdb
 
 bpy.types.Scene.path_tif = StringProperty(
@@ -45,6 +45,7 @@ bpy.types.Scene.z_size = FloatProperty(
 # in the same folder, but with different data, will change the previously loaded data.
 
 def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_scale):
+    import tifffile
     chax =  axes_order.find('c')
     if chax == -1:
     #    if len(imgdata.shape) == len(axes_order):
@@ -88,7 +89,7 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
     return bpy.context.view_layer.objects.active
 
 def load_tif(input_file, xy_scale, z_scale, axes_order):
-    # import tifffile
+    import tifffile
     tif = Path(input_file)
 
     with tifffile.TiffFile(input_file) as ifstif:

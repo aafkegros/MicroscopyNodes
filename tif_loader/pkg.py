@@ -220,7 +220,6 @@ def is_available(package: str, version: str = None) -> bool:
     >>> is_available('numpy', '1.20.1')
     True
     """
-    print(get_distribution(package).version)
     try: 
         available_version = get_distribution(package).version
         return available_version == version
@@ -323,10 +322,10 @@ def install_package(package: str, pypi_mirror_provider: str = 'Default') -> list
     mirror_url=process_pypi_mirror_to_url(pypi_mirror_provider=pypi_mirror_provider)
     print(f"Using PyPI mirror: {pypi_mirror_provider} {mirror_url}")
     
-    run_python(["-m", "ensurepip", '--user']),
-    run_python(["-m", "pip", "install", "--upgrade", '--user', "pip"], mirror_url=mirror_url)
+    run_python(["-m", "ensurepip"]),
+    run_python(["-m", "pip", "install", "--upgrade", "pip"], mirror_url=mirror_url)
     
-    result = run_python(["-m", "pip", "install", package, '--user'], mirror_url=mirror_url)
+    result = run_python(["-m", "pip", "install", package], mirror_url=mirror_url)
     
     return result
 
