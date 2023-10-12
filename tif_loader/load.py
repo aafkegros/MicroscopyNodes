@@ -127,7 +127,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
     for vol in volumes:
         vol.parent = empty
         vol.matrix_parent_inverse = empty.matrix_world.inverted()
-
+    add_init_material(str(tif.name), volumes, imgdata, axes_order)
     empty.location = (0,0,0)
 
     print('done')
