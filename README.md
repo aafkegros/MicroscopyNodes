@@ -5,4 +5,4 @@ This originally started as a script for the [Blender for Biologists workshop](ht
 
 Please make some pretty figures with this add-on!
 
-<img src="/tif2bpy/figures/pretty.png" width="600"/>
+<img src="./figures/pretty.png" width="600"/>
