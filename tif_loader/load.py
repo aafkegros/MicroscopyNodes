@@ -9,6 +9,8 @@ import os
 import pip
 import numpy as np
 import pyopenvdb as vdb
+from mathutils import Color
+
 
 bpy.types.Scene.path_tif = StringProperty(
         name="",
@@ -133,3 +135,53 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
 
 
+def add_init_material(name, volumes, imgdata, axes_order):
+    # do not check whether it exists, so a new load will force making a new mat
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.remove(nodes.get("Principled BSDF"))
+
+    lastnode, finalnode = None, None
+    channels = imgdata.shape[axes_order.find('c')]
+    for channel in range(channels):
+        node_attr = nodes.new(type='ShaderNodeAttribute')
+        node_attr.location = (-500,-400*channel)
+        #print(node_attr.outputs[0].default_value)
+        node_attr.attribute_name = "channel " + str(channel)
+
+        map_range = nodes.new(type='ShaderNodeMapRange')
+        map_range.location = (-230, -400*channel)
+        links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
+
+        princ_vol = nodes.new(type='ShaderNodeVolumePrincipled')
+        if channels > 1:
+            c = Color()
+            c.hsv = channel/channels, 1, 1
+            princ_vol.inputs.get("Emission Color").default_value = (c.r, c.g, c.b, 1.0)
+        princ_vol.inputs.get("Density").default_value = 0
+        princ_vol.location = (0,-400*channel)
+        links.new(map_range.outputs[0], princ_vol.inputs.get("Emission Strength"))
+
+        if channel > 0: # last channel
+            mix_shader = nodes.new('ShaderNodeMixShader')
+            mix_shader.inputs.get("Fac").default_value = 1 - (channel/channels)
+            mix_shader.location = (250 + 150 * channel,-400*channel)
+            links.new(lastnode, mix_shader.inputs[1])
+            links.new(princ_vol.outputs[0], mix_shader.inputs[2])
+            lastnode = mix_shader.outputs[0]
+        else:
+            lastnode = princ_vol.outputs[0]
+
+    nodes.get("Material Output").location = (350 + 150 * channels,-400*channel)
+    links.new(lastnode, nodes.get("Material Output").inputs[1])
+                
+    # Assign it to object
+    for vol in volumes:
+        if vol.data.materials:
+            vol.data.materials[0] = mat
+        else:
+            vol.data.materials.append(mat)
+
+    return volumes
