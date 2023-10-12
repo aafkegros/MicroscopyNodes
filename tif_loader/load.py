@@ -64,21 +64,6 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
 
     identifier = str(x_ix)+str(y_ix)+str(z_ix)
     vdb.write(str(tif.with_name(tif.stem + identifier +".vdb")), grids=grids)
-    # tmpfiles = []
-    # zax =  axes_order.find('z')
-    # for z in range(imgdata.shape[zax]):
-    #     fname = tif.parents[0] / f"tmp_zstacker/{z:04}.tif"
-    #     plane = imgdata.take(indices=z,axis=zax)
-    #     # if axes_order.find('x') > axes_order.find('y'):
-    #     #     plane = plane.T
-    #     tifffile.imwrite(fname, plane)
-    #     tmpfiles.append(fname)
-    # identifier = str(x_ix)+str(y_ix)+str(z_ix)
-
-    # subprocess.run(" ".join([zstacker_path, "-t 1 -z", str(z_scale/xy_scale) ,str(tif.parents[0] / "tmp_zstacker"),  )]), shell=True)
-
-    # for tmpfile in tmpfiles:
-    #     tmpfile.unlink()
     
     bpy.ops.object.volume_import(filepath=str(tif.with_name(tif.stem + identifier +".vdb")), align='WORLD', location=(0, 0, 0))
     return bpy.context.view_layer.objects.active
