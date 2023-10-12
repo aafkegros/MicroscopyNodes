@@ -8,11 +8,6 @@ from pathlib import Path
 import os
 import pip
 import numpy as np
-# try: # TODO make this compliant with blender ui
-#     import tifffile
-# except:
-#     pip.main(['install', 'tifffile'])
-#     import tifffile
 import pyopenvdb as vdb
 
 bpy.types.Scene.path_tif = StringProperty(
@@ -136,7 +131,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
 
     # recenter x, y, keep z at bottom
-    center = np.array([0.5,0.5,1]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
+    center = np.array([0.5,0.5,0]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
     empty = bpy.ops.object.empty_add(location=tuple(center*0.02))
 
     empty = bpy.context.view_layer.objects.active
