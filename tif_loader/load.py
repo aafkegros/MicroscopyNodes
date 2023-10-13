@@ -158,7 +158,8 @@ def add_init_material(name, volumes, imgdata, axes_order):
         princ_vol = nodes.new(type='ShaderNodeVolumePrincipled')
         if channels > 1:
             c = Color()
-            c.hsv = channel/channels, 1, 1
+            c.hsv = (channel/channels + 1/6) % 1, 1, 1
+
             princ_vol.inputs.get("Emission Color").default_value = (c.r, c.g, c.b, 1.0)
         princ_vol.inputs.get("Density").default_value = 0
         princ_vol.location = (0,-400*channel)
