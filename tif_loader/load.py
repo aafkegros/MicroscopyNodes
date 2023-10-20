@@ -92,10 +92,16 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
         grid.copyFromArray(chdata)
         grids.append(grid)
 
-    identifier = str(x_ix)+str(y_ix)+str(z_ix)
-    vdb.write(str(tif.with_name(tif.stem + identifier +".vdb")), grids=grids)
     
-    bpy.ops.object.volume_import(filepath=str(tif.with_name(tif.stem + identifier +".vdb")), align='WORLD', location=(0, 0, 0))
+    identifier = str(x_ix)+str(y_ix)+str(z_ix)
+    (tif.parents[0] / "blender_volumes/").mkdir(exist_ok=True)
+    fname = str(tif.parents[0] / f"blender_volumes/{tif.stem}_{identifier}.tif")
+    vdb.write(fname, grids=grids)
+    
+    bpy.ops.object.volume_import(filepath=fname, align='WORLD', location=(0, 0, 0))
+    # vdb.write(str(tif.with_name(tif.stem + identifier +".vdb")), grids=grids)
+    
+    # bpy.ops.object.volume_import(filepath=str(tif.with_name(tif.stem + identifier +".vdb")), align='WORLD', location=(0, 0, 0))
     return bpy.context.view_layer.objects.active
 
 def load_tif(input_file, xy_scale, z_scale, axes_order):
