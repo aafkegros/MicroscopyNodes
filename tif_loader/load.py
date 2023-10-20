@@ -11,10 +11,26 @@ import numpy as np
 import pyopenvdb as vdb
 from mathutils import Color
 
+def changePathTif(self, context):
+    print("Active tifname changed")
+    print(context.scene.path_tif)
+    try:
+        import tifffile
+        with tifffile.TiffFile(context.scene.path_tif) as ifstif:
+            # metadata = dict(ifstif.imagej_metadata)
+            context.scene.axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
+            context.scene.xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
+            context.scene.z_size = dict(ifstif.imagej_metadata)['spacing']
+        # print(metadata)
+    except Exception as e:
+        print('could not infer metadata', e)
+        pass
+    return
 
 bpy.types.Scene.path_tif = StringProperty(
         name="",
         description="tif file",
+        update=changePathTif,
         options = {'TEXTEDIT_UPDATE'},
         default="",
         maxlen=1024,
@@ -76,7 +92,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
-        metadata = dict(ifstif.imagej_metadata)
+        # metadata = dict(ifstif.imagej_metadata)
     if len(axes_order) != len(imgdata.shape):
         raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
