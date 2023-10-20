@@ -55,7 +55,7 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
     #    chdata = imgdata[:,:,:,ch].astype(np.float64)
         chdata = imgdata.take(indices=ch,axis=chax)
         slice_axes = axes_order.replace("c","")
-        print(slice_axes)
+        # print(slice_axes)
         chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
     #    chata = chdata
         
@@ -145,6 +145,8 @@ def add_init_material(name, volumes, imgdata, axes_order):
 
     lastnode, finalnode = None, None
     channels = imgdata.shape[axes_order.find('c')]
+    if axes_order.find('c') == -1:
+        channels = 1
     for channel in range(channels):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-500,-400*channel)
