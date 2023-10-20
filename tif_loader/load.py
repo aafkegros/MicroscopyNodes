@@ -14,7 +14,7 @@ from mathutils import Color
 
 bpy.types.Scene.path_tif = StringProperty(
         name="",
-        description="RGB tif file",
+        description="tif file",
         options = {'TEXTEDIT_UPDATE'},
         default="",
         maxlen=1024,
