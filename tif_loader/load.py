@@ -12,19 +12,31 @@ import pyopenvdb as vdb
 from mathutils import Color
 
 def changePathTif(self, context):
-    print("Active tifname changed")
-    print(context.scene.path_tif)
-    try:
+    # infers metadata, resets to default if not found
+    # the raise gets handled upstream, so only prints to cli, somehow.
+    try: 
         import tifffile
         with tifffile.TiffFile(context.scene.path_tif) as ifstif:
-            # metadata = dict(ifstif.imagej_metadata)
-            context.scene.axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
-            context.scene.xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
-            context.scene.z_size = dict(ifstif.imagej_metadata)['spacing']
-        # print(metadata)
+            try:
+                context.scene.axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
+            except Exception as e:
+                print(e)
+                context.scene.property_unset("axes_order")
+            try:
+                context.scene.xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
+            except Exception as e:
+                print(e)
+                context.scene.property_unset("xy_size")
+            try:
+                context.scene.z_size = dict(ifstif.imagej_metadata)['spacing']
+            except Exception as e:
+                print(e)
+                context.scene.property_unset("z_size")
     except Exception as e:
-        print('could not infer metadata', e)
-        pass
+        context.scene.property_unset("axes_order")
+        context.scene.property_unset("xy_size")
+        context.scene.property_unset("z_size")
+        raise
     return
 
 bpy.types.Scene.path_tif = StringProperty(
