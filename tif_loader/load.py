@@ -11,10 +11,38 @@ import numpy as np
 import pyopenvdb as vdb
 from mathutils import Color
 
+def changePathTif(self, context):
+    # infers metadata, resets to default if not found
+    # the raise gets handled upstream, so only prints to cli, somehow.
+    try: 
+        import tifffile
+        with tifffile.TiffFile(context.scene.path_tif) as ifstif:
+            try:
+                context.scene.axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
+            except Exception as e:
+                print(e)
+                context.scene.property_unset("axes_order")
+            try:
+                context.scene.xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
+            except Exception as e:
+                print(e)
+                context.scene.property_unset("xy_size")
+            try:
+                context.scene.z_size = dict(ifstif.imagej_metadata)['spacing']
+            except Exception as e:
+                print(e)
+                context.scene.property_unset("z_size")
+    except Exception as e:
+        context.scene.property_unset("axes_order")
+        context.scene.property_unset("xy_size")
+        context.scene.property_unset("z_size")
+        raise
+    return
 
 bpy.types.Scene.path_tif = StringProperty(
         name="",
         description="tif file",
+        update=changePathTif,
         options = {'TEXTEDIT_UPDATE'},
         default="",
         maxlen=1024,
@@ -76,7 +104,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
-        metadata = dict(ifstif.imagej_metadata)
+        # metadata = dict(ifstif.imagej_metadata)
     if len(axes_order) != len(imgdata.shape):
         raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
