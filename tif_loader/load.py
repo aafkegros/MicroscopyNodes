@@ -187,15 +187,15 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     for axix, ax in enumerate('xyz'):
         axnode.vector[axix] = imgdata.shape[axes_order.find(ax)]
     
-    initscale_node = nodes.new('ShaderNodeValue')
-    initscale_node.outputs[0].default_value = init_scale
+    initscale_node = nodes.new('FunctionNodeInputVector')
     initscale_node.name = 'init_scale'
-    initscale_node.label = "Scale on load (don't change)"
+    initscale_node.label = "Scale on load"
     initscale_node.location = (-600, 150)
+    initscale_node.vector = np.array([1,1,z_scale/xy_scale])*init_scale
 
     curscale_node = nodes.new("GeometryNodeObjectInfo")
     curscale_node.inputs[0].default_value = container
-    curscale_node.location = (-600, 50)
+    curscale_node.location = (-600, -50)
 
     scale_node = nodes.new('FunctionNodeInputVector')
     scale_node.name = 'input_scale'
