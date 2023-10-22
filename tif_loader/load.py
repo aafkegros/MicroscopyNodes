@@ -180,16 +180,13 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     nodes = node_group.nodes
     links = node_group.links
 
-    axnodes = []
-    for axix, ax in enumerate(axes_order):
-        if ax == 'c':
-            continue
-        axnode = nodes.new('FunctionNodeInputInt')
-        axnode.integer = imgdata.shape[axix]
-        axnode.name = ax + " pixels"
-        axnode.label = ax + " pixels"
-        axnode.location = (-200, -100*axix)
-        axnodes.append(axnode)
+    axnode = nodes.new('FunctionNodeInputVector')
+    axnode.name = "n pixels"
+    axnode.label = "n pixels"
+    axnode.location = (-200, 100)
+    for axix, ax in enumerate('xyz'):
+        axnode.vector[axix] = imgdata.shape[axes_order.find(ax)]
+    
     initscale_node = nodes.new('ShaderNodeValue')
     initscale_node.outputs[0].default_value = init_scale
     initscale_node.name = 'init_scale'
@@ -200,54 +197,45 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     curscale_node.inputs[0].default_value = container
     curscale_node.location = (-600, 50)
 
-    z_scale_node = nodes.new('ShaderNodeValue')
-    z_scale_node.outputs[0].default_value = z_scale
-    z_scale_node.name = 'z_scale'
-    z_scale_node.label = 'z scale (µm/px)'
-    z_scale_node.location = (-400, -200)
-
-    xy_scale_node = nodes.new('ShaderNodeValue')
-    xy_scale_node.outputs[0].default_value = xy_scale
-    xy_scale_node.name = 'xy_scale'
-    xy_scale_node.label = 'xy scale (µm/px)'
-    xy_scale_node.location = (-400, -300)
-
-    conversion_node = nodes.new('ShaderNodeVectorMath')
-    conversion_node.operation = "MULTIPLY"
-    conversion_node.name = 'conversion_factor'
-    conversion_node.label = 'µm per blender meter'
-    conversion_node.location = (-400, 150)
-    links.new(initscale_node.outputs[0], conversion_node.inputs[0])
-    links.new(curscale_node.outputs[2], conversion_node.inputs[1])
-
-    conversionXYZ_node = nodes.new('ShaderNodeSeparateXYZ')
-    conversionXYZ_node.name = 'conversion_factorXYZ'
-    conversionXYZ_node.label = 'µm per blender meter (XYZ)'
-    conversionXYZ_node.location = (-200, 150)
-    links.new(conversion_node.outputs[0], conversionXYZ_node.inputs[0])
-
-    for axix, ax in enumerate(axes_order):
-        if ax == 'c':
-            continue
-        axnode_um = nodes.new('ShaderNodeMath')
-        axnode_um.operation = "MULTIPLY"
-        axnode_um.name = ax + " (µm)"
-        axnode_um.label = ax + " (µm)"
-        axnode_um.location = (0, 100-200*axix)
-        links.new(axnodes[axix].outputs[0], axnode_um.inputs[0])
-        if ax == 'z':
-            links.new(xy_scale_node.outputs[0], axnode_um.inputs[1])
-        else:
-            links.new(z_scale_node.outputs[0], axnode_um.inputs[1])
+    scale_node = nodes.new('FunctionNodeInputVector')
+    scale_node.name = 'input_scale'
+    scale_node.label = 'scale (µm/px)'
+    scale_node.vector[0] = xy_scale
+    scale_node.vector[1] = xy_scale
+    scale_node.vector[2] = z_scale
+    scale_node.location = (-400, -200)
     
-        axnode_bm = nodes.new('ShaderNodeMath')
-        axnode_bm.operation = "MULTIPLY"
-        axnode_bm.name = ax + " (m)"
-        axnode_bm.label = ax + " (m)"
-        axnode_bm.location = (200, 100-200*axix)
-        links.new(axnode_um.outputs[0], axnode_bm.inputs[0])
-        links.new(conversionXYZ_node.outputs.get(ax.upper()), axnode_bm.inputs[1])
-        
+    m_px_node = nodes.new('ShaderNodeVectorMath')
+    m_px_node.operation = "MULTIPLY"
+    m_px_node.name = 'm per px'
+    m_px_node.label = 'm per pixel'
+    m_px_node.location = (-400, 150)
+    links.new(initscale_node.outputs[0], m_px_node.inputs[0])
+    links.new(curscale_node.outputs[2], m_px_node.inputs[1])
+
+    m_um_node = nodes.new('ShaderNodeVectorMath')
+    m_um_node.operation = "DIVIDE"
+    m_um_node.name = 'm per um'
+    m_um_node.label = 'm per µm'
+    m_um_node.location = (-400, 0)
+    links.new(m_px_node.outputs[0], m_um_node.inputs[0])
+    links.new(scale_node.outputs[0], m_um_node.inputs[1])
+
+    axnode_um = nodes.new('ShaderNodeVectorMath')
+    axnode_um.operation = "MULTIPLY"
+    axnode_um.name = "size (µm)"
+    axnode_um.label = "size (µm)"
+    axnode_um.location = (0, 100)
+    links.new(axnode.outputs[0], axnode_um.inputs[0])
+    links.new(scale_node.outputs[0], axnode_um.inputs[1])
+    
+    axnode_bm = nodes.new('ShaderNodeVectorMath')
+    axnode_bm.operation = "MULTIPLY"
+    axnode_bm.name = "size (m)"
+    axnode_bm.label = "size (m)"
+    axnode_bm.location = (0, -50)
+    links.new(axnode.outputs[0], axnode_bm.inputs[0])
+    links.new(m_px_node.outputs[0], axnode_bm.inputs[1])
 
     return container
 
