@@ -107,6 +107,7 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
 def load_tif(input_file, xy_scale, z_scale, axes_order):
     import tifffile
     tif = Path(input_file)
+    init_scale = 0.02
 
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
@@ -142,7 +143,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
                 vol = make_and_load_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, tif, z_scale, xy_scale)
                 bbox = np.array([c_chunk.shape[xyz[0]],c_chunk.shape[xyz[1]],c_chunk.shape[xyz[2]]])
-                scale = np.array([1,1,z_scale/xy_scale])*0.02
+                scale = np.array([1,1,z_scale/xy_scale])*init_scale
                 vol.scale = scale
                 print(c_ix, b_ix, a_ix)
                 offset = np.array([a_ix,b_ix,c_ix])
@@ -153,20 +154,96 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
     # recenter x, y, keep z at bottom
     center = np.array([0.5,0.5,0]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
-    empty = bpy.ops.object.empty_add(location=tuple(center*0.02))
+    container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*init_scale))
 
-    empty = bpy.context.view_layer.objects.active
-    empty.name = str(tif.name) + " container" 
+    container = bpy.context.view_layer.objects.active
+    container = init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale)
 
-    for vol in volumes:
-        vol.parent = empty
-        vol.matrix_parent_inverse = empty.matrix_world.inverted()
     add_init_material(str(tif.name), volumes, imgdata, axes_order)
-    empty.location = (0,0,0)
-
+    
     print('done')
     return
 
+
+def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale):
+    container.name = str(tif.name) + " container" 
+    for vol in volumes:
+        vol.parent = container
+        vol.matrix_parent_inverse = container.matrix_world.inverted()
+    
+    container.location = (0,0,0)
+    bpy.ops.object.modifier_add(type='NODES')
+    node_group = bpy.data.node_groups.new('GeometryNodes', 'GeometryNodeTree')  
+    outnode = node_group.nodes.new('NodeGroupOutput')
+    outnode.location = (800,0)
+    container.modifiers[-1].node_group = node_group
+    nodes = node_group.nodes
+    links = node_group.links
+
+    axnodes = []
+    for axix, ax in enumerate(axes_order):
+        if ax == 'c':
+            continue
+        axnode = nodes.new('FunctionNodeInputInt')
+        axnode.integer = imgdata.shape[axix]
+        axnode.name = ax + " pixels"
+        axnode.label = ax + " pixels"
+        axnode.location = (-200, -100*axix)
+        axnodes.append(axnode)
+    initscale_node = nodes.new('ShaderNodeValue')
+    initscale_node.outputs[0].default_value = init_scale
+    initscale_node.name = 'init_scale'
+    initscale_node.label = "Scale on load (don't change)"
+    initscale_node.location = (-400, 150)
+
+    curscale_node = nodes.new("GeometryNodeObjectInfo")
+    curscale_node.inputs[0].default_value = container
+    curscale_node.location = (-400, 50)
+
+    z_scale_node = nodes.new('ShaderNodeValue')
+    z_scale_node.outputs[0].default_value = z_scale
+    z_scale_node.name = 'z_scale'
+    z_scale_node.label = 'z scale (µm/px)'
+    z_scale_node.location = (-400, -200)
+
+    xy_scale_node = nodes.new('ShaderNodeValue')
+    xy_scale_node.outputs[0].default_value = xy_scale
+    xy_scale_node.name = 'xy_scale'
+    xy_scale_node.label = 'xy scale (µm/px)'
+    xy_scale_node.location = (-400, -300)
+
+    conversion_node = nodes.new('ShaderNodeVectorMath')
+    conversion_node.operation = "MULTIPLY"
+    conversion_node.name = 'conversion_factor'
+    conversion_node.label = 'µm per blender meter'
+    conversion_node.location = (-200, 150)
+    links.new(initscale_node.outputs[0], conversion_node.inputs[0])
+    links.new(curscale_node.outputs[2], conversion_node.inputs[1])
+
+    for axix, ax in enumerate(axes_order):
+        if ax == 'c':
+            continue
+        axnode_um = nodes.new('ShaderNodeVectorMath')
+        axnode_um.operation = "MULTIPLY"
+        axnode_um.name = ax + " (µm)"
+        axnode_um.label = ax + " (µm)"
+        axnode_um.location = (0, 100-150*axix)
+        links.new(axnodes[axix].outputs[0], axnode_um.inputs[0])
+        if ax == 'z':
+            links.new(xy_scale_node.outputs[0], axnode_um.inputs[1])
+        else:
+            links.new(z_scale_node.outputs[0], axnode_um.inputs[1])
+    
+        axnode_bm = nodes.new('ShaderNodeVectorMath')
+        axnode_bm.operation = "MULTIPLY"
+        axnode_bm.name = ax + " (m)"
+        axnode_bm.label = ax + " (m)"
+        axnode_bm.location = (200, 100-150*axix)
+        links.new(axnode_um.outputs[0], axnode_bm.inputs[0])
+        links.new(conversion_node.outputs[0], axnode_bm.inputs[1])
+        
+
+    return container
 
 
 def add_init_material(name, volumes, imgdata, axes_order):
