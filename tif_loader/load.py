@@ -167,6 +167,8 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
 def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale):
     container.name = str(tif.name) + " container" 
+    container.data.name = str(tif.name) + " container" 
+
     for vol in volumes:
         vol.parent = container
         vol.matrix_parent_inverse = container.matrix_world.inverted()
