@@ -31,7 +31,7 @@ Install the `tif loader` Add-On:
 This should create the `tif loader` panel in `Scene Properties`.
 
 ## Using `tif loader`
-Load in tif-files in the file explorer. 
+Load in tif-files in the file explorer from the panel in `Scene Properties`. 
 - currently 3D and 4D (3D + channel) tifs are supported. 
 - Axes order and pixel size will be attempted to be read out automatically
 - Unthresholded initial volumetric emission material is applied
