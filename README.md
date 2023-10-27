@@ -27,6 +27,7 @@ Install the `tif loader` Add-On:
 - Press `Install` and give the `tif_loader.zip` file (as .zip)
 - In the added `tif loader` add-on window in `Preferences`: press the tick box to enable, and the arrow to unfold the details
 - in the details press `install tifffile`
+- (if this fails please try restarting blender and seeing if it can then find `tifffile`)
 
 This should create the `tif loader` panel in `Scene Properties`.
 
