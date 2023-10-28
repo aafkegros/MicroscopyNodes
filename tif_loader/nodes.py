@@ -3,12 +3,10 @@ import numpy as np
 
 #initialize gridbox node group
 def gridbox_node_group():
-    gridbox= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "bgridbox2")
+    gridbox= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "scalebox")
     links = gridbox.links
     
     # -- get IO --
-    #gridbox inputs
-    #input Vector
     gridbox.inputs.new('NodeSocketVector', "size (m)")
     gridbox.inputs[-1].default_value = (13.0, 10.0, 6.0)
     gridbox.inputs[-1].min_value = 0.0
@@ -176,6 +174,8 @@ def gridbox_node_group():
             finals.append(set_pos)
     for final in reversed(finals):            
         links.new(final.outputs[0], join_geo.inputs[0])
+    
+    # set final nodes to right position
     
     pos =  gridbox.nodes.new("GeometryNodeInputPosition")
     pos.location = (2100, -100)
