@@ -3,7 +3,7 @@ import numpy as np
 
 #initialize gridbox node group
 def gridbox_node_group():
-    gridbox= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "agridbox2")
+    gridbox= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "bgridbox2")
     links = gridbox.links
     
     # -- get IO --
@@ -16,22 +16,14 @@ def gridbox_node_group():
     gridbox.inputs[-1].attribute_domain = 'POINT'
     
     gridbox.inputs.new('NodeSocketVector', "size (µm)")
-    gridbox.inputs[-1].default_value = (7.0, 7.0, 7.0)
+    gridbox.inputs[-1].default_value = (7.0, 5.0, 4.0)
     gridbox.inputs[-1].min_value = 0.0
     gridbox.inputs[-1].max_value = 10000000.0
     gridbox.inputs[-1].attribute_domain = 'POINT'
 
-    
-    #input m per µm
-    gridbox.inputs.new('NodeSocketFloat', "m per µm")
-    gridbox.inputs[-1].default_value = 1.0
-    gridbox.inputs[-1].min_value = 0.0
-    gridbox.inputs[-1].max_value = 3.4028234663852886e+38
-    gridbox.inputs[-1].attribute_domain = 'POINT'
-    
      #input µm per tick
     gridbox.inputs.new('NodeSocketFloat', "µm per tick")
-    gridbox.inputs[-1].default_value = 1.0
+    gridbox.inputs[-1].default_value = 1
     gridbox.inputs[-1].min_value = 0.0
     gridbox.inputs[-1].max_value = 3.4028234663852886e+38
     gridbox.inputs[-1].attribute_domain = 'POINT'
@@ -65,36 +57,58 @@ def gridbox_node_group():
     links.new(group_input.outputs.get("size (m)"), loc_max.inputs[0])
     loc_max.inputs[1].default_value = (0.5,0.5,1)
     
+    m_per_µm =  gridbox.nodes.new("ShaderNodeVectorMath")
+    m_per_µm.operation = "DIVIDE"
+    m_per_µm.location = (-600, -300)
+    m_per_µm.label = "m per µm"
+    links.new(group_input.outputs.get("size (m)"), m_per_µm.inputs[0])
+    links.new(group_input.outputs.get("size (µm)"), m_per_µm.inputs[1])
+    
     µm_ticks_float =  gridbox.nodes.new("ShaderNodeVectorMath")
     µm_ticks_float.operation = "DIVIDE"
-    µm_ticks_float.location = (-600, 100)
+    µm_ticks_float.location = (-600, 200)
     µm_ticks_float.label = "float-nr of ticks"
     links.new(group_input.outputs.get("size (µm)"), µm_ticks_float.inputs[0])
     links.new(group_input.outputs.get("µm per tick"), µm_ticks_float.inputs[1])
 
-    µm_ticks_int =  gridbox.nodes.new("ShaderNodeVectorMath")
-    µm_ticks_int.operation = "FLOOR"
-    µm_ticks_int.location = (-450, 100)
-    µm_ticks_int.label = "nr of ticks"
-    links.new(µm_ticks_float.outputs[0], µm_ticks_int.inputs[0])
+    n_ticks_int =  gridbox.nodes.new("ShaderNodeVectorMath")
+    n_ticks_int.operation = "CEIL"
+    n_ticks_int.location = (-450, 200)
+    n_ticks_int.label = "nr of ticks"
+    links.new(µm_ticks_float.outputs[0], n_ticks_int.inputs[0])
+     
+    ticks_offset =  gridbox.nodes.new("ShaderNodeVectorMath")
+    ticks_offset.operation = "ADD"
+    ticks_offset.location = (-300, 200)
+    ticks_offset.label = "add 0th tick"
+    links.new(n_ticks_int.outputs[0], ticks_offset.inputs[0])
+    ticks_offset.inputs[1].default_value = (1,1,1)
     
-    µm_ticks_int =  gridbox.nodes.new("ShaderNodeVectorMath")
-    µm_ticks_int.operation = "CEIL"
-    µm_ticks_int.location = (-450, 100)
-    µm_ticks_int.label = "nr of ticks"
-    links.new(µm_ticks_float.outputs[0], µm_ticks_int.inputs[0])
     
+       
+    µm_overshoot =  gridbox.nodes.new("ShaderNodeVectorMath")
+    µm_overshoot.operation = "MULTIPLY"
+    µm_overshoot.location = (-450, 000)
+    µm_overshoot.label = "µm full grid"
+    links.new(n_ticks_int.outputs[0], µm_overshoot.inputs[0])
+    links.new(group_input.outputs.get("µm per tick"), µm_overshoot.inputs[1])
+   
     size_overshoot =  gridbox.nodes.new("ShaderNodeVectorMath")
     size_overshoot.operation = "MULTIPLY"
     size_overshoot.location = (-300, 0)
     size_overshoot.label = "overshoot size vec"
-    links.new(µm_ticks_int.outputs[0], size_overshoot.inputs[0])
-    links.new(group_input.outputs.get("m per µm"), size_overshoot.inputs[1])
+    links.new(µm_overshoot.outputs[0], size_overshoot.inputs[0])
+    links.new(m_per_µm.outputs[0], size_overshoot.inputs[1])
     
     size_overshootXYZ =  gridbox.nodes.new("ShaderNodeSeparateXYZ")
     size_overshootXYZ.location = (-150, 0)
     size_overshootXYZ.label = "grid size"
     links.new(size_overshoot.outputs[0], size_overshootXYZ.inputs[0])
+    
+    n_ticksXYZ =  gridbox.nodes.new("ShaderNodeSeparateXYZ")
+    n_ticksXYZ.location = (-150, 200)
+    n_ticksXYZ.label = "n ticks"
+    links.new(ticks_offset.outputs[0], n_ticksXYZ.inputs[0])
     
     
     # make principal box
@@ -108,6 +122,7 @@ def gridbox_node_group():
             for which, axis in enumerate("xyz"):
                 if axis in ax:
                     links.new(size_overshootXYZ.outputs[which], grid.inputs[ax.find(axis)])
+                    links.new(n_ticksXYZ.outputs[which], grid.inputs[ax.find(axis)+2])
                     
             
             transform = gridbox.nodes.new("GeometryNodeTransform")
@@ -134,14 +149,7 @@ def gridbox_node_group():
             elif ax == 'zx':
                 rot = [0,-0.5,-0.5]
             transform.inputs.get("Rotation").default_value = tuple(np.array(rot)*np.pi)
-#            rot = shift/2
-##            if np.array_equal(shift,np.array([0,0,0])):
-##                shift = np.array([0,1,0]) #flip bottom
-#            if side == 'top':
-#                rot += np.array([0, 0, 0.5])
-#                rot = rot * -1
-#            rot = rot * np.pi
-#            transform.inputs.get("Rotation").default_value = tuple(rot)
+
             
             # translocate 0,0 to be accurate for each
             bbox = gridbox.nodes.new("GeometryNodeBoundBox")
@@ -166,7 +174,7 @@ def gridbox_node_group():
             
             for locix,node in enumerate([grid,pretransform, transform,bbox,top, find_0, set_pos]):
                 nodeix = (sideix*3)+axix
-                node.location = (200*locix, 300*2.5 + nodeix * -300)
+                node.location = (200*locix + 200, 300*2.5 + nodeix * -300)
             finals.append(set_pos)
     for final in reversed(finals):            
         links.new(final.outputs[0], join_geo.inputs[0])
