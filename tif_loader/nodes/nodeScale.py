@@ -11,14 +11,14 @@ def scale_node_group():
     links = scale.links
     
     # -- get Input --
-    scale.inputs.new('NodeSocketVector', "size (m)")
-    scale.inputs[-1].default_value = (13.0, 10.0, 6.0)
+    scale.inputs.new('NodeSocketVector', "size (µm)")
+    scale.inputs[-1].default_value = (7.0, 5.0, 4.0)
     scale.inputs[-1].min_value = 0.0
     scale.inputs[-1].max_value = 10000000.0
     scale.inputs[-1].attribute_domain = 'POINT'
-    
-    scale.inputs.new('NodeSocketVector', "size (µm)")
-    scale.inputs[-1].default_value = (7.0, 5.0, 4.0)
+
+    scale.inputs.new('NodeSocketVector', "size (m)")
+    scale.inputs[-1].default_value = (13.0, 10.0, 6.0)
     scale.inputs[-1].min_value = 0.0
     scale.inputs[-1].max_value = 10000000.0
     scale.inputs[-1].attribute_domain = 'POINT'
