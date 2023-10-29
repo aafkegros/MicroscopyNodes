@@ -10,6 +10,7 @@ import pip
 import numpy as np
 import pyopenvdb as vdb
 from mathutils import Color
+from .nodes.nodeScale import scale_node_group
 
 def changePathTif(self, context):
     # infers metadata, resets to default if not found
@@ -166,8 +167,8 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
 
 def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale):
-    container.name = str(tif.name) + " container" 
-    container.data.name = str(tif.name) + " container" 
+    container.name = "container of " + str(tif.name) 
+    container.data.name = "container of " + str(tif.name) 
 
     for vol in volumes:
         vol.parent = container
@@ -238,6 +239,12 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     axnode_bm.location = (0, -50)
     links.new(axnode.outputs[0], axnode_bm.inputs[0])
     links.new(m_px_node.outputs[0], axnode_bm.inputs[1])
+
+    scale_node = nodes.new('GeometryNodeGroup')
+    scale_node.node_tree = scale_node_group()
+    links.new(axnode_bm.outputs[0], scale_node.inputs.get('size (m)'))
+    links.new(axnode_um.outputs[0], scale_node.inputs.get('size (µm)'))
+    links.new(scale_node.outputs[0], outnode.inputs[0])
 
     return container
 

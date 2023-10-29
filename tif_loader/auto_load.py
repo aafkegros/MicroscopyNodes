@@ -23,6 +23,7 @@ def init():
     global ordered_classes
 
     modules = get_all_submodules(Path(__file__).parent)
+    print(modules)
     ordered_classes = get_ordered_classes_to_register(modules)
 
 def register():
