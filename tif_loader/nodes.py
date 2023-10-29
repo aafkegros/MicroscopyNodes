@@ -303,9 +303,6 @@ def grid_verts_node_group():
     group_output.location = (800,100)
     links.new(nornode.outputs[0], group_output.inputs[0])
     return grid_verts
-
-# grid_verts = grid_verts_node_group()
-
 import bpy
 import numpy as np
 
@@ -403,13 +400,61 @@ def scale_node_group():
     and_grid.location = (-320, 0)
     
     # -- scale down thickness --
-    thickness =  scale.nodes.new("ShaderNodeVectorMath")
+    thickness =  scale.nodes.new("ShaderNodeMath")
     thickness.operation = "DIVIDE"
     thickness.location = (-500, -300)
     thickness.label = "line thickness scaled down"
     links.new(group_input.outputs.get("line thickness"), thickness.inputs[0])
-    thickness.inputs[1].default_value = (100,100,100)
+    thickness.inputs[1].default_value = 100
     
+    # -- make ticks -- 
+    tick_size =  scale.nodes.new("ShaderNodeMath")
+    tick_size.operation = "MULTIPLY"
+    tick_size.location = (-500, -500)
+    tick_size.label = "tick length per direction"
+    links.new(thickness.outputs[0], tick_size.inputs[0])
+    links.new(group_input.outputs.get('tick size'), tick_size.inputs[1])
+    
+    cubes = []
+    for axix, ax in enumerate("XYZ"):
+        comb = scale.nodes.new("ShaderNodeCombineXYZ")
+        comb.location = (-200, -300 - 200*axix)
+        for i in range(3):
+            links.new(thickness.outputs[0], comb.inputs[i])
+        links.new(tick_size.outputs[0], comb.inputs[axix])
+        cube = scale.nodes.new("GeometryNodeMeshCube")
+        cube.location = (0, -300 - 200*axix)
+        links.new(comb.outputs[0], cube.inputs[0])
+        cubes.append(cube)
+        
+    join_tick = scale.nodes.new("GeometryNodeJoinGeometry")
+    join_tick.location = (300, -500)
+    for cube in reversed(cubes):
+        links.new(cube.outputs[0], join_tick.inputs[0])
+        
+    # -- instantiate ticks -- 
+    iop = scale.nodes.new("GeometryNodeInstanceOnPoints")
+    iop.location = (500, 100)
+    links.new(cap_normal.outputs[0], iop.inputs[0])
+    links.new(join_tick.outputs[0], iop.inputs[2])
+    
+    delgridticks =  scale.nodes.new("GeometryNodeDeleteGeometry")
+    delgridticks.domain = 'INSTANCE'
+    delgridticks.location = (700, 100)
+    links.new(iop.outputs[0], delgridticks.inputs[0])
+    links.new(grid_verts.outputs[0], delgridticks.inputs.get("Selection"))
+    
+    realize =  scale.nodes.new("GeometryNodeRealizeInstances")
+    realize.location = (900, 100)
+    links.new(delgridticks.outputs[0], realize.inputs[0])
+
+    store_normaltick =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
+    store_normaltick.inputs.get("Name").default_value = "orig_normal"
+    store_normaltick.data_type = 'FLOAT_VECTOR'
+    store_normaltick.domain = 'POINT'
+    store_normaltick.location = (1100, 100)
+    links.new(realize.outputs[0], store_normaltick.inputs[0])
+    links.new(cap_normal.outputs[1], store_normaltick.inputs.get("Value"))
     
     
     # -- make edges --
@@ -434,19 +479,20 @@ def scale_node_group():
     c2m.location = (800, 500)
     links.new(m2c.outputs[0], c2m.inputs[0])
     links.new(profile.outputs[0], c2m.inputs[1])
+
     
-    # -- output and final steps -- 
-    
+    # -- output and passthrough values -- 
     join =  scale.nodes.new("GeometryNodeJoinGeometry")
-    join.location = (1000, 0)
+    join.location = (1400, 0)
     links.new(c2m.outputs[0], join.inputs[0])
+    links.new(store_normaltick.outputs[0], join.inputs[-1])
     
     culling =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
     culling.label = "passthrough frontface culling to shader"
     culling.inputs.get("Name").default_value = "frontface culling"
     culling.data_type = 'BOOLEAN'
     culling.domain = 'POINT'
-    culling.location = (1200, 10)
+    culling.location = (1600, 10)
     links.new(join.outputs[0], culling.inputs[0])
     links.new(group_input.outputs.get('frontface culling'), culling.inputs[6])
      
@@ -455,21 +501,20 @@ def scale_node_group():
     color.inputs.get("Name").default_value = "color"
     color.data_type = 'FLOAT_COLOR'
     color.domain = 'POINT'
-    color.location = (1400, 0)
+    color.location = (1800, 0)
     links.new(culling.outputs[0], color.inputs[0])
     links.new(group_input.outputs.get('Color'), color.inputs[5])
     
     material = scale.nodes.new("GeometryNodeSetMaterial")
-    material.location = (1600,0)
+    material.location = (2000,0)
     links.new(color.outputs[0], material.inputs[0])
     
     scale.outputs.new('NodeSocketGeometry', "Geometry")
     scale.outputs[0].attribute_domain = 'POINT'
     group_output = scale.nodes.new("NodeGroupOutput")
-    group_output.location = (1800,0)
+    group_output.location = (2200,0)
     links.new(material.outputs[0], group_output.inputs[0])
-#    links.new(profile.outputs[0], delgrid.inputs.get("Selection"))
-    
+
 
     return scale
 
