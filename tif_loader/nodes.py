@@ -306,3 +306,172 @@ def grid_verts_node_group():
 
 # grid_verts = grid_verts_node_group()
 
+import bpy
+import numpy as np
+
+#initialize scale node group
+def scale_node_group():
+    scale= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "Overgroup_scale")
+    links = scale.links
+    
+    # -- get Input --
+    scale.inputs.new('NodeSocketVector', "size (m)")
+    scale.inputs[-1].default_value = (13.0, 10.0, 6.0)
+    scale.inputs[-1].min_value = 0.0
+    scale.inputs[-1].max_value = 10000000.0
+    scale.inputs[-1].attribute_domain = 'POINT'
+    
+    scale.inputs.new('NodeSocketVector', "size (µm)")
+    scale.inputs[-1].default_value = (7.0, 5.0, 4.0)
+    scale.inputs[-1].min_value = 0.0
+    scale.inputs[-1].max_value = 10000000.0
+    scale.inputs[-1].attribute_domain = 'POINT'
+
+    scale.inputs.new('NodeSocketFloat', "µm per tick")
+    scale.inputs[-1].default_value = 3
+    scale.inputs[-1].min_value = 0.0
+    scale.inputs[-1].max_value = 3.4028234663852886e+38
+    scale.inputs[-1].attribute_domain = 'POINT'
+    
+    scale.inputs.new('NodeSocketBool', "grid")
+    scale.inputs[-1].default_value = True
+    scale.inputs[-1].attribute_domain = 'POINT'
+    
+    scale.inputs.new('NodeSocketFloat', "line thickness")
+    scale.inputs[-1].default_value = 3.0
+    scale.inputs[-1].min_value = 0.0
+    scale.inputs[-1].max_value = 3.4028234663852886e+38
+    scale.inputs[-1].attribute_domain = 'POINT'
+    
+    scale.inputs.new('NodeSocketFloat', "tick size")
+    scale.inputs[-1].default_value = 15.0
+    scale.inputs[-1].min_value = 0.0
+    scale.inputs[-1].max_value = 3.4028234663852886e+38
+    scale.inputs[-1].attribute_domain = 'POINT'
+    
+    scale.inputs.new('NodeSocketBool', "frontface culling")
+    scale.inputs[-1].default_value = True
+    scale.inputs[-1].attribute_domain = 'POINT'
+    
+    scale.inputs.new('NodeSocketColor', "Color")
+    scale.inputs[-1].default_value = (1,1,1, 1)
+    
+    group_input = scale.nodes.new("NodeGroupInput")
+    group_input.location = (-1000,0)
+
+    # -- make scale box and read out/store normals
+    scalebox = scale.nodes.new('GeometryNodeGroup')
+    scalebox.node_tree = bpy.data.node_groups["scalebox"]
+    scalebox.location = (-500, 500)
+    links.new(group_input.outputs.get("size (m)"), scalebox.inputs.get("size (m)"))
+    links.new(group_input.outputs.get("size (µm)"), scalebox.inputs.get("size (µm)"))
+    links.new(group_input.outputs.get("µm per tick"), scalebox.inputs.get("µm per tick"))
+     
+    normal = scale.nodes.new("GeometryNodeInputNormal")
+    normal.location = (-320, 450)
+    
+    store_normal =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
+    store_normal.inputs.get("Name").default_value = "orig_normal"
+    store_normal.data_type = 'FLOAT_VECTOR'
+    store_normal.domain = 'EDGE'
+    store_normal.location = (-150, 700)
+    links.new(scalebox.outputs[0], store_normal.inputs[0])
+    links.new(normal.outputs[0], store_normal.inputs.get("Value"))
+
+    cap_normal =  scale.nodes.new("GeometryNodeCaptureAttribute")
+    cap_normal.data_type = 'FLOAT_VECTOR'
+    cap_normal.domain = 'POINT'
+    cap_normal.location = (-150, 400)
+    links.new(scalebox.outputs[0], cap_normal.inputs[0])
+    links.new(normal.outputs[0], cap_normal.inputs.get("Value"))
+    
+    # -- read out grid positions --
+    grid_verts = scale.nodes.new('GeometryNodeGroup')
+    grid_verts.node_tree = bpy.data.node_groups["grid_verts.021"]
+    grid_verts.location = (-500, 100)
+    links.new(group_input.outputs.get("size (m)"), grid_verts.inputs.get("size (m)"))
+    
+    not_grid = scale.nodes.new("FunctionNodeBooleanMath")
+    not_grid.operation = 'NOT'
+    links.new(group_input.outputs.get("grid"), not_grid.inputs[0])
+    not_grid.location = (-500, -100)
+    
+    and_grid = scale.nodes.new("FunctionNodeBooleanMath")
+    and_grid.operation = 'AND'
+    links.new(grid_verts.outputs[0], and_grid.inputs[0])
+    links.new(not_grid.outputs[0], and_grid.inputs[1])
+    and_grid.location = (-320, 0)
+    
+    # -- scale down thickness --
+    thickness =  scale.nodes.new("ShaderNodeVectorMath")
+    thickness.operation = "DIVIDE"
+    thickness.location = (-500, -300)
+    thickness.label = "line thickness scaled down"
+    links.new(group_input.outputs.get("line thickness"), thickness.inputs[0])
+    thickness.inputs[1].default_value = (100,100,100)
+    
+    
+    
+    # -- make edges --
+    delgrid =  scale.nodes.new("GeometryNodeDeleteGeometry")
+    delgrid.mode = 'ALL'
+    delgrid.domain = 'POINT'
+    delgrid.location = (400, 600)
+    links.new(store_normal.outputs[0], delgrid.inputs[0])
+    links.new(and_grid.outputs[0], delgrid.inputs.get("Selection"))
+    
+    m2c =  scale.nodes.new("GeometryNodeMeshToCurve")
+    m2c.location = (600, 600)
+    links.new(delgrid.outputs[0], m2c.inputs[0])
+    
+    profile = scale.nodes.new("GeometryNodeCurvePrimitiveQuadrilateral")
+    profile.location = (600, 400)
+    profile.mode = "RECTANGLE"
+    links.new(thickness.outputs[0], profile.inputs[0])
+    links.new(thickness.outputs[0], profile.inputs[1])
+    
+    c2m =  scale.nodes.new("GeometryNodeCurveToMesh")
+    c2m.location = (800, 500)
+    links.new(m2c.outputs[0], c2m.inputs[0])
+    links.new(profile.outputs[0], c2m.inputs[1])
+    
+    # -- output and final steps -- 
+    
+    join =  scale.nodes.new("GeometryNodeJoinGeometry")
+    join.location = (1000, 0)
+    links.new(c2m.outputs[0], join.inputs[0])
+    
+    culling =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
+    culling.label = "passthrough frontface culling to shader"
+    culling.inputs.get("Name").default_value = "frontface culling"
+    culling.data_type = 'BOOLEAN'
+    culling.domain = 'POINT'
+    culling.location = (1200, 10)
+    links.new(join.outputs[0], culling.inputs[0])
+    links.new(group_input.outputs.get('frontface culling'), culling.inputs[6])
+     
+    color =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
+    color.label = "passthrough color to shader"
+    color.inputs.get("Name").default_value = "color"
+    color.data_type = 'FLOAT_COLOR'
+    color.domain = 'POINT'
+    color.location = (1400, 0)
+    links.new(culling.outputs[0], color.inputs[0])
+    links.new(group_input.outputs.get('Color'), color.inputs[5])
+    
+    material = scale.nodes.new("GeometryNodeSetMaterial")
+    material.location = (1600,0)
+    links.new(color.outputs[0], material.inputs[0])
+    
+    scale.outputs.new('NodeSocketGeometry', "Geometry")
+    scale.outputs[0].attribute_domain = 'POINT'
+    group_output = scale.nodes.new("NodeGroupOutput")
+    group_output.location = (1800,0)
+    links.new(material.outputs[0], group_output.inputs[0])
+#    links.new(profile.outputs[0], delgrid.inputs.get("Selection"))
+    
+
+    return scale
+
+scale = scale_node_group()
+
