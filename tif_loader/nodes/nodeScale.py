@@ -148,29 +148,32 @@ def scale_node_group():
         links.new(cube.outputs[0], join_tick.inputs[0])
         
     # -- instantiate ticks -- 
+    merge = scale.nodes.new("GeometryNodeMergeByDistance")
+    links.new(cap_normal.outputs[0], merge.inputs[0])
+    merge.location = (250, 100)
+
+    ax_grid = scale.nodes.new("FunctionNodeBooleanMath")
+    ax_grid.operation = 'NOT'
+    links.new(grid_verts.outputs[0], ax_grid.inputs[0])
+    ax_grid.location = (-250, -100)
+
     iop = scale.nodes.new("GeometryNodeInstanceOnPoints")
     iop.location = (500, 100)
-    links.new(cap_normal.outputs[0], iop.inputs[0])
+    links.new(merge.outputs[0], iop.inputs[0])
+    links.new(ax_grid.outputs[0], iop.inputs[1])
     links.new(join_tick.outputs[0], iop.inputs[2])
     
-    delgridticks =  scale.nodes.new("GeometryNodeDeleteGeometry")
-    delgridticks.domain = 'INSTANCE'
-    delgridticks.location = (700, 100)
-    links.new(iop.outputs[0], delgridticks.inputs[0])
-    links.new(grid_verts.outputs[0], delgridticks.inputs.get("Selection"))
-    
-    realize =  scale.nodes.new("GeometryNodeRealizeInstances")
-    realize.location = (900, 100)
-    links.new(delgridticks.outputs[0], realize.inputs[0])
-
     store_normaltick =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
     store_normaltick.inputs.get("Name").default_value = "orig_normal"
     store_normaltick.data_type = 'FLOAT_VECTOR'
-    store_normaltick.domain = 'POINT'
-    store_normaltick.location = (1100, 100)
-    links.new(realize.outputs[0], store_normaltick.inputs[0])
+    store_normaltick.domain = 'INSTANCE'
+    store_normaltick.location = (750, 100)
+    links.new(iop.outputs[0], store_normaltick.inputs[0])
     links.new(cap_normal.outputs[1], store_normaltick.inputs.get("Value"))
     
+    realize =  scale.nodes.new("GeometryNodeRealizeInstances")
+    realize.location = (900, 100)
+    links.new(store_normaltick.outputs[0], realize.inputs[0])
     
     # -- make edges --
     delgrid =  scale.nodes.new("GeometryNodeDeleteGeometry")
@@ -200,7 +203,7 @@ def scale_node_group():
     join =  scale.nodes.new("GeometryNodeJoinGeometry")
     join.location = (1400, 0)
     links.new(c2m.outputs[0], join.inputs[0])
-    links.new(store_normaltick.outputs[0], join.inputs[-1])
+    links.new(realize.outputs[0], join.inputs[-1])
     
     culling =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
     culling.label = "passthrough frontface culling to shader"
