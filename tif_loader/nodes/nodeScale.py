@@ -4,10 +4,10 @@ from .nodeScaleBox import scalebox_node_group
 from .nodeGridVerts import grid_verts_node_group
 #initialize scale node group
 def scale_node_group():
-    node_group = bpy.data.node_groups.get("Scale_bars")
+    node_group = bpy.data.node_groups.get("Scale bars")
     if node_group:
         return node_group
-    scale= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "Scale_bars")
+    scale= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "Scale bars")
     links = scale.links
     
     # -- get Input --
@@ -34,17 +34,23 @@ def scale_node_group():
     scale.inputs[-1].attribute_domain = 'POINT'
     
     scale.inputs.new('NodeSocketFloat', "line thickness")
-    scale.inputs[-1].default_value = 3.0
+    scale.inputs[-1].default_value = 0.2
     scale.inputs[-1].min_value = 0.0
     scale.inputs[-1].max_value = 3.4028234663852886e+38
     scale.inputs[-1].attribute_domain = 'POINT'
     
     scale.inputs.new('NodeSocketFloat', "tick size")
-    scale.inputs[-1].default_value = 4.0
+    scale.inputs[-1].default_value = 15.0
     scale.inputs[-1].min_value = 0.0
     scale.inputs[-1].max_value = 3.4028234663852886e+38
     scale.inputs[-1].attribute_domain = 'POINT'
     
+    scale.inputs.new('NodeSocketFloat', "tick thickness")
+    scale.inputs[-1].default_value = 3.0
+    scale.inputs[-1].min_value = 0.0
+    scale.inputs[-1].max_value = 3.4028234663852886e+38
+    scale.inputs[-1].attribute_domain = 'POINT'
+
     scale.inputs.new('NodeSocketBool', "frontface culling")
     scale.inputs[-1].default_value = True
     scale.inputs[-1].attribute_domain = 'POINT'
@@ -104,25 +110,32 @@ def scale_node_group():
     # -- scale down thickness --
     thickness =  scale.nodes.new("ShaderNodeMath")
     thickness.operation = "DIVIDE"
-    thickness.location = (-500, -300)
+    thickness.location = (-500, -200)
     thickness.label = "line thickness scaled down"
     links.new(group_input.outputs.get("line thickness"), thickness.inputs[0])
     thickness.inputs[1].default_value = 100
     
     # -- make ticks -- 
     tick_size =  scale.nodes.new("ShaderNodeMath")
-    tick_size.operation = "MULTIPLY"
+    tick_size.operation = "DIVIDE"
     tick_size.location = (-500, -500)
     tick_size.label = "tick length per direction"
-    links.new(thickness.outputs[0], tick_size.inputs[0])
-    links.new(group_input.outputs.get('tick size'), tick_size.inputs[1])
+    links.new(group_input.outputs.get("tick size"),  tick_size.inputs[0])
+    tick_size.inputs[1].default_value = 100
+
+    tick_thickness =  scale.nodes.new("ShaderNodeMath")
+    tick_thickness.operation = "DIVIDE"
+    tick_thickness.location = (-500, -700)
+    tick_thickness.label = "tick thickness scaled down"
+    links.new(group_input.outputs.get("tick thickness"), tick_thickness.inputs[0])
+    tick_thickness.inputs[1].default_value = 100
     
     cubes = []
     for axix, ax in enumerate("XYZ"):
         comb = scale.nodes.new("ShaderNodeCombineXYZ")
         comb.location = (-200, -300 - 200*axix)
         for i in range(3):
-            links.new(thickness.outputs[0], comb.inputs[i])
+            links.new(tick_thickness.outputs[0], comb.inputs[i])
         links.new(tick_size.outputs[0], comb.inputs[axix])
         cube = scale.nodes.new("GeometryNodeMeshCube")
         cube.location = (0, -300 - 200*axix)
@@ -200,7 +213,7 @@ def scale_node_group():
     
     color =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
     color.label = "passthrough color to shader"
-    color.inputs.get("Name").default_value = "color"
+    color.inputs.get("Name").default_value = "color_scale_bar"
     color.data_type = 'FLOAT_COLOR'
     color.domain = 'POINT'
     color.location = (1800, 0)

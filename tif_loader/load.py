@@ -220,6 +220,7 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
 
     scale_node = nodes.new('GeometryNodeGroup')
     scale_node.node_tree = scale_node_group()
+    scale_node.width = 300
     scale_node.location = (200, 100)
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('size (µm)'))
@@ -346,7 +347,7 @@ def init_material_scalebar():
     and_op.inputs[2].default_value = 0.01
     
     colorattr =  nodes.new("ShaderNodeAttribute")
-    colorattr.attribute_name = 'color'
+    colorattr.attribute_name = 'color_scale_bar'
     colorattr.location = (200, 150)
     
     trbsdf = nodes.new("ShaderNodeBsdfTransparent")
