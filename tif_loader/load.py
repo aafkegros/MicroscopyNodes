@@ -163,6 +163,11 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
     add_init_material(str(tif.name), volumes, imgdata, axes_order)
     
+    for vol in volumes: # transforms should be done on the container
+        for dim in range(3):
+            vol.lock_location[dim] = True
+            vol.lock_rotation[dim] = True
+            vol.lock_scale[dim] = True
     print('done')
     return
 
