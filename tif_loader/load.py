@@ -107,6 +107,7 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
 
 def load_tif(input_file, xy_scale, z_scale, axes_order):
     import tifffile
+    bpy.context.scene.eevee.volumetric_tile_size = '2'
     tif = Path(input_file)
     init_scale = 0.02
 
