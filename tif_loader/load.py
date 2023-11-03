@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import (StringProperty, FloatProperty,
-                        PointerProperty,
+                        PointerProperty
                         )
 
 import subprocess
@@ -72,37 +72,41 @@ bpy.types.Scene.z_size = FloatProperty(
 
 def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_scale):
     import tifffile
-    chax =  axes_order.find('c')
-    if chax == -1:
-    #    if len(imgdata.shape) == len(axes_order):
-        imgdata = imgdata[:,:,:,np.newaxis]
+    if axes_order.find('c') == -1:
+        imgdata =  np.expand_dims(imgdata, axis=-1)
         axes_order = axes_order + "c"
-        # break and try with last axis (works for RGB)
+    if axes_order.find('t') == -1:
+        imgdata =  np.expand_dims(imgdata, axis=-1)
+        axes_order = axes_order + "t"
 
-    grids = []
-    for ch in range(imgdata.shape[chax]):
-    #    chdata = imgdata[:,:,:,ch].astype(np.float64)
-        chdata = imgdata.take(indices=ch,axis=chax)
-        slice_axes = axes_order.replace("c","")
-        # print(slice_axes)
-        chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
-    #    chata = chdata
-        
-        grid = vdb.FloatGrid()
-        grid.name = "channel " + str(ch)
-        grid.copyFromArray(chdata)
-        grids.append(grid)
+    # necessary to support multi-file import
+    bpy.types.Scene.files: CollectionProperty(
+        type=bpy.types.OperatorFileListElement,
+        options={'HIDDEN', 'SKIP_SAVE'},
+    )
+    timefiles = []
 
+    for t_ix, t in enumerate(range(imgdata.shape[axes_order.find('t')])):
+        frame = imgdata.take(indices=t,axis=axes_order.find('t'))
+        grids = []
+        for ch in range(imgdata.shape[axes_order.find('c')]):
+            frame_axes = axes_order.replace("t","")
+            chdata = frame.take(indices=ch,axis=frame_axes.find('c'))
+            slice_axes = frame_axes.replace("c","")
+            chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
+            grid = vdb.FloatGrid()
+            grid.name = "channel " + str(ch)
+            grid.copyFromArray(chdata)
+            grids.append(grid)
     
-    identifier = str(x_ix)+str(y_ix)+str(z_ix)
-    (tif.parents[0] / "blender_volumes/").mkdir(exist_ok=True)
-    fname = str(tif.parents[0] / f"blender_volumes/{tif.stem}_{identifier}.tif")
-    vdb.write(fname, grids=grids)
-    
-    bpy.ops.object.volume_import(filepath=fname, align='WORLD', location=(0, 0, 0))
-    # vdb.write(str(tif.with_name(tif.stem + identifier +".vdb")), grids=grids)
-    
-    # bpy.ops.object.volume_import(filepath=str(tif.with_name(tif.stem + identifier +".vdb")), align='WORLD', location=(0, 0, 0))
+        identifier = "x"+str(x_ix)+"y"+str(y_ix)+"z"+str(z_ix)
+        (tif.parents[0] / f"blender_volumes/{identifier}/").mkdir(exist_ok=True,parents=True)
+        fname = str(tif.parents[0] / f"blender_volumes/{identifier}/{tif.stem}t_{t_ix}.vdb")
+        print(fname, grids)
+        vdb.write(fname, grids=grids)
+        entry = {"name":f"{tif.stem}t_{t_ix}.vdb"}
+        timefiles.append(entry)
+    bpy.ops.object.volume_import(filepath=fname,directory=str(tif.parents[0] / f"blender_volumes/{identifier}"), files=timefiles,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
     return bpy.context.view_layer.objects.active
 
 def load_tif(input_file, xy_scale, z_scale, axes_order):
@@ -113,7 +117,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
 
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
-        # metadata = dict(ifstif.imagej_metadata)
+
     if len(axes_order) != len(imgdata.shape):
         raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
@@ -125,13 +129,10 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
             ch_first[chix] /= np.max(chdata)
     else:
         imgdata /= np.max(imgdata)
-    # raise Exception
-    # (tif.parents[0] / "tmp_zstacker/").mkdir(exist_ok=True)
 
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     xyz = [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]
     n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in xyz]
-    arrays = [imgdata]
 
 
     # Loops over all axes and splits based on length
