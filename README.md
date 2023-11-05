@@ -6,7 +6,7 @@ This originally started as a script for the [Blender for Biologists workshop](ht
 Please make some pretty figures with this add-on! 
 If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#tif2bpy`.
 
-<img src="./figures/pretty.png" width="600"/>
+<img src="./figures/newpretty2.png" width="600"/>
 
 ## Current Features
 The `tif loader` Blender addon is still under active development, but some notable features are already supported:
