@@ -19,6 +19,16 @@ class TIFLoadPanel(bpy.types.Panel):
         # print('drawing tifloadpanel')
         layout = self.layout
         scn = bpy.context.scene
+
+        layout.label(text = "Import Options", icon = "MODIFIER")
+        box = layout.box()
+        grid = box.grid_flow(columns = 1)
+        
+        grid.prop(bpy.context.scene, 'TL_remake', 
+                        text = 'Force remaking vdb files', icon_value=0, emboss=True)
+        grid.prop(bpy.context.scene, 'TL_preset_environment', 
+                        text = 'Preset environment', icon_value=0, emboss=True)
+
         col = layout.column(align=True)
         col.label(text=".tif file:")
         col.prop(context.scene, "path_tif", text="")
