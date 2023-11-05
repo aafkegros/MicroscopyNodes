@@ -183,7 +183,7 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     
     container.location = (0,0,0)
     bpy.ops.object.modifier_add(type='NODES')
-    node_group = bpy.data.node_groups.new('GeometryNodes', 'GeometryNodeTree')  
+    node_group = bpy.data.node_groups.new('Container of ' + str(tif.name) , 'GeometryNodeTree')  
     container.modifiers[-1].node_group = node_group
     nodes = node_group.nodes
     links = node_group.links

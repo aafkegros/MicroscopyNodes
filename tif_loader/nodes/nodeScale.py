@@ -51,7 +51,7 @@ def scale_node_group():
     scale.inputs[-1].max_value = 3.4028234663852886e+38
     scale.inputs[-1].attribute_domain = 'POINT'
 
-    scale.inputs.new('NodeSocketBool', "frontface culling")
+    scale.inputs.new('NodeSocketBool', "frontface culling (only render away from view)")
     scale.inputs[-1].default_value = True
     scale.inputs[-1].attribute_domain = 'POINT'
     
@@ -212,7 +212,7 @@ def scale_node_group():
     culling.domain = 'POINT'
     culling.location = (1600, 10)
     links.new(join.outputs[0], culling.inputs[0])
-    links.new(group_input.outputs.get('frontface culling'), culling.inputs[6])
+    links.new(group_input.outputs.get('frontface culling (only render away from view)'), culling.inputs[6])
     
     color =  scale.nodes.new("GeometryNodeStoreNamedAttribute")
     color.label = "passthrough color to shader"
