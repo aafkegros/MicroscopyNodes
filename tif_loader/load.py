@@ -41,6 +41,19 @@ def changePathTif(self, context):
         raise
     return
 
+bpy.types.Scene.TL_remake = bpy.props.BoolProperty(
+    name = "TL_remake", 
+    description = "Force remaking vdb files",
+    default = False
+    )
+
+bpy.types.Scene.TL_preset_environment = bpy.props.BoolProperty(
+    name = "TL_preset_environment", 
+    description = "Set environment variables",
+    default = True
+    )
+
+
 bpy.types.Scene.path_tif = StringProperty(
         name="",
         description="tif file",
@@ -88,31 +101,34 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
     timefiles = []
 
     for t_ix, t in enumerate(range(imgdata.shape[axes_order.find('t')])):
-        frame = imgdata.take(indices=t,axis=axes_order.find('t'))
-        grids = []
-        for ch in range(imgdata.shape[axes_order.find('c')]):
-            frame_axes = axes_order.replace("t","")
-            chdata = frame.take(indices=ch,axis=frame_axes.find('c'))
-            slice_axes = frame_axes.replace("c","")
-            chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
-            grid = vdb.FloatGrid()
-            grid.name = "channel " + str(ch)
-            grid.copyFromArray(chdata)
-            grids.append(grid)
-    
         identifier = "x"+str(x_ix)+"y"+str(y_ix)+"z"+str(z_ix)
         (tif.parents[0] / f"blender_volumes/{identifier}/").mkdir(exist_ok=True,parents=True)
         fname = str(tif.parents[0] / f"blender_volumes/{identifier}/{tif.stem}t_{t_ix}.vdb")
-        print(fname, grids)
-        vdb.write(fname, grids=grids)
         entry = {"name":f"{tif.stem}t_{t_ix}.vdb"}
         timefiles.append(entry)
+        if (not os.path.isfile(fname)) or bpy.context.scene.TL_remake:
+            frame = imgdata.take(indices=t,axis=axes_order.find('t'))
+            grids = []
+            for ch in range(imgdata.shape[axes_order.find('c')]):
+                frame_axes = axes_order.replace("t","")
+                chdata = frame.take(indices=ch,axis=frame_axes.find('c'))
+                slice_axes = frame_axes.replace("c","")
+                chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
+                grid = vdb.FloatGrid()
+                grid.name = "channel " + str(ch)
+                grid.copyFromArray(chdata)
+                grids.append(grid)
+            vdb.write(fname, grids=grids)
+        
+        
     bpy.ops.object.volume_import(filepath=fname,directory=str(tif.parents[0] / f"blender_volumes/{identifier}"), files=timefiles,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
     return bpy.context.view_layer.objects.active
 
 def load_tif(input_file, xy_scale, z_scale, axes_order):
     import tifffile
-    bpy.context.scene.eevee.volumetric_tile_size = '2'
+    if bpy.context.scene.TL_preset_environment:
+        preset_environment()
+            
     tif = Path(input_file)
     init_scale = 0.02
 
@@ -173,6 +189,16 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
     print('done')
     return
 
+def preset_environment():
+    bpy.context.scene.eevee.volumetric_tile_size = '2'
+    bpy.context.scene.cycles.preview_samples = 32
+    bpy.context.scene.cycles.samples = 64
+    bpy.context.scene.view_settings.view_transform = 'Standard'
+    try:
+        bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
+    except:
+        pass
+    return
 
 def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale):
     container.name = "container of " + str(tif.name) 
@@ -274,6 +300,7 @@ def add_init_material(name, volumes, imgdata, axes_order):
             map_range.inputs[1].default_value = filters.threshold_otsu(imgdata.take(indices=channel, axis=axes_order.find('c')))
         else: 
             map_range.inputs[1].default_value = filters.threshold_otsu(imgdata)
+        map_range.inputs[4].default_value = 0.1
         
         links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
         princ_vol = nodes.new(type='ShaderNodeVolumePrincipled')
