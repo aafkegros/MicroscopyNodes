@@ -196,6 +196,8 @@ def preset_environment():
     bpy.context.scene.cycles.samples = 64
     bpy.context.scene.view_settings.view_transform = 'Standard'
     bpy.context.scene.eevee.volumetric_end = 1000
+    bpy.context.space_data.shading.use_scene_world = True
+
     try:
         bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
     except:
@@ -303,10 +305,14 @@ def add_init_material(name, volumes, imgdata, axes_order):
 
         map_range = nodes.new(type='ShaderNodeMapRange')
         map_range.location = (-230, -400*channel)
-        if channels > 1:
-            map_range.inputs[1].default_value = filters.threshold_otsu(imgdata.take(indices=channel, axis=axes_order.find('c')))
-        else: 
-            map_range.inputs[1].default_value = filters.threshold_otsu(imgdata)
+        try:
+            if channels > 1:
+                map_range.inputs[1].default_value = filters.threshold_otsu(imgdata.take(indices=channel, axis=axes_order.find('c')))
+            else: 
+                map_range.inputs[1].default_value = filters.threshold_otsu(imgdata)
+        except:
+            map_range.inputs[1].default_value = 0
+            pass
         map_range.inputs[4].default_value = 0.1
         
         links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
