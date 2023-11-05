@@ -149,7 +149,7 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
                 bbox = np.array([c_chunk.shape[xyz[0]],c_chunk.shape[xyz[1]],c_chunk.shape[xyz[2]]])
                 scale = np.array([1,1,z_scale/xy_scale])*init_scale
                 vol.scale = scale
-                print(c_ix, b_ix, a_ix)
+                # print(c_ix, b_ix, a_ix)
                 offset = np.array([a_ix,b_ix,c_ix])
                 
                 vol.location = tuple(offset*bbox*scale)
