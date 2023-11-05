@@ -250,6 +250,7 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
 
 
 def add_init_material(name, volumes, imgdata, axes_order):
+    from skimage import filters
     # do not check whether it exists, so a new load will force making a new mat
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -269,25 +270,29 @@ def add_init_material(name, volumes, imgdata, axes_order):
 
         map_range = nodes.new(type='ShaderNodeMapRange')
         map_range.location = (-230, -400*channel)
+        if channels > 1:
+            map_range.inputs[1].default_value = filters.threshold_otsu(imgdata.take(indices=channel, axis=axes_order.find('c')))
+        else: 
+            map_range.inputs[1].default_value = filters.threshold_otsu(imgdata)
+        
         links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
-
         princ_vol = nodes.new(type='ShaderNodeVolumePrincipled')
         if channels > 1:
             c = Color()
             c.hsv = (channel/channels + 1/6) % 1, 1, 1
-
             princ_vol.inputs.get("Emission Color").default_value = (c.r, c.g, c.b, 1.0)
+            
         princ_vol.inputs.get("Density").default_value = 0
         princ_vol.location = (0,-400*channel)
         links.new(map_range.outputs[0], princ_vol.inputs.get("Emission Strength"))
 
         if channel > 0: # last channel
-            mix_shader = nodes.new('ShaderNodeMixShader')
-            mix_shader.inputs.get("Fac").default_value = 1 - (channel/channels)
-            mix_shader.location = (250 + 150 * channel,-400*channel)
-            links.new(lastnode, mix_shader.inputs[1])
-            links.new(princ_vol.outputs[0], mix_shader.inputs[2])
-            lastnode = mix_shader.outputs[0]
+            add_shader = nodes.new('ShaderNodeAddShader')
+            # mix_shader.inputs.get("Fac").default_value = 1 - (channel/channels)
+            add_shader.location = (250 + 150 * channel,-400*channel)
+            links.new(lastnode, add_shader.inputs[0])
+            links.new(princ_vol.outputs[0], add_shader.inputs[1])
+            lastnode = add_shader.outputs[0]
         else:
             lastnode = princ_vol.outputs[0]
 
@@ -305,7 +310,6 @@ def add_init_material(name, volumes, imgdata, axes_order):
 
 def init_material_scalebar():
     mat = bpy.data.materials.get("scalebar")
-    print(mat)
     if mat:
         print('passed if mat')
         
