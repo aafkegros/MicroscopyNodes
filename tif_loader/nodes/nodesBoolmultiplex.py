@@ -52,7 +52,9 @@ def axes_multiplexer_node_group():
     
     group_output.location = (-300 + colix * 200 + ix *200, ix *-200 +500)
     links.new(lastout[0], group_output.inputs[0])
-    
+    return node_group
+
+
 def axes_demultiplexer_node_group():
     node_group = bpy.data.node_groups.get("demultiplex_axes")
     if node_group:
@@ -91,3 +93,4 @@ def axes_demultiplexer_node_group():
         
         for colix, node in enumerate([div, trunc, mod]):
             node.location = (-600 + colix * 200 + ix *200, ix *200 -500)
+    return node_group

@@ -54,13 +54,18 @@ def scale_node_group():
     scale.inputs.new('NodeSocketBool', "frontface culling (only render away from view)")
     scale.inputs[-1].default_value = True
     scale.inputs[-1].attribute_domain = 'POINT'
+
+    scale.inputs.new('NodeSocketInt', "axis selection")
+    scale.inputs[-1].default_value = 111111
+    scale.inputs[-1].min_value = 0
+    scale.inputs[-1].max_value = 111111
+    scale.inputs[-1].attribute_domain = 'POINT'
     
     scale.inputs.new('NodeSocketColor', "Color")
     scale.inputs[-1].default_value = (1,1,1, 1)
     
     scale.inputs.new('NodeSocketMaterial', "Material")
 
-    
     group_input = scale.nodes.new("NodeGroupInput")
     group_input.location = (-1000,0)
 
@@ -71,6 +76,7 @@ def scale_node_group():
     links.new(group_input.outputs.get("size (m)"), scalebox.inputs.get("size (m)"))
     links.new(group_input.outputs.get("size (µm)"), scalebox.inputs.get("size (µm)"))
     links.new(group_input.outputs.get("µm per tick"), scalebox.inputs.get("µm per tick"))
+    links.new(group_input.outputs.get("axis selection"), scalebox.inputs.get("axis selection"))
     
     normal = scale.nodes.new("GeometryNodeInputNormal")
     normal.location = (-320, 450)

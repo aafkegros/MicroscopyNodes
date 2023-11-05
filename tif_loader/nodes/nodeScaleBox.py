@@ -1,11 +1,14 @@
 import bpy
 import numpy as np 
+from .nodesBoolmultiplex import axes_demultiplexer_node_group
 
 #initialize scalebox node group
+# Arguably should be refactored to a rescaled primitive cube -> subdivide modifier -> set pos to max -> merge by distance
+# Might be simpler than separate mesh grids, and have less redundancy
 def scalebox_node_group():
-    node_group = bpy.data.node_groups.get("_scalebox")
-    if node_group:
-        return node_group
+#    node_group = bpy.data.node_groups.get("_scalebox")
+#    if node_group:
+#        return node_group
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "_scalebox")
     links = node_group.links
     
@@ -28,6 +31,12 @@ def scalebox_node_group():
     node_group.inputs[-1].max_value = 3.4028234663852886e+38
     node_group.inputs[-1].attribute_domain = 'POINT'
 
+    node_group.inputs.new('NodeSocketInt', "axis selection")
+    node_group.inputs[-1].default_value = 111111
+    node_group.inputs[-1].min_value = 0
+    node_group.inputs[-1].max_value = 111111
+    node_group.inputs[-1].attribute_domain = 'POINT'
+
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-800,0)
     
@@ -38,7 +47,7 @@ def scalebox_node_group():
     group_output.location = (2700,0)
     
     join_geo = node_group.nodes.new("GeometryNodeJoinGeometry")
-    join_geo.location = (1830,0)
+    join_geo.location = (2100,100)
 
     ## -- process IO --
 
@@ -62,6 +71,13 @@ def scalebox_node_group():
     m_per_µm.label = "m per µm"
     links.new(group_input.outputs.get("size (m)"), m_per_µm.inputs[0])
     links.new(group_input.outputs.get("size (µm)"), m_per_µm.inputs[1])
+
+    # -- make scale box and read out/store normals
+    demultiplex_axes = node_group.nodes.new('GeometryNodeGroup')
+    demultiplex_axes.node_tree = axes_demultiplexer_node_group()
+    print(demultiplex_axes)
+    demultiplex_axes.location = (-600, -600)
+    links.new(group_input.outputs.get('axis selection'), demultiplex_axes.inputs[0])
     
     µm_ticks_float =  node_group.nodes.new("ShaderNodeVectorMath")
     µm_ticks_float.operation = "DIVIDE"
@@ -146,33 +162,43 @@ def scalebox_node_group():
             elif ax == 'zx':
                 rot = [0,-0.5,-0.5]
             transform.inputs.get("Rotation").default_value = tuple(np.array(rot)*np.pi)
-
             
             # translocate 0,0 to be accurate for each
             bbox = node_group.nodes.new("GeometryNodeBoundBox")
             links.new(transform.outputs[0],bbox.inputs[0])
             
-            top = node_group.nodes.new("ShaderNodeVectorMath")
-            top.operation = "MULTIPLY"
-            links.new(bbox.outputs[1], top.inputs[0])
-            top.inputs[1].default_value =(1,1,1)
-            if side == 'top':
-                top.inputs[1].default_value = tuple(np.array([float(axis in ax) for axis in "xyz"]))
-            
             find_0 = node_group.nodes.new("ShaderNodeVectorMath")
             find_0.operation = "SUBTRACT"
             links.new(loc_0.outputs[0], find_0.inputs[0])
-            links.new(top.outputs[0], find_0.inputs[1])
-            
+            links.new(bbox.outputs[1], find_0.inputs[1])
+
+            if side == "top":
+                top = node_group.nodes.new("ShaderNodeVectorMath")
+                top.operation = "MULTIPLY"
+                links.new(bbox.outputs[1], top.inputs[0])
+                links.new(top.outputs[0], find_0.inputs[1])
+                top.inputs[1].default_value = tuple(np.array([float(axis in ax) for axis in "xyz"]))
+            else:
+                top = None
+        
             set_pos = node_group.nodes.new("GeometryNodeSetPosition")
             links.new(transform.outputs[0], set_pos.inputs[0])
             links.new(find_0.outputs[0], set_pos.inputs[-1])
 
+            notnode = node_group.nodes.new("FunctionNodeBooleanMath")
+            notnode.operation = "NOT"
+            links.new(demultiplex_axes.outputs[sideix*3 + axix], notnode.inputs[0])
+
+            del_ax = node_group.nodes.new("GeometryNodeDeleteGeometry")
+            links.new(set_pos.outputs[0], del_ax.inputs[0])
+            links.new(notnode.outputs[0], del_ax.inputs[1])
             
-            for locix,node in enumerate([grid,pretransform, transform,bbox,top, find_0, set_pos]):
-                nodeix = (sideix*3)+axix
-                node.location = (200*locix + 200, 300*2.5 + nodeix * -300)
-            finals.append(set_pos)
+            for locix,node in enumerate([grid,pretransform, transform,bbox,top, 
+                                        find_0, set_pos, notnode, del_ax]):
+                if node:
+                    nodeix = (sideix*3)+axix
+                    node.location = (200*locix + 200, 300*2.5 + nodeix * -300)
+            finals.append(del_ax)
     for final in reversed(finals):            
         links.new(final.outputs[0], join_geo.inputs[0])
     
