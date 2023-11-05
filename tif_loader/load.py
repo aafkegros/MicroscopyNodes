@@ -62,7 +62,7 @@ bpy.types.Scene.xy_size = FloatProperty(
         default=1.0)
     
 bpy.types.Scene.z_size = FloatProperty(
-        name="z_size",
+        name="",
         description="z physical pixel size in micrometer",
         default=1.0)
 
