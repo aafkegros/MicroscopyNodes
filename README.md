@@ -33,8 +33,9 @@ This should create the `tif loader` panel in `Scene Properties`.
 
 ## Using `tif loader`
 Load in tif-files in the file explorer from the panel in `Scene Properties`. 
-- currently 3D and 4D (3D + channel) tifs are supported. 
+- currently 3D to 5D (zyx to tzcyx in any axis order) tifs are supported. 
 - Axes order and pixel size will be attempted to be read out automatically
-- Unthresholded initial volumetric emission material is applied
+- Otsu initial volumetric emission material is applied
+- Scale bars are added to the `Geometry Nodes` container of your volumetric data
 
 More tutorial-like description can be found at [Blender for Biologists](https://github.com/oanegros/Blender_for_Biologists_2023). However, this asssumes a less capable version of `tif loader` that does not apply an initial material, for didactic purposes.
