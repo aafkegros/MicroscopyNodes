@@ -12,6 +12,7 @@ import pyopenvdb as vdb
 from mathutils import Color
 from .nodes.nodeScale import scale_node_group
 from .nodes.nodesBoolmultiplex import axes_multiplexer_node_group
+from .nodes.nodeCrosshatch import crosshatch_node_group
 
 def changePathTif(self, context):
     # infers metadata, resets to default if not found
@@ -240,7 +241,7 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     axnode_um.operation = "MULTIPLY"
     axnode_um.name = "size (µm)"
     axnode_um.label = "size (µm)"
-    axnode_um.location = (-50, 100)
+    axnode_um.location = (-50, 200)
     links.new(axnode.outputs[0], axnode_um.inputs[0])
     links.new(scale_node.outputs[0], axnode_um.inputs[1])
     
@@ -248,15 +249,19 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     axnode_bm.operation = "MULTIPLY"
     axnode_bm.name = "size (m)"
     axnode_bm.label = "size (m)"
-    axnode_bm.location = (-50, -50)
+    axnode_bm.location = (-50, 50)
     links.new(axnode.outputs[0], axnode_bm.inputs[0])
     links.new(initscale_node.outputs[0], axnode_bm.inputs[1])
+
+    crosshatch = nodes.new('GeometryNodeGroup')
+    crosshatch.node_tree = crosshatch_node_group()
+    crosshatch.location = (-50, -140)
 
     axes_select = nodes.new('GeometryNodeGroup')
     axes_select.node_tree = axes_multiplexer_node_group()
     axes_select.label = "Subselect axes"
     axes_select.width = 150
-    axes_select.location = (-50, -220)
+    axes_select.location = (-50, -320)
 
     scale_node = nodes.new('GeometryNodeGroup')
     scale_node.node_tree = scale_node_group()
@@ -265,6 +270,7 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('size (µm)'))
     links.new(axes_select.outputs[0], scale_node.inputs.get('axis selection'))
+    links.new(crosshatch.outputs[0], scale_node.inputs.get('Tick Geometry'))
     scale_node.inputs.get("Material").default_value = init_material_scalebar()
 
     outnode = nodes.new('NodeGroupOutput')
