@@ -7,6 +7,9 @@ def axes_multiplexer_node_group():
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "multiplex_axes")
     links = node_group.links
     
+    node_group.inputs.new('NodeSocketBool', "frontface culling (clip axes in front of data)")
+    node_group.inputs[-1].default_value = True
+    node_group.inputs[-1].attribute_domain = 'POINT'
     for sideix, side in enumerate(['bottom', 'top']):
         for axix, ax in enumerate(['xy','yz','zx']):
             node_group.inputs.new('NodeSocketBool', ax + " " + side)
@@ -67,6 +70,8 @@ def axes_demultiplexer_node_group():
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-800,0)
     
+    node_group.outputs.new('NodeSocketBool', "frontface culling (clip axes in front of data)")
+    node_group.outputs[-1].attribute_domain = 'POINT'
     for sideix, side in enumerate(['bottom', 'top']):
         for axix, ax in enumerate(['xy','yz','zx']):
             node_group.outputs.new('NodeSocketBool', ax + " " + side)

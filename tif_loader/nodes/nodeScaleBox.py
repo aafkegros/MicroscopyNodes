@@ -6,9 +6,9 @@ from .nodesBoolmultiplex import axes_demultiplexer_node_group
 # Arguably should be refactored to a rescaled primitive cube -> subdivide modifier -> set pos to max -> merge by distance
 # Might be simpler than separate mesh grids, and have less redundancy
 def scalebox_node_group():
-#    node_group = bpy.data.node_groups.get("_scalebox")
-#    if node_group:
-#        return node_group
+    node_group = bpy.data.node_groups.get("_scalebox")
+    if node_group:
+        return node_group
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "_scalebox")
     links = node_group.links
     
@@ -32,9 +32,9 @@ def scalebox_node_group():
     node_group.inputs[-1].attribute_domain = 'POINT'
 
     node_group.inputs.new('NodeSocketInt', "axis selection")
-    node_group.inputs[-1].default_value = 111111
+    node_group.inputs[-1].default_value = 1111111
     node_group.inputs[-1].min_value = 0
-    node_group.inputs[-1].max_value = 111111
+    node_group.inputs[-1].max_value = 1111111
     node_group.inputs[-1].attribute_domain = 'POINT'
 
     group_input = node_group.nodes.new("NodeGroupInput")
@@ -75,7 +75,6 @@ def scalebox_node_group():
     # -- make scale box and read out/store normals
     demultiplex_axes = node_group.nodes.new('GeometryNodeGroup')
     demultiplex_axes.node_tree = axes_demultiplexer_node_group()
-    print(demultiplex_axes)
     demultiplex_axes.location = (-600, -600)
     links.new(group_input.outputs.get('axis selection'), demultiplex_axes.inputs[0])
     
@@ -187,7 +186,7 @@ def scalebox_node_group():
 
             notnode = node_group.nodes.new("FunctionNodeBooleanMath")
             notnode.operation = "NOT"
-            links.new(demultiplex_axes.outputs[sideix*3 + axix], notnode.inputs[0])
+            links.new(demultiplex_axes.outputs[sideix*3 + axix + 1], notnode.inputs[0])
 
             del_ax = node_group.nodes.new("GeometryNodeDeleteGeometry")
             links.new(set_pos.outputs[0], del_ax.inputs[0])

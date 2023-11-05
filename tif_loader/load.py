@@ -228,9 +228,9 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
 
     axes_select = nodes.new('GeometryNodeGroup')
     axes_select.node_tree = axes_multiplexer_node_group()
-    axes_select.label = "Subselect axes to construct"
+    axes_select.label = "Subselect axes"
     axes_select.width = 150
-    axes_select.location = (-50, -150)
+    axes_select.location = (-50, -220)
 
     scale_node = nodes.new('GeometryNodeGroup')
     scale_node.node_tree = scale_node_group()
