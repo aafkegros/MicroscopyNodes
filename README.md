@@ -4,7 +4,7 @@ This is a project building bioimage support for the open source software blender
 This originally started as a script for the [Blender for Biologists workshop](https://github.com/oanegros/Blender_for_Biologists_2023) Because the scope seems to have outgrown this workshop, the development has split off.
 
 Please make some pretty figures with this add-on! 
-If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#tif2bpy`.
+If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#tif2blender`.
 
 <img src="./figures/newprettyside.png" width="600"/>
 
