@@ -219,7 +219,11 @@ def scalebox_node_group():
     links.new(join_geo.outputs[0], clip_axis.inputs[0])
     links.new(min_axis.outputs[0], clip_axis.inputs[2])
 
-    links.new(clip_axis.outputs[0],group_output.inputs[0])
+    merge = node_group.nodes.new("GeometryNodeMergeByDistance")
+    links.new(clip_axis.outputs[0], merge.inputs[0])
+    merge.location = (2700, 0)
+
+    links.new(merge.outputs[0],group_output.inputs[0])
 
     return node_group
 
