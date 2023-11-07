@@ -61,3 +61,11 @@ Upon load, multiple defaults are applied, but all of these can be changed as gra
   - The `crosshatch` ticks can be replaced with any geometry.
 
 More tutorial-like description can be found at [Blender for Biologists](https://github.com/oanegros/Blender_for_Biologists_2023). However, this asssumes a less capable version of `tif loader` that does not apply an initial material, for didactic purposes.
+
+## Updating `tif loader`
+To update the `tif loader` add-on (future versions may have bugfixes, new features) a few steps need to be taken:
+- In Blender go to `Edit > Preferences`
+- Go to `Add-Ons` tab in `Preferences` and find the `tif loader` add-on
+- Press `Remove` 
+- Restart Blender
+- Install the new version.
