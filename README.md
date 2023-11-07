@@ -39,7 +39,8 @@ This should create the `tif loader` panel in `Scene Properties`.
 
 ## Using `tif loader`
 Load in tif-files in the file explorer from the panel in `Scene Properties`. 
-Loading with preset environment recently had a small bug, fixed on 7th nov 18:45. So either uncheck this or updating your tif_loader(see below), if you have this issue. For any other problems, please open an [issue]((/../../issues)).
+
+Loading with preset environment recently had a small bug, fixed on 7th nov 18:45. So either uncheck this or update your tif_loader(see below), if you have this issue. For any other problems, please open an [issue](https://github.com/oanegros/tif2blender/issues).
 
 - The `tif loader` panel should be able to automatically read out your axis order and pixel size, but these can otherwise also manually be entered
 - Any tif stack from zyx to tzcyx (in any axis order) is supported
