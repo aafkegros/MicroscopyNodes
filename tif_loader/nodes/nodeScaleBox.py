@@ -44,7 +44,7 @@ def scalebox_node_group():
     node_group.outputs.new('NodeSocketGeometry', "Geometry")
     node_group.outputs[0].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
-    group_output.location = (2700,0)
+    group_output.location = (2900,0)
     
     join_geo = node_group.nodes.new("GeometryNodeJoinGeometry")
     join_geo.location = (2100,100)
@@ -219,7 +219,11 @@ def scalebox_node_group():
     links.new(join_geo.outputs[0], clip_axis.inputs[0])
     links.new(min_axis.outputs[0], clip_axis.inputs[2])
 
-    links.new(clip_axis.outputs[0],group_output.inputs[0])
+    merge = node_group.nodes.new("GeometryNodeMergeByDistance")
+    links.new(clip_axis.outputs[0], merge.inputs[0])
+    merge.location = (2700, 0)
+
+    links.new(merge.outputs[0],group_output.inputs[0])
 
     return node_group
 

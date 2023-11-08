@@ -109,11 +109,7 @@ def scale_node_group():
     links.new(group_input.outputs.get("line thickness"), thickness.inputs[0])
     thickness.inputs[1].default_value = 100
         
-    # -- instantiate ticks -- 
-    merge = node_group.nodes.new("GeometryNodeMergeByDistance")
-    links.new(cap_normal.outputs[0], merge.inputs[0])
-    merge.location = (250, 100)
-
+    # # -- instantiate ticks -- 
     ax_grid = node_group.nodes.new("FunctionNodeBooleanMath")
     ax_grid.operation = 'NOT'
     links.new(grid_verts.outputs[0], ax_grid.inputs[0])
@@ -121,7 +117,7 @@ def scale_node_group():
 
     iop = node_group.nodes.new("GeometryNodeInstanceOnPoints")
     iop.location = (500, 100)
-    links.new(merge.outputs[0], iop.inputs[0])
+    links.new(cap_normal.outputs[0], iop.inputs[0])
     links.new(ax_grid.outputs[0], iop.inputs[1])
     links.new(group_input.outputs.get("Tick Geometry"), iop.inputs[2])
     
