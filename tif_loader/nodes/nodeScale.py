@@ -110,10 +110,6 @@ def scale_node_group():
     thickness.inputs[1].default_value = 100
         
     # # -- instantiate ticks -- 
-    # merge = node_group.nodes.new("GeometryNodeMergeByDistance")
-    # links.new(cap_normal.outputs[0], merge.inputs[0])
-    # merge.location = (250, 100)
-
     ax_grid = node_group.nodes.new("FunctionNodeBooleanMath")
     ax_grid.operation = 'NOT'
     links.new(grid_verts.outputs[0], ax_grid.inputs[0])
