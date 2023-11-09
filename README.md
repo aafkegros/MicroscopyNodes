@@ -16,6 +16,10 @@ The `tif loader` Blender addon is still under active development, but some notab
 - Otsu initial volumetric emission material is applied
 - Scale bars are added to the `Geometry Nodes` container of your volumetric data
 
+## Video introduction
+
+See the [video introduction](https://youtu.be/TCQojYEYxVo) to the tif2blender add-on on youtube.
+
 
 ## Installing `tif loader`
 
