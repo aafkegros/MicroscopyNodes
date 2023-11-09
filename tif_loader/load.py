@@ -306,15 +306,21 @@ def add_init_material(name, volumes, imgdata, axes_order):
 
         map_range = nodes.new(type='ShaderNodeMapRange')
         map_range.location = (-230, -400*channel)
-        try:
-            from skimage import filters
-            if channels > 1:
-                map_range.inputs[1].default_value = filters.threshold_otsu(imgdata.take(indices=channel, axis=axes_order.find('c')))
-            else: 
-                map_range.inputs[1].default_value = filters.threshold_otsu(imgdata)
-        except:
-            map_range.inputs[1].default_value = 0
-            pass
+        # try:
+
+        # testing all thresholds from 0 to the maximum of the image
+        if channels > 1:
+            im = imgdata.take(indices=channel, axis=axes_order.find('c'))
+        else:
+            im = imgdata
+        ch_axes = axes_order.replace("c","")
+        z_MIP = np.amax(im, axis = ch_axes.find('z'))
+        threshold_range = np.linspace(0,1,100)
+        criterias = [compute_init_mat_otsu_criteria(z_MIP, th) for th in threshold_range]
+
+        # best threshold is the one minimizing the Otsu criteria
+        map_range.inputs[1].default_value = threshold_range[np.argmin(criterias)]
+        
         map_range.inputs[4].default_value = 0.1
         
         links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
@@ -424,6 +430,35 @@ def init_material_scalebar():
     out.location = (650, 0)
     links.new(mix.outputs[0], out.inputs[0])
     return mat
+
+# adapted from https://en.wikipedia.org/wiki/Otsu%27s_method
+def compute_init_mat_otsu_criteria(im, th):
+    """Otsu's method to compute criteria."""
+    # create the thresholded image
+    print(th)
+    thresholded_im = np.zeros(im.shape)
+    thresholded_im[im >= th] = 1
+
+    # compute weights
+    nb_pixels = im.size
+    nb_pixels1 = np.count_nonzero(thresholded_im)
+    weight1 = nb_pixels1 / nb_pixels
+    weight0 = 1 - weight1
+
+    # if one of the classes is empty, eg all pixels are below or above the threshold, that threshold will not be considered
+    # in the search for the best threshold
+    if weight1 == 0 or weight0 == 0:
+        return np.inf
+
+    # find all pixels belonging to each class
+    val_pixels1 = im[thresholded_im == 1]
+    val_pixels0 = im[thresholded_im == 0]
+
+    # compute variance of these classes
+    var1 = np.var(val_pixels1) if len(val_pixels1) > 0 else 0
+    var0 = np.var(val_pixels0) if len(val_pixels0) > 0 else 0
+
+    return weight0 * var0 + weight1 * var1
 
 
 
