@@ -23,7 +23,7 @@ Download:
 
 - Download the most recent version of blender from https://www.blender.org/download/. You need version 3.5 or higher for the tif loader Add-On.
 
-- Download the [tif loader zip file](./tif_loader.zip). 
+- Download the tif loader zip file from the [releases page](https://github.com/oanegros/tif2blender/releases). 
 
 Start blender.
 
