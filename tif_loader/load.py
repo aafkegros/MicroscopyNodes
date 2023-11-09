@@ -287,7 +287,6 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
 
 
 def add_init_material(name, volumes, imgdata, axes_order):
-    from skimage import filters
     # do not check whether it exists, so a new load will force making a new mat
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -308,6 +307,7 @@ def add_init_material(name, volumes, imgdata, axes_order):
         map_range = nodes.new(type='ShaderNodeMapRange')
         map_range.location = (-230, -400*channel)
         try:
+            from skimage import filters
             if channels > 1:
                 map_range.inputs[1].default_value = filters.threshold_otsu(imgdata.take(indices=channel, axis=axes_order.find('c')))
             else: 
