@@ -7,7 +7,7 @@ def crosshatch_node_group():
     node_group = bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "crosshatch")
     links = node_group.links
 
-    node_group.inputs.new('NodeSocketFloat', "size")
+    bpy.ops.node.interface_item_new('NodeSocketFloat', "size")
     node_group.inputs[-1].default_value = 15.0
     node_group.inputs[-1].min_value = 0.0
     node_group.inputs[-1].max_value = 3.4028234663852886e+38
