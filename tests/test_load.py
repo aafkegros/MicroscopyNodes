@@ -9,11 +9,23 @@ from pathlib import Path
 import shutil
 
 
+test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
+
 # -- blender vdb handling and initial settings -- 
 
 def test_load_premade_vdb():
-    # vdb_files = {(0, 0, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/blender_volumes_permanent/x0y0z0', 'files': [{'name': 'permanent_tzcyxt_0.vdb'}, {'name': 'permanent_tzcyxt_1.vdb'}]}}
-    vdb_files = {(0, 0, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x0y0z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, (0, 1, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x0y1z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, (1, 0, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x1y0z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, (1, 1, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x1y1z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}} 
+    vdb_files = {(0, 0, 0): {'directory':  str(test_folder / 'permanent_blender_volumes/x0y0z0'), 
+                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
+                (0, 1, 0): {'directory':  str(test_folder / 'permanent_blender_volumes/x0y1z0'), 
+                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
+                (1, 0, 0): {'directory':  str(test_folder /'permanent_blender_volumes/x1y0z0'), 
+                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
+                (1, 1, 0): {'directory': str(test_folder /'permanent_blender_volumes/x1y1z0'), 
+                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}} 
     bbox_px = [1027,  1026,   3. ] 
     size_px = [2054, 2053,    3]
     init_scale = 0.02
@@ -48,7 +60,6 @@ orders_t4d  = ["".join(s) for s in itertools.permutations("tzyx", 4)]
 orders_3d = ["".join(s) for s in itertools.permutations("zyx", 3)]
 all_orders = orders_3d+orders_c4d+orders_t4d+orders_5d #174 orders
 
-test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
 
 def load_with_axes_order(axes_order, shape):
     np.random.seed(1)
