@@ -8,6 +8,41 @@ import tif_loader
 from pathlib import Path
 import shutil
 
+
+# -- blender vdb handling and initial settings -- 
+
+def test_load_premade_vdb():
+    # vdb_files = {(0, 0, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/blender_volumes_permanent/x0y0z0', 'files': [{'name': 'permanent_tzcyxt_0.vdb'}, {'name': 'permanent_tzcyxt_1.vdb'}]}}
+    vdb_files = {(0, 0, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x0y0z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, (0, 1, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x0y1z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, (1, 0, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x1y0z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, (1, 1, 0): {'directory': '/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_blender_volumes/x1y1z0', 'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, {'name': 'permanent_test_tzcyx_t_1.vdb'}]}} 
+    bbox_px = [1027,  1026,   3. ] 
+    size_px = [2054, 2053,    3]
+    init_scale = 0.02
+    xy_scale, z_scale = 1.5, 0.5
+    otsus = [0.15,0.25,0.35,0.45]
+    scale =  np.array([1,1,z_scale/xy_scale])*init_scale
+    axes_order = 'tzcyx'
+    tif = Path('/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_test_tzcyx_.tif')
+
+    with tifffile.TiffFile(tif) as ifstif:
+        imgdata = ifstif.asarray()
+
+    volumes = tif_loader.load.import_volumes(vdb_files, scale, bbox_px)
+
+    # recenter x, y, keep z at bottom
+    center = np.array([0.5,0.5,0]) * size_px
+    container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
+
+    container = bpy.context.view_layer.objects.active
+    container = tif_loader.load.init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
+
+    tif_loader.load.add_init_material(str(tif.name), volumes, otsus, axes_order)
+
+def test_preset_env():
+    tif_loader.load.preset_environment()
+
+
+# -- tif handling --
+
 standard_orders = ["tzcyx", "xyz", "zcyx", "zyx", "xyzc"]
 
 orders_5d = ["".join(s) for s in itertools.permutations("tzcyx", 5)]
@@ -32,7 +67,7 @@ def load_with_axes_order(axes_order, shape):
         shutil.rmtree(volume_folder)
     assert not volume_folder.exists()
 
-    tif_loader.load.unpack_tif_to_vdbs(fname, axes_order, test=True)
+    tif_loader.load.unpack_tif(fname, axes_order, test=True)
     
     for chunkfolder in [f for f in volume_folder.iterdir() if f.is_dir()]:
         timefiles = list(chunkfolder.glob(f"test_{axes_order}_*.tif"))
@@ -64,15 +99,13 @@ def load_with_axes_order(axes_order, shape):
     if 'c' not in axes_order:
         expected_shape[0] = 1
     assert np.array_equal(expected_shape, new_shape)
-
+    
     for created_file in test_folder.rglob(f"test_{axes_order}*.tif"):
         created_file.unlink()
     for chunkfolder in [f for f in volume_folder.iterdir() if f.is_dir()]:
         chunkfolder.rmdir()
     volume_folder.rmdir()
-    return 
-
-    
+    return     
 
 @pytest.mark.parametrize("axes_order", all_orders)
 def test_loading_all(axes_order):
@@ -91,4 +124,4 @@ def test_loading_big(axes_order):
     for ax_xyz in [ axes_order.find('y'), axes_order.find('z')]:
         shape[ax_xyz] += 2048
     load_with_axes_order(axes_order, shape)
-    
+

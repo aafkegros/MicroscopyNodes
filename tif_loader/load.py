@@ -123,7 +123,7 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, tif, test=False):
                 tifffile.imwrite(fname[:-4]+".tif", np.array(channels).astype(np.uint8) ,metadata={"axes":'cxyz'},photometric='minisblack', planarconfig='separate')
             else:
                 grids = []
-                for chdata in channels:
+                for ch, chdata in enumerate(channels):
                     grid = vdb.FloatGrid()
                     grid.name = "channel " + str(ch)
                     grid.copyFromArray(chdata)
@@ -134,7 +134,7 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, tif, test=False):
     # bpy.ops.object.volume_import(filepath=fname,directory=str(tif.parents[0] / f"blender_volumes/{identifier}"), files=timefiles,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
     # return bpy.context.view_layer.objects.active
 
-def unpack_tif_to_vdbs(input_file, axes_order, test=False):
+def unpack_tif(input_file, axes_order, test=False):
     import tifffile
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
@@ -148,13 +148,26 @@ def unpack_tif_to_vdbs(input_file, axes_order, test=False):
         ch_first = np.moveaxis(imgdata, axes_order.find('c'), 0)
         for chix, chdata in enumerate(ch_first):
             ch_first[chix] /= np.max(chdata)
+        channels = imgdata.shape[axes_order.find('c')]
     else:
         imgdata /= np.max(imgdata)
+        channels = 1
 
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     xyz = [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]
     n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in xyz]
-
+    # otsu compute in z MIP
+    otsus = []
+    for channel in range(channels):
+        if channels > 1:
+            im = imgdata.take(indices=channel, axis=axes_order.find('c'))
+        else:
+            im = imgdata
+        ch_axes = axes_order.replace("c","")
+        z_MIP = np.amax(im, axis = ch_axes.find('z'))
+        threshold_range = np.linspace(0,1,101)
+        criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
+        otsus.append(threshold_range[np.argmin(criterias)])
 
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
@@ -168,28 +181,21 @@ def unpack_tif_to_vdbs(input_file, axes_order, test=False):
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
                 directory, time_vdbs = make_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, Path(input_file), test=test)
                 vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "files": time_vdbs}
-                
-                # bbox = np.array([c_chunk.shape[xyz[0]],c_chunk.shape[xyz[1]],c_chunk.shape[xyz[2]]])
-                # scale = np.array([1,1,z_scale/xy_scale])*init_scale
-                # vol.scale = scale
-                # # print(c_ix, b_ix, a_ix)
-                # offset = np.array([a_ix,b_ix,c_ix])
-                
-                # vol.location = tuple(offset*bbox*scale)
-                # volumes.append(vol)
-    bbox_px = np.array([imgdata.shape[xyz[0]], imgdata.shape[xyz[1]], imgdata.shape[xyz[2]]])/np.array(n_splits)
-    return vdb_files, bbox_px, np.array(imgdata.shape)
+    size_px = np.array([imgdata.shape[xyz[0]], imgdata.shape[xyz[1]], imgdata.shape[xyz[2]]])
+    bbox_px = size_px//np.array(n_splits)
+    return vdb_files, bbox_px, size_px, otsus
 
-def make_volumes(vdb_files, bbox_px, scale):
+# currently not easily testable
+def import_volumes(vdb_files, scale, bbox_px):
     volumes = []
     # necessary to support multi-file import
     bpy.types.Scene.files: CollectionProperty(
         type=bpy.types.OperatorFileListElement,
         options={'HIDDEN', 'SKIP_SAVE'},
     )
-    for pos in vdb_files:
-        fname = str(Path(vdb_files['directory'])/Path(vdb_files['files'][0]))
-        bpy.ops.object.volume_import(filepath=fname,directory=vdb_files['directory'], files=vdb_files['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
+    for pos, vdbs in vdb_files.items():
+        fname = str(Path(vdbs['directory'])/Path(vdbs['files'][0]['name']))
+        bpy.ops.object.volume_import(filepath=fname,directory=vdbs['directory'], files=vdbs['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
         vol = bpy.context.view_layer.objects.active
         vol.scale = scale
         vol.location = tuple(np.array(pos) * bbox_px *scale)
@@ -206,25 +212,22 @@ def load(input_file, xy_scale, z_scale, axes_order):
         preset_environment()
             
     tif = Path(input_file)
-    init_scale = 0.02
 
-    vdb_files, bbox_px, size_px = unpack_tif_to_vdbs(input_file, axes_order)
-    
+    vdb_files, bbox_px, size_px, otsus = unpack_tif(input_file, axes_order)
+
+    init_scale = 0.02
     scale =  np.array([1,1,z_scale/xy_scale])*init_scale
-    volumes = make_volumes(vdb_files, bbox_px, scale)
+
+    volumes = import_volumes(vdb_files, scale, bbox_px)
 
     # recenter x, y, keep z at bottom
-    # center = np.array([0.5,0.5,0]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
     center = np.array([0.5,0.5,0]) * size_px
     container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
 
     container = bpy.context.view_layer.objects.active
-    container = init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale)
+    container = init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
 
-    add_init_material(str(tif.name), volumes, imgdata, axes_order)
-    
-    
-    print('done')
+    add_init_material(str(tif.name), volumes, otsus, axes_order)
     return
 
 def preset_environment():
@@ -243,7 +246,7 @@ def preset_environment():
         pass
     return
 
-def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale):
+def init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale):
     container.name = "container of " + str(tif.name) 
     container.data.name = "container of " + str(tif.name) 
 
@@ -262,8 +265,8 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     axnode.name = "n pixels"
     axnode.label = "n pixels"
     axnode.location = (-400, 200)
-    for axix, ax in enumerate('xyz'):
-        axnode.vector[axix] = imgdata.shape[axes_order.find(ax)]
+    for axix in range(len(size_px)):
+        axnode.vector[axix] = size_px[axix]
     
     initscale_node = nodes.new('FunctionNodeInputVector')
     initscale_node.name = 'init_scale'
@@ -323,7 +326,7 @@ def init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_ord
     return container
 
 
-def add_init_material(name, volumes, imgdata, axes_order):
+def add_init_material(name, volumes, otsus, axes_order):
     # do not check whether it exists, so a new load will force making a new mat
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -332,9 +335,10 @@ def add_init_material(name, volumes, imgdata, axes_order):
     nodes.remove(nodes.get("Principled BSDF"))
 
     lastnode, finalnode = None, None
-    channels = imgdata.shape[axes_order.find('c')]
+    channels = len(otsus)
     if axes_order.find('c') == -1:
         channels = 1
+    
     for channel in range(channels):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-500,-400*channel)
@@ -343,20 +347,9 @@ def add_init_material(name, volumes, imgdata, axes_order):
 
         map_range = nodes.new(type='ShaderNodeMapRange')
         map_range.location = (-230, -400*channel)
-        # try:
-
-        # testing all thresholds from 0 to the maximum of the image
-        if channels > 1:
-            im = imgdata.take(indices=channel, axis=axes_order.find('c'))
-        else:
-            im = imgdata
-        ch_axes = axes_order.replace("c","")
-        z_MIP = np.amax(im, axis = ch_axes.find('z'))
-        threshold_range = np.linspace(0,1,100)
-        criterias = [compute_init_mat_otsu_criteria(z_MIP, th) for th in threshold_range]
 
         # best threshold is the one minimizing the Otsu criteria
-        map_range.inputs[1].default_value = threshold_range[np.argmin(criterias)]
+        map_range.inputs[1].default_value = otsus[channel]
         
         map_range.inputs[4].default_value = 0.1
         
@@ -396,8 +389,7 @@ def add_init_material(name, volumes, imgdata, axes_order):
 def init_material_scalebar():
     mat = bpy.data.materials.get("scalebar")
     if mat:
-        print('passed if mat')
-        
+        print('material already exists for scalebars')
         return mat
     mat = bpy.data.materials.new('scalebar')
     mat.blend_method = "BLEND"
@@ -469,10 +461,10 @@ def init_material_scalebar():
     return mat
 
 # adapted from https://en.wikipedia.org/wiki/Otsu%27s_method
-def compute_init_mat_otsu_criteria(im, th):
+def compute_otsu_criteria(im, th):
     """Otsu's method to compute criteria."""
     # create the thresholded image
-    print(th)
+    # print(th)
     thresholded_im = np.zeros(im.shape)
     thresholded_im[im >= th] = 1
 

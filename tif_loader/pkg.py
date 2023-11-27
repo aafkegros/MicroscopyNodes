@@ -7,6 +7,7 @@ import sys
 import os
 import logging
 from pkg_resources import get_distribution, DistributionNotFound
+# switch to importlib?
 import bpy
 import pathlib
 import platform
