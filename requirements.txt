@@ -1,1 +1,5 @@
+pytest
+pytest-snapshot
+pytest-cov
+bpy
 tifffile==2023.4.12 # Python tif loading
