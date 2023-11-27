@@ -8,8 +8,9 @@ from pathlib import Path
 import os
 import pip
 import numpy as np
-import pyopenvdb as vdb
+
 from mathutils import Color
+# try from . import nodes
 from .nodes.nodeScale import scale_node_group
 from .nodes.nodesBoolmultiplex import axes_multiplexer_node_group
 from .nodes.nodeCrosshatch import crosshatch_node_group
@@ -85,20 +86,22 @@ bpy.types.Scene.z_size = FloatProperty(
 # note that this will write a dynamically linked vdb file, so rerunning the script on a file with the same name
 # in the same folder, but with different data, will change the previously loaded data.
 
-def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_scale):
-    import tifffile
+def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, tif, test=False):
+    if test: 
+        # pyopenvdb is not available outside of blender; for tests tifs are written
+        # moving writing to a separate function would induce a very high RAM cost
+        import tifffile
+    else:
+        import pyopenvdb as vdb
+
+    
+    axes_order = axes_order_in
     if axes_order.find('c') == -1:
         imgdata =  np.expand_dims(imgdata, axis=-1)
         axes_order = axes_order + "c"
     if axes_order.find('t') == -1:
         imgdata =  np.expand_dims(imgdata, axis=-1)
         axes_order = axes_order + "t"
-
-    # necessary to support multi-file import
-    bpy.types.Scene.files: CollectionProperty(
-        type=bpy.types.OperatorFileListElement,
-        options={'HIDDEN', 'SKIP_SAVE'},
-    )
     timefiles = []
 
     for t_ix, t in enumerate(range(imgdata.shape[axes_order.find('t')])):
@@ -109,30 +112,30 @@ def make_and_load_vdb(imgdata, x_ix, y_ix, z_ix, axes_order, tif, z_scale, xy_sc
         timefiles.append(entry)
         if (not os.path.isfile(fname)) or bpy.context.scene.TL_remake:
             frame = imgdata.take(indices=t,axis=axes_order.find('t'))
-            grids = []
+            channels = []
             for ch in range(imgdata.shape[axes_order.find('c')]):
                 frame_axes = axes_order.replace("t","")
                 chdata = frame.take(indices=ch,axis=frame_axes.find('c'))
                 slice_axes = frame_axes.replace("c","")
                 chdata = np.moveaxis(chdata, [slice_axes.find('x'),slice_axes.find('y'),slice_axes.find('z')],[0,1,2]).copy()
-                grid = vdb.FloatGrid()
-                grid.name = "channel " + str(ch)
-                grid.copyFromArray(chdata)
-                grids.append(grid)
-            vdb.write(fname, grids=grids)
-        
-        
-    bpy.ops.object.volume_import(filepath=fname,directory=str(tif.parents[0] / f"blender_volumes/{identifier}"), files=timefiles,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
-    return bpy.context.view_layer.objects.active
+                channels.append(chdata)
+            if test: 
+                tifffile.imwrite(fname[:-4]+".tif", np.array(channels).astype(np.uint8) ,metadata={"axes":'cxyz'},photometric='minisblack', planarconfig='separate')
+            else:
+                grids = []
+                for chdata in channels:
+                    grid = vdb.FloatGrid()
+                    grid.name = "channel " + str(ch)
+                    grid.copyFromArray(chdata)
+                    grids.append(grid)
+                vdb.write(fname, grids=grids)
+    directory = str(tif.parents[0] / f"blender_volumes/{identifier}")
+    return directory, timefiles
+    # bpy.ops.object.volume_import(filepath=fname,directory=str(tif.parents[0] / f"blender_volumes/{identifier}"), files=timefiles,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
+    # return bpy.context.view_layer.objects.active
 
-def load_tif(input_file, xy_scale, z_scale, axes_order):
+def unpack_tif_to_vdbs(input_file, axes_order, test=False):
     import tifffile
-    if bpy.context.scene.TL_preset_environment:
-        preset_environment()
-            
-    tif = Path(input_file)
-    init_scale = 0.02
-
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
 
@@ -156,37 +159,71 @@ def load_tif(input_file, xy_scale, z_scale, axes_order):
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
     volumes =[]
+    vdb_files = {}
     a_chunks = np.array_split(imgdata, n_splits[0], axis=axes_order.find('x'))
     for a_ix, a_chunk in enumerate(a_chunks):
         b_chunks = np.array_split(a_chunk, n_splits[1], axis=axes_order.find('y'))
         for b_ix, b_chunk in enumerate(b_chunks):
             c_chunks = np.array_split(b_chunk, n_splits[2], axis=axes_order.find('z'))
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
-                vol = make_and_load_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, tif, z_scale, xy_scale)
-                bbox = np.array([c_chunk.shape[xyz[0]],c_chunk.shape[xyz[1]],c_chunk.shape[xyz[2]]])
-                scale = np.array([1,1,z_scale/xy_scale])*init_scale
-                vol.scale = scale
-                # print(c_ix, b_ix, a_ix)
-                offset = np.array([a_ix,b_ix,c_ix])
+                directory, time_vdbs = make_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, Path(input_file), test=test)
+                vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "files": time_vdbs}
                 
-                vol.location = tuple(offset*bbox*scale)
-                volumes.append(vol)
+                # bbox = np.array([c_chunk.shape[xyz[0]],c_chunk.shape[xyz[1]],c_chunk.shape[xyz[2]]])
+                # scale = np.array([1,1,z_scale/xy_scale])*init_scale
+                # vol.scale = scale
+                # # print(c_ix, b_ix, a_ix)
+                # offset = np.array([a_ix,b_ix,c_ix])
+                
+                # vol.location = tuple(offset*bbox*scale)
+                # volumes.append(vol)
+    bbox_px = np.array([imgdata.shape[xyz[0]], imgdata.shape[xyz[1]], imgdata.shape[xyz[2]]])/np.array(n_splits)
+    return vdb_files, bbox_px, np.array(imgdata.shape)
 
+def make_volumes(vdb_files, bbox_px, scale):
+    volumes = []
+    # necessary to support multi-file import
+    bpy.types.Scene.files: CollectionProperty(
+        type=bpy.types.OperatorFileListElement,
+        options={'HIDDEN', 'SKIP_SAVE'},
+    )
+    for pos in vdb_files:
+        fname = str(Path(vdb_files['directory'])/Path(vdb_files['files'][0]))
+        bpy.ops.object.volume_import(filepath=fname,directory=vdb_files['directory'], files=vdb_files['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
+        vol = bpy.context.view_layer.objects.active
+        vol.scale = scale
+        vol.location = tuple(np.array(pos) * bbox_px *scale)
+        for dim in range(3):
+            vol.lock_location[dim] = True
+            vol.lock_rotation[dim] = True
+            vol.lock_scale[dim] = True
+        volumes.append(vol)
+    return volumes
+
+def load(input_file, xy_scale, z_scale, axes_order):
+    
+    if bpy.context.scene.TL_preset_environment:
+        preset_environment()
+            
+    tif = Path(input_file)
+    init_scale = 0.02
+
+    vdb_files, bbox_px, size_px = unpack_tif_to_vdbs(input_file, axes_order)
+    
+    scale =  np.array([1,1,z_scale/xy_scale])*init_scale
+    volumes = make_volumes(vdb_files, bbox_px, scale)
 
     # recenter x, y, keep z at bottom
-    center = np.array([0.5,0.5,0]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
-    container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*init_scale))
+    # center = np.array([0.5,0.5,0]) * np.array([c_chunk.shape[xyz[0]] * (len(a_chunks)), c_chunk.shape[xyz[1]] * (len(b_chunks)), c_chunk.shape[xyz[2]] * (len(c_chunks)*(z_scale/xy_scale))])
+    center = np.array([0.5,0.5,0]) * size_px
+    container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
 
     container = bpy.context.view_layer.objects.active
     container = init_container(container, volumes, imgdata, tif, xy_scale, z_scale, axes_order, init_scale)
 
     add_init_material(str(tif.name), volumes, imgdata, axes_order)
     
-    for vol in volumes: # transforms should be done on the container
-        for dim in range(3):
-            vol.lock_location[dim] = True
-            vol.lock_rotation[dim] = True
-            vol.lock_scale[dim] = True
+    
     print('done')
     return
 
