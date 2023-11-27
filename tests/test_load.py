@@ -23,9 +23,6 @@ def test_load_premade_vdb():
     axes_order = 'tzcyx'
     tif = Path('/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_test_tzcyx_.tif')
 
-    with tifffile.TiffFile(tif) as ifstif:
-        imgdata = ifstif.asarray()
-
     volumes = tif_loader.load.import_volumes(vdb_files, scale, bbox_px)
 
     # recenter x, y, keep z at bottom
