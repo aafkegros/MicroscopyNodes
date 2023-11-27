@@ -58,6 +58,6 @@ class TifLoadOperator(bpy.types.Operator):
     def execute(self, context):
         scn = context.scene
         # print(scn.path_zstack)
-        load.load_tif(input_file = scn.path_tif, xy_scale=scn.xy_size, z_scale=scn.z_size, axes_order=scn.axes_order)
+        load.load(input_file = scn.path_tif, xy_scale=scn.xy_size, z_scale=scn.z_size, axes_order=scn.axes_order)
         return {'FINISHED'}
 

@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "tif_loader"
+version = "0.0.1"
+description = "Loading and handling microscopy data in Blender."
+authors = ["Oane Gros <oane.gros@embl.de>"]
+include = [
+    {path = "README.md"}
+]
+
+[tool.poetry.dependencies]
+python = "~=3.10.0"
+bpy = ">=3.5.0, <4.0"
+tifffile = "==2023.4.12"
+
+
+[tool.poetry.dev-dependencies]
+pytest = "*"
+pytest-cov = "*"
+pytest-snapshot = "*"
+
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools_scm]
+
