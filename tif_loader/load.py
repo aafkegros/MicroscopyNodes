@@ -318,14 +318,16 @@ def init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_ord
     scale_node.node_tree = scale_node_group()
     scale_node.width = 300
     scale_node.location = (200, 100)
-    links.new(axnode_bm.outputs[0], scale_node.inputs.get('size (m)'))
-    links.new(axnode_um.outputs[0], scale_node.inputs.get('size (µm)'))
-    links.new(axes_select.outputs[0], scale_node.inputs.get('axis selection'))
+    links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
+    links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))
+    links.new(axes_select.outputs[0], scale_node.inputs.get('Axis Selection'))
     links.new(crosshatch.outputs[0], scale_node.inputs.get('Tick Geometry'))
     scale_node.inputs.get("Material").default_value = init_material_scalebar()
 
+   
+    
+    node_group.interface.new_socket("Geometry",in_out="OUTPUT", socket_type='NodeSocketGeometry')
     outnode = nodes.new('NodeGroupOutput')
-    node_group.outputs.new('NodeSocketGeometry', "Geometry")
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
 
@@ -393,11 +395,11 @@ def add_init_material(name, volumes, otsus, axes_order):
     return volumes
 
 def init_material_scalebar():
-    mat = bpy.data.materials.get("scalebar")
+    mat = bpy.data.materials.get("Scalebar")
     if mat:
         print('material already exists for scalebars')
         return mat
-    mat = bpy.data.materials.new('scalebar')
+    mat = bpy.data.materials.new('Scalebar')
     mat.blend_method = "BLEND"
     mat.use_nodes = True
     nodes = mat.node_tree.nodes

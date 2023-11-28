@@ -6,15 +6,15 @@ def grid_verts_node_group():
         return node_group
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "_grid_verts")
     links = node_group.links
+    interface = node_group.interface
     
     # -- get IO --
-    #node_group inputs
     #input Vector
-    node_group.inputs.new('NodeSocketVector', "size (m)")
-    node_group.inputs[-1].default_value = (13.0, 10.0, 6.0)
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 10000000.0
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Size (m)",in_out="INPUT",socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (13.0, 10.0, 6.0)
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 10000000.0
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
     #node Group Input
     group_input = node_group.nodes.new("NodeGroupInput")
@@ -34,7 +34,7 @@ def grid_verts_node_group():
         loc.operation = "MULTIPLY"
         loc.location = (-600, -200 * ix)
         loc.label = "location 0,0,0"
-        links.new(group_input.outputs.get("size (m)"), loc.inputs[0])
+        links.new(group_input.outputs.get("Size (m)"), loc.inputs[0])
         if side == 'min':
             loc.inputs[1].default_value = (-0.5,-0.5,0)
         else: 
@@ -98,8 +98,14 @@ def grid_verts_node_group():
     nornode.location = (600, 100)
 
     #output Geometry
-    node_group.outputs.new('NodeSocketBool', "Boolean")
-    node_group.outputs[0].attribute_domain = 'POINT'
+    #     interface.new_socket("Size (m)",in_out="INPUT",socket_type='NodeSocketVector')
+    # interface.items_tree[-1].default_value = (13.0, 10.0, 6.0)
+    # interface.items_tree[-1].min_value = 0.0
+    # interface.items_tree[-1].max_value = 10000000.0
+    # interface.items_tree[-1].attribute_domain = 'POINT'
+
+    interface.new_socket("Boolean",in_out="OUTPUT",socket_type='NodeSocketBool')
+    interface.items_tree[-1].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (800,100)
     links.new(nornode.outputs[0], group_output.inputs[0])

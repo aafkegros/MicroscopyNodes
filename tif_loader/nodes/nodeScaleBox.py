@@ -11,38 +11,39 @@ def scalebox_node_group():
         return node_group
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "_scalebox")
     links = node_group.links
+    interface = node_group.interface
     
     # -- get Input --
-    node_group.inputs.new('NodeSocketVector', "size (m)")
-    node_group.inputs[-1].default_value = (13.0, 10.0, 6.0)
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 10000000.0
-    node_group.inputs[-1].attribute_domain = 'POINT'
-    
-    node_group.inputs.new('NodeSocketVector', "size (µm)")
-    node_group.inputs[-1].default_value = (7.0, 5.0, 4.0)
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 10000000.0
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Size (µm)",in_out="INPUT",socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (7.0, 5.0, 4.0)
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 10000000.0
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
-    node_group.inputs.new('NodeSocketFloat', "µm per tick")
-    node_group.inputs[-1].default_value = 1
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 3.4028234663852886e+38
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Size (m)",in_out="INPUT",socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (13.0, 10.0, 6.0)
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 10000000.0
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
-    node_group.inputs.new('NodeSocketInt', "axis selection")
-    node_group.inputs[-1].default_value = 1111111
-    node_group.inputs[-1].min_value = 0
-    node_group.inputs[-1].max_value = 1111111
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("µm per tick",in_out="INPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 10
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    interface.items_tree[-1].attribute_domain = 'POINT'
+
+    interface.new_socket("Axis Selection",in_out="INPUT",socket_type='NodeSocketInt')
+    interface.items_tree[-1].default_value = 1111111
+    interface.items_tree[-1].min_value = 0
+    interface.items_tree[-1].max_value = 1111111
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-800,0)
     
     #output Geometry
-    node_group.outputs.new('NodeSocketGeometry', "Geometry")
-    node_group.outputs[0].attribute_domain = 'POINT'
+    interface.new_socket("Geometry",in_out="OUTPUT",socket_type='NodeSocketGeometry')
+    interface.items_tree[-1].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (2900,0)
     
@@ -55,34 +56,34 @@ def scalebox_node_group():
     loc_0.operation = "MULTIPLY"
     loc_0.location = (-600, -100)
     loc_0.label = "location 0,0,0"
-    links.new(group_input.outputs.get("size (m)"), loc_0.inputs[0])
+    links.new(group_input.outputs.get("Size (m)"), loc_0.inputs[0])
     loc_0.inputs[1].default_value = (-0.5,-0.5,0)
     
     loc_max =  node_group.nodes.new("ShaderNodeVectorMath")
     loc_max.operation = "MULTIPLY"
     loc_max.location = (-450, -100)
     loc_max.label = "location max val"
-    links.new(group_input.outputs.get("size (m)"), loc_max.inputs[0])
+    links.new(group_input.outputs.get("Size (m)"), loc_max.inputs[0])
     loc_max.inputs[1].default_value = (0.5,0.5,1)
     
     m_per_µm =  node_group.nodes.new("ShaderNodeVectorMath")
     m_per_µm.operation = "DIVIDE"
     m_per_µm.location = (-600, -300)
     m_per_µm.label = "m per µm"
-    links.new(group_input.outputs.get("size (m)"), m_per_µm.inputs[0])
-    links.new(group_input.outputs.get("size (µm)"), m_per_µm.inputs[1])
+    links.new(group_input.outputs.get("Size (m)"), m_per_µm.inputs[0])
+    links.new(group_input.outputs.get("Size (µm)"), m_per_µm.inputs[1])
 
     # -- make scale box and read out/store normals
     demultiplex_axes = node_group.nodes.new('GeometryNodeGroup')
     demultiplex_axes.node_tree = axes_demultiplexer_node_group()
     demultiplex_axes.location = (-600, -600)
-    links.new(group_input.outputs.get('axis selection'), demultiplex_axes.inputs[0])
+    links.new(group_input.outputs.get('Axis Selection'), demultiplex_axes.inputs[0])
     
     µm_ticks_float =  node_group.nodes.new("ShaderNodeVectorMath")
     µm_ticks_float.operation = "DIVIDE"
     µm_ticks_float.location = (-600, 200)
     µm_ticks_float.label = "float-nr of ticks"
-    links.new(group_input.outputs.get("size (µm)"), µm_ticks_float.inputs[0])
+    links.new(group_input.outputs.get("Size (µm)"), µm_ticks_float.inputs[0])
     links.new(group_input.outputs.get("µm per tick"), µm_ticks_float.inputs[1])
 
     n_ticks_int =  node_group.nodes.new("ShaderNodeVectorMath")
@@ -144,7 +145,7 @@ def scalebox_node_group():
             if side == "top":
                 pretransform = node_group.nodes.new("ShaderNodeVectorMath")
                 pretransform.operation = 'MULTIPLY'
-                links.new(group_input.outputs.get("size (m)"), pretransform.inputs[0])
+                links.new(group_input.outputs.get("Size (m)"), pretransform.inputs[0])
                 links.new(pretransform.outputs[0], transform.inputs.get("Translation"))
                 
                 # shift tops to the correct plane (out-of-axis) and calc rotation
