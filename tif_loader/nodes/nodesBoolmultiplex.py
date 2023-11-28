@@ -6,15 +6,16 @@ def axes_multiplexer_node_group():
         return node_group
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "multiplex_axes")
     links = node_group.links
+    interface = node_group.interface
     
-    node_group.inputs.new('NodeSocketBool', "frontface culling (clip axes in front of data)")
-    node_group.inputs[-1].default_value = True
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("frontface culling (clip axes in front of data)", in_out="INPUT",socket_type='NodeSocketBool')
+    interface.items_tree[-1].default_value = True
+    interface.items_tree[-1].attribute_domain = 'POINT'
     for sideix, side in enumerate(['bottom', 'top']):
         for axix, ax in enumerate(['xy','yz','zx']):
-            node_group.inputs.new('NodeSocketBool', ax + " " + side)
-            node_group.inputs[-1].default_value = True
-            node_group.inputs[-1].attribute_domain = 'POINT'
+            interface.new_socket(ax + " " + side, in_out="INPUT",socket_type='NodeSocketBool')
+            interface.items_tree[-1].default_value = True
+            interface.items_tree[-1].attribute_domain = 'POINT'
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-800,0)
     
@@ -49,8 +50,8 @@ def axes_multiplexer_node_group():
         for colix, node in enumerate([mult, add, switch]):
             node.location = (-600 + colix * 200 + ix *200, ix *-200 +500)
         
-    node_group.outputs.new('NodeSocketInt', "multi-selection")
-    node_group.outputs[0].attribute_domain = 'POINT'
+    interface.new_socket("multi-selection", in_out="OUTPUT",socket_type='NodeSocketInt')
+    interface.items_tree[0].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
     
     group_output.location = (-300 + colix * 200 + ix *200, ix *-200 +500)
@@ -64,18 +65,19 @@ def axes_demultiplexer_node_group():
         return node_group
     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "demultiplex_axes")
     links = node_group.links
+    interface = node_group.interface
     
-    node_group.inputs.new('NodeSocketInt', "multi-selection")
-    node_group.inputs[0].attribute_domain = 'POINT'
+    interface.new_socket("multi-selection", in_out="INPUT",socket_type='NodeSocketInt')
+    interface.items_tree[0].attribute_domain = 'POINT'
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-800,0)
     
-    node_group.outputs.new('NodeSocketBool', "frontface culling (clip axes in front of data)")
-    node_group.outputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("frontface culling (clip axes in front of data)", in_out="OUTPUT",socket_type='NodeSocketBool')
+    interface.items_tree[-1].attribute_domain = 'POINT'
     for sideix, side in enumerate(['bottom', 'top']):
         for axix, ax in enumerate(['xy','yz','zx']):
-            node_group.outputs.new('NodeSocketBool', ax + " " + side)
-            node_group.outputs[-1].attribute_domain = 'POINT'
+            interface.new_socket(ax + " " + side, in_out="OUTPUT",socket_type='NodeSocketBool')
+            interface.items_tree[-1].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (1200, 0)
     

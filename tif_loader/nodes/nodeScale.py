@@ -10,49 +10,50 @@ def scale_node_group():
         return node_group
     node_group = bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "Scale bars")
     links = node_group.links
-    
+    interface = node_group.interface
+
     # -- get Input --
-    node_group.inputs.new('NodeSocketVector', "size (µm)")
-    node_group.inputs[-1].default_value = (7.0, 5.0, 4.0)
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 10000000.0
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Size (µm)",in_out="INPUT",socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (7.0, 5.0, 4.0)
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 10000000.0
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
-    node_group.inputs.new('NodeSocketVector', "size (m)")
-    node_group.inputs[-1].default_value = (13.0, 10.0, 6.0)
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 10000000.0
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Size (m)",in_out="INPUT",socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (13.0, 10.0, 6.0)
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 10000000.0
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
-    node_group.inputs.new('NodeSocketFloat', "µm per tick")
-    node_group.inputs[-1].default_value = 10
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 3.4028234663852886e+38
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("µm per tick",in_out="INPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 10
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    interface.items_tree[-1].attribute_domain = 'POINT'
     
-    node_group.inputs.new('NodeSocketBool', "grid")
-    node_group.inputs[-1].default_value = True
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Grid",in_out="INPUT",socket_type='NodeSocketBool')
+    interface.items_tree[-1].default_value = True
+    interface.items_tree[-1].attribute_domain = 'POINT'
     
-    node_group.inputs.new('NodeSocketFloat', "line thickness")
-    node_group.inputs[-1].default_value = 0.2
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 3.4028234663852886e+38
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Line thickness",in_out="INPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 0.2
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    interface.items_tree[-1].attribute_domain = 'POINT'
     
-    node_group.inputs.new('NodeSocketGeometry', "Tick Geometry")
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Tick Geometry",in_out="INPUT",socket_type='NodeSocketGeometry')
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
-    node_group.inputs.new('NodeSocketInt', "axis selection")
-    node_group.inputs[-1].default_value = 1111111
-    node_group.inputs[-1].min_value = 0
-    node_group.inputs[-1].max_value = 1111111
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("Axis Selection",in_out="INPUT",socket_type='NodeSocketInt')
+    interface.items_tree[-1].default_value = 1111111
+    interface.items_tree[-1].min_value = 0
+    interface.items_tree[-1].max_value = 1111111
+    interface.items_tree[-1].attribute_domain = 'POINT'
     
-    node_group.inputs.new('NodeSocketColor', "Color")
-    node_group.inputs[-1].default_value = (1,1,1, 1)
+    interface.new_socket("Color",in_out="INPUT",socket_type='NodeSocketColor')
+    interface.items_tree[-1].default_value = (1,1,1, 1)
     
-    node_group.inputs.new('NodeSocketMaterial', "Material")
+    interface.new_socket("Material",in_out="INPUT",socket_type='NodeSocketMaterial')
 
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-1000,0)
@@ -61,10 +62,10 @@ def scale_node_group():
     scalebox = node_group.nodes.new('GeometryNodeGroup')
     scalebox.node_tree = scalebox_node_group()
     scalebox.location = (-500, 500)
-    links.new(group_input.outputs.get("size (m)"), scalebox.inputs.get("size (m)"))
-    links.new(group_input.outputs.get("size (µm)"), scalebox.inputs.get("size (µm)"))
+    links.new(group_input.outputs.get("Size (m)"), scalebox.inputs.get("Size (m)"))
+    links.new(group_input.outputs.get("Size (µm)"), scalebox.inputs.get("Size (µm)"))
     links.new(group_input.outputs.get("µm per tick"), scalebox.inputs.get("µm per tick"))
-    links.new(group_input.outputs.get("axis selection"), scalebox.inputs.get("axis selection"))
+    links.new(group_input.outputs.get("Axis Selection"), scalebox.inputs.get("Axis Selection"))
     
     normal = node_group.nodes.new("GeometryNodeInputNormal")
     normal.location = (-320, 450)
@@ -88,11 +89,11 @@ def scale_node_group():
     grid_verts = node_group.nodes.new('GeometryNodeGroup')
     grid_verts.node_tree = grid_verts_node_group()
     grid_verts.location = (-500, 100)
-    links.new(group_input.outputs.get("size (m)"), grid_verts.inputs.get("size (m)"))
+    links.new(group_input.outputs.get("Size (m)"), grid_verts.inputs.get("Size (m)"))
     
     not_grid = node_group.nodes.new("FunctionNodeBooleanMath")
     not_grid.operation = 'NOT'
-    links.new(group_input.outputs.get("grid"), not_grid.inputs[0])
+    links.new(group_input.outputs.get("Grid"), not_grid.inputs[0])
     not_grid.location = (-500, -100)
     
     and_grid = node_group.nodes.new("FunctionNodeBooleanMath")
@@ -106,7 +107,7 @@ def scale_node_group():
     thickness.operation = "DIVIDE"
     thickness.location = (-500, -200)
     thickness.label = "line thickness scaled down"
-    links.new(group_input.outputs.get("line thickness"), thickness.inputs[0])
+    links.new(group_input.outputs.get("Line thickness"), thickness.inputs[0])
     thickness.inputs[1].default_value = 100
         
     # # -- instantiate ticks -- 
@@ -167,7 +168,7 @@ def scale_node_group():
     demultiplex_axes = node_group.nodes.new('GeometryNodeGroup')
     demultiplex_axes.node_tree = axes_demultiplexer_node_group()
     demultiplex_axes.location = (1400, -300)
-    links.new(group_input.outputs.get('axis selection'), demultiplex_axes.inputs[0])
+    links.new(group_input.outputs.get('Axis Selection'), demultiplex_axes.inputs[0])
     
     culling =  node_group.nodes.new("GeometryNodeStoreNamedAttribute")
     culling.label = "passthrough frontface culling to shader"
@@ -192,8 +193,14 @@ def scale_node_group():
     links.new(color.outputs[0], material.inputs[0])
     links.new(group_input.outputs.get('Material'), material.inputs[2])
     
-    node_group.outputs.new('NodeSocketGeometry', "Geometry")
-    node_group.outputs[0].attribute_domain = 'POINT'
+    # interface.new_socket("size",in_out="INPUT",socket_type='NodeSocketFloat')
+    # interface.items_tree[-1].default_value = 15.0
+    # interface.items_tree[-1].min_value = 0.0
+    # interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    # interface.items_tree[-1].attribute_domain = 'POINT'
+    
+    interface.new_socket("Geometry",in_out="OUTPUT",socket_type='NodeSocketGeometry')
+    interface.items_tree[-1].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (2200,0)
     links.new(material.outputs[0], group_output.inputs[0])

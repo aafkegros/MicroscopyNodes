@@ -6,19 +6,19 @@ def crosshatch_node_group():
         return node_group
     node_group = bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "crosshatch")
     links = node_group.links
+    interface = node_group.interface
 
-    # bpy.ops.node.interface_item_new('NodeSocketFloat', "size")
-    node_group.inputs.new('NodeSocketFloat', "size")
-    node_group.inputs[-1].default_value = 15.0
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 3.4028234663852886e+38
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("size",in_out="INPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 15.0
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    interface.items_tree[-1].attribute_domain = 'POINT'
     
-    node_group.inputs.new('NodeSocketFloat', "thickness")
-    node_group.inputs[-1].default_value = 3.0
-    node_group.inputs[-1].min_value = 0.0
-    node_group.inputs[-1].max_value = 3.4028234663852886e+38
-    node_group.inputs[-1].attribute_domain = 'POINT'
+    interface.new_socket("thickness", in_out="INPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 3.0
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    interface.items_tree[-1].attribute_domain = 'POINT'
 
     group_input = node_group.nodes.new("NodeGroupInput")
     group_input.location = (-1000,0)
@@ -54,8 +54,8 @@ def crosshatch_node_group():
     for cube in reversed(cubes):
         links.new(cube.outputs[0], join_tick.inputs[0])
     
-    node_group.outputs.new('NodeSocketGeometry', "Geometry")
-    node_group.outputs[0].attribute_domain = 'POINT'
+    interface.new_socket("Geometry", in_out="OUTPUT",socket_type='NodeSocketGeometry')
+    interface.items_tree[-1].attribute_domain = 'POINT'
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (500,-200)
     links.new(join_tick.outputs[0], group_output.inputs[0])
