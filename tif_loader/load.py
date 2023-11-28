@@ -55,6 +55,11 @@ bpy.types.Scene.TL_preset_environment = bpy.props.BoolProperty(
     default = True
     )
 
+bpy.types.Scene.TL_otsu = bpy.props.BoolProperty(
+    name = "TL_otsu", 
+    description = "Otsu on load (slow for big data)",
+    default = True
+    )
 
 bpy.types.Scene.path_tif = StringProperty(
         name="",
@@ -157,17 +162,18 @@ def unpack_tif(input_file, axes_order, test=False):
     xyz = [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]
     n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in xyz]
     # otsu compute in z MIP
-    otsus = []
-    for channel in range(channels):
-        if channels > 1:
-            im = imgdata.take(indices=channel, axis=axes_order.find('c'))
-        else:
-            im = imgdata
-        ch_axes = axes_order.replace("c","")
-        z_MIP = np.amax(im, axis = ch_axes.find('z'))
-        threshold_range = np.linspace(0,1,101)
-        criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
-        otsus.append(threshold_range[np.argmin(criterias)])
+    otsus = [0] * channels
+    if bpy.context.scene.TL_otsu:
+        for channel in range(channels):
+            if channels > 1:
+                im = imgdata.take(indices=channel, axis=axes_order.find('c'))
+            else:
+                im = imgdata
+            ch_axes = axes_order.replace("c","")
+            z_MIP = np.amax(im, axis = ch_axes.find('z'))
+            threshold_range = np.linspace(0,1,101)
+            criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
+            otsus[channel] = threshold_range[np.argmin(criterias)]
 
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)

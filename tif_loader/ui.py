@@ -28,6 +28,8 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Force remaking vdb files', icon_value=0, emboss=True)
         grid.prop(bpy.context.scene, 'TL_preset_environment', 
                         text = 'Preset environment', icon_value=0, emboss=True)
+        grid.prop(bpy.context.scene, 'TL_otsu', 
+                        text = 'Otsu on load (slow for big data)', icon_value=0, emboss=True)
 
         col = layout.column(align=True)
         col.label(text=".tif file:")
