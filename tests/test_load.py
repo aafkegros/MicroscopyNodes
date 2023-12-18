@@ -4,7 +4,7 @@ import pytest
 import tifffile
 import itertools
 import numpy as np
-import tif_loader
+import tif2blender
 from pathlib import Path
 import shutil
 
@@ -35,19 +35,19 @@ def test_load_premade_vdb():
     axes_order = 'tzcyx'
     tif = Path('/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_test_tzcyx_.tif')
 
-    volumes = tif_loader.load.import_volumes(vdb_files, scale, bbox_px)
+    volumes = tif2blender.load.import_volumes(vdb_files, scale, bbox_px)
 
     # recenter x, y, keep z at bottom
     center = np.array([0.5,0.5,0]) * size_px
     container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
 
     container = bpy.context.view_layer.objects.active
-    container = tif_loader.load.init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
+    container = tif2blender.load.init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
 
-    tif_loader.load.add_init_material(str(tif.name), volumes, otsus, axes_order)
+    tif2blender.load.add_init_material(str(tif.name), volumes, otsus, axes_order)
 
 def test_preset_env():
-    tif_loader.load.preset_environment()
+    tif2blender.load.preset_environment()
 
 
 # -- tif handling --
@@ -75,7 +75,7 @@ def load_with_axes_order(axes_order, shape):
         shutil.rmtree(volume_folder)
     assert not volume_folder.exists()
 
-    tif_loader.load.unpack_tif(fname, axes_order, test=True)
+    tif2blender.load.unpack_tif(fname, axes_order, test=True)
     
     for chunkfolder in [f for f in volume_folder.iterdir() if f.is_dir()]:
         timefiles = list(chunkfolder.glob(f"test_{axes_order}_*.tif"))
