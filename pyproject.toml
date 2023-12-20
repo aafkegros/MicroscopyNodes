@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tif2blender"
-version = "0.1.0"
+version = "0.1.1"
 description = "Loading and handling microscopy data in Blender."
 authors = ["Oane Gros <oane.gros@embl.de>"]
 include = [
