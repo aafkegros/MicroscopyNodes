@@ -14,11 +14,11 @@
 # Parts of this are based on or taken from Brady Johnston's MolecularNodes
 
 bl_info = {
-    "name" : "tif loader",
+    "name" : "tif2blender",
     "author" : "Oane Gros",
     "description" : "",
     "blender" : (3, 5, 0),
-    "version" : (0, 0, 2),
+    "version" : (0, 0, 3),
     "location" : "",
     "warning" : "",
     "category" : "Import"

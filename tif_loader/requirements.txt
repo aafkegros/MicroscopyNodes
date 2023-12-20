@@ -1,0 +1,1 @@
+tifffile==2023.4.12 # Python tif loading
