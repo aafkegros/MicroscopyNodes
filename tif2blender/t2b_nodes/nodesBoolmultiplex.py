@@ -42,10 +42,10 @@ def axes_multiplexer_node_group():
         switch = node_group.nodes.new("GeometryNodeSwitch")
         switch.input_type = "INT"
         links.new(inputbool, switch.inputs[0])
-        links.new(lastout[0], switch.inputs[4])
-        links.new(add.outputs[0], switch.inputs[5])
+        links.new(lastout[0], switch.inputs.get('False'))
+        links.new(add.outputs[0], switch.inputs.get('True'))
         
-        lastout = (switch.outputs[1], mult.outputs[0])
+        lastout = (switch.outputs[0], mult.outputs[0])
         
         for colix, node in enumerate([mult, add, switch]):
             node.location = (-600 + colix * 200 + ix *200, ix *-200 +500)

@@ -3,3 +3,4 @@ pytest-snapshot
 pytest-cov
 bpy
 tifffile==2023.4.12 # Python tif loading
+scikit-image==0.22.0

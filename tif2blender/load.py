@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import (StringProperty, FloatProperty,
-                        PointerProperty
+                        PointerProperty, IntProperty
                         )
 
 import subprocess
@@ -13,9 +13,9 @@ from mathutils import Color
 from . import t2b_nodes
 from .initial_global_settings import * 
 from .initial_node_settings import * 
-# from .nodes.nodeScale import scale_node_group
-# from .nodes.nodesBoolmultiplex import axes_multiplexer_node_group
-# from .nodes.nodeCrosshatch import crosshatch_node_group
+from .load_labelmask import load_labelmask
+from .collection_handling import *
+
 
 def changePathTif(self, context):
     # infers metadata, resets to default if not found
@@ -38,6 +38,7 @@ def changePathTif(self, context):
             except Exception as e:
                 print(e)
                 context.scene.property_unset("z_size")
+            # if this gets improved in bpy: set max of maskchannel selector
     except Exception as e:
         context.scene.property_unset("axes_order")
         context.scene.property_unset("xy_size")
@@ -71,7 +72,14 @@ bpy.types.Scene.path_tif = StringProperty(
         default="",
         maxlen=1024,
         subtype='FILE_PATH')
-    
+
+bpy.types.Scene.T2B_cache_dir = StringProperty(
+        description = 'Location to cache VDB and ABC files',
+    options = {'TEXTEDIT_UPDATE'},
+    default = str(Path('~', '.tif2blender').expanduser()),
+    subtype = 'FILE_PATH'
+    )
+
 bpy.types.Scene.axes_order = StringProperty(
         name="",
         description="axes order (only z is used currently)",
@@ -88,6 +96,10 @@ bpy.types.Scene.z_size = FloatProperty(
         description="z physical pixel size in micrometer",
         default=1.0)
 
+bpy.types.Scene.T2B_mask_channels = StringProperty(
+        name="",
+        description="channels with an integer label mask",
+        )
 
 
 # note that this will write a dynamically linked vdb file, so rerunning the script on a file with the same name
@@ -109,12 +121,13 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, tif, test=False):
     if axes_order.find('t') == -1:
         imgdata =  np.expand_dims(imgdata, axis=-1)
         axes_order = axes_order + "t"
+    
     timefiles = []
 
     for t_ix, t in enumerate(range(imgdata.shape[axes_order.find('t')])):
         identifier = "x"+str(x_ix)+"y"+str(y_ix)+"z"+str(z_ix)
-        (tif.parents[0] / f"blender_volumes/{identifier}/").mkdir(exist_ok=True,parents=True)
-        fname = str(tif.parents[0] / f"blender_volumes/{identifier}/{tif.stem}t_{t_ix}.vdb")
+        (Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}").mkdir(exist_ok=True,parents=True)
+        fname = (Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}"/f"{tif.stem}t_{t_ix}.vdb")
         entry = {"name":f"{tif.stem}t_{t_ix}.vdb"}
         timefiles.append(entry)
         if (not os.path.isfile(fname)) or bpy.context.scene.TL_remake:
@@ -135,13 +148,12 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, tif, test=False):
                     grid.name = "channel " + str(ch)
                     grid.copyFromArray(chdata)
                     grids.append(grid)
-                vdb.write(fname, grids=grids)
-    directory = str(tif.parents[0] / f"blender_volumes/{identifier}")
+                vdb.write(str(fname), grids=grids)
+    directory = str(Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}")
     return directory, timefiles
-    # bpy.ops.object.volume_import(filepath=fname,directory=str(tif.parents[0] / f"blender_volumes/{identifier}"), files=timefiles,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
-    # return bpy.context.view_layer.objects.active
 
-def unpack_tif(input_file, axes_order, test=False, maskchannel=None):
+
+def unpack_tif(input_file, axes_order, test=False):
     import tifffile
     with tifffile.TiffFile(input_file) as ifstif:
         imgdata = ifstif.asarray()
@@ -149,14 +161,25 @@ def unpack_tif(input_file, axes_order, test=False, maskchannel=None):
     if len(axes_order) != len(imgdata.shape):
         raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
+    mask_channels = []
+    if bpy.context.scene.T2B_mask_channels != '':
+        try:
+            mask_channels = [int(ch.strip()) for ch in bpy.context.scene.T2B_mask_channels.split(',') if '-' not in ch]
+            # mask_channels.extend([list(np.arange(int(ch.strip().split('-')[0]),int(ch.strip().split('-')[1]))) for ch in bpy.context.scene.T2B_mask_channels.split(',')if '-' in ch])
+        except:
+            raise ValueError("could not interpret maskchannels")
+        if max(mask_channels) >= imgdata.shape[axes_order.find('c')]:
+            raise ValueError(f"mask channel is too high, max is {imgdata.shape[axes_order.find('c')]-1}, it starts counting at 0" )
+    
+
+    
+    mask_arrays = {}
+    for ch in mask_channels:
+        mask_arrays[ch] = imgdata.take(indices=ch, axis=axes_order.find('c'))
+    imgdata = np.delete(imgdata, mask_channels, axis=axes_order.find('c'))
+    
+    # normalize values per channel
     imgdata = imgdata.astype(np.float32)
-    # normalize entire space per axis
-
-    mask_array = None
-    if maskchannel != None:
-        mask_array = imgdata.take(indices=maskchannel, axis=axes_order.find('c'))
-        imgdata = np.delete(imgdata, maskchannel, axis=axes_order.find('c'))
-
     if 'c' in axes_order:
         ch_first = np.moveaxis(imgdata, axes_order.find('c'), 0)
         for chix, chdata in enumerate(ch_first):
@@ -165,8 +188,6 @@ def unpack_tif(input_file, axes_order, test=False, maskchannel=None):
     else:
         imgdata /= np.max(imgdata)
         channels = 1
-
-    
 
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     xyz = [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]
@@ -200,10 +221,14 @@ def unpack_tif(input_file, axes_order, test=False, maskchannel=None):
                 vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "files": time_vdbs}
     size_px = np.array([imgdata.shape[xyz[0]], imgdata.shape[xyz[1]], imgdata.shape[xyz[2]]])
     bbox_px = size_px//np.array(n_splits)
-    return vdb_files, bbox_px, size_px, otsus
+    return vdb_files, bbox_px, size_px, otsus, mask_arrays
 
 # currently not easily testable
 def import_volumes(vdb_files, scale, bbox_px):
+    if len(vdb_files) == 0:
+        return [], []
+    parentcoll, parentlcoll = get_current_collection()
+    vol_collection, _ = make_subcollection('volumes')
     volumes = []
     # necessary to support multi-file import
     bpy.types.Scene.files: CollectionProperty(
@@ -216,40 +241,58 @@ def import_volumes(vdb_files, scale, bbox_px):
         vol = bpy.context.view_layer.objects.active
         vol.scale = scale
         vol.location = tuple(np.array(pos) * bbox_px *scale)
+        vol.data.frame_start = 0
         for dim in range(3):
             vol.lock_location[dim] = True
             vol.lock_rotation[dim] = True
             vol.lock_scale[dim] = True
         volumes.append(vol)
-    return volumes
+    
+    collection_activate(parentcoll, parentlcoll)
+    return volumes, [vol_collection]
 
-
-def load_mask(array, xy_sc):
-    return
 
 
 def load(input_file, xy_scale, z_scale, axes_order):
+    orig_cache = bpy.context.scene.T2B_cache_dir
+    bpy.context.scene.T2B_cache_dir = str(Path(bpy.context.scene.T2B_cache_dir) / Path(input_file).stem)
+    
+    collection_by_name('cache')
+    cache_coll, cache_lcoll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
     if bpy.context.scene.TL_preset_environment:
         preset_environment()
             
     tif = Path(input_file)
 
-    vdb_files, bbox_px, size_px, otsus = unpack_tif(input_file, axes_order)
-
+    center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
     init_scale = 0.02
     scale =  np.array([1,1,z_scale/xy_scale])*init_scale
 
-    volumes = import_volumes(vdb_files, scale, bbox_px)
+    vdb_files, bbox_px, size_px, otsus, mask_arrays = unpack_tif(input_file, axes_order)
+    
+    vol_obj = None
+    if len(vdb_files) > 0:
+        collection_activate(cache_coll,cache_lcoll)
+        volumes, vcoll = import_volumes(vdb_files, scale, bbox_px)
+        collection_by_name("Collection")
+        vol_obj = init_holder('volume',vcoll, [volume_material(volumes, otsus, axes_order)])
 
-    # recenter x, y, keep z at bottom
-    center = np.array([0.5,0.5,0]) * size_px
-    container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
+    mask_obj = None
+    if len(mask_arrays) > 0:
+        collection_activate(cache_coll,cache_lcoll)
+        masks, mask_colls, mask_shaders = load_labelmask(mask_arrays, scale)
+        collection_by_name("Collection")
+        mask_obj = init_holder('masks' ,mask_colls, mask_shaders)
+    
+    loc =  tuple(center_loc * size_px*scale)
+    axes_obj = init_axes(size_px, Path(input_file), xy_scale, z_scale, axes_order, init_scale, loc)
+    
+    container = init_container([axes_obj, mask_obj, vol_obj],location=loc, name=tif.stem)
+    collection_deactivate('cache')
+    axes_obj.select_set(True)
 
-    container = bpy.context.view_layer.objects.active
-    container = init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
-
-    add_init_material(str(tif.name), volumes, otsus, axes_order)
+    bpy.context.scene.T2B_cache_dir = orig_cache
     return
 
 

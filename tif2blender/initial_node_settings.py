@@ -6,22 +6,33 @@ from bpy.props import (StringProperty, FloatProperty,
 
 from mathutils import Color
 import numpy as np
-
+from .collection_handling import *
 from . import t2b_nodes
-# print(dir(t2b_nodes))
 
-def init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale):
-    container.name = "container of " + str(tif.name) 
-    container.data.name = "container of " + str(tif.name) 
 
-    for vol in volumes:
-        vol.parent = container
-        vol.matrix_parent_inverse = container.matrix_world.inverted()
-    
+def init_container(objects, location, name):
+    container = bpy.ops.object.empty_add(type="PLAIN_AXES",location=location)
+    container = bpy.context.view_layer.objects.active
+    container.name = name 
+
+    for obj in objects:
+        if obj is None:
+            continue
+        obj.parent = container
+        obj.matrix_parent_inverse = container.matrix_world.inverted()
+
     container.location = (0,0,0)
+    return container
+    
+
+def init_axes(size_px, tif, xy_scale, z_scale, axes_order, init_scale, location):
+    axesobj = bpy.ops.mesh.primitive_cube_add(location=location)
+    axesobj = bpy.context.view_layer.objects.active
+    axesobj.name = 'axes'
+
     bpy.ops.object.modifier_add(type='NODES')
-    node_group = bpy.data.node_groups.new('Container of ' + str(tif.name) , 'GeometryNodeTree')  
-    container.modifiers[-1].node_group = node_group
+    node_group = bpy.data.node_groups.new('axes of ' + str(tif.name) , 'GeometryNodeTree')  
+    axesobj.modifiers[-1].node_group = node_group
     nodes = node_group.nodes
     links = node_group.links
 
@@ -87,16 +98,64 @@ def init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_ord
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
 
-    return container
+    if axesobj.data.materials:
+        axesobj.data.materials[0] = init_material_scalebar()
+    else:
+        axesobj.data.materials.append(init_material_scalebar())
+
+    return axesobj
+
+def init_holder(name, colls, shaders):
+    if len(colls) == 0:
+        return None
+    obj = bpy.ops.mesh.primitive_cube_add()
+    obj = bpy.context.view_layer.objects.active
+    obj.name = name
+    
+    bpy.ops.object.modifier_add(type='NODES')
+    node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')  
+    obj.modifiers[-1].node_group = node_group
+    nodes = node_group.nodes
+    links = node_group.links
+
+    lastnodes = []
+    for ix, (coll, shader) in enumerate(zip(colls, shaders)):
+        collnode = nodes.new('GeometryNodeCollectionInfo')
+        collnode.label = coll.name
+        collnode.inputs[0].default_value = coll
+        collnode.location = (-300, ix * -200)
+
+        # replace with material index when this is fixed for GN-objects
+        obj.data.materials.append(shader)
+        setmat = nodes.new('GeometryNodeSetMaterial')
+        links.new(collnode.outputs[0], setmat.inputs.get('Geometry'))
+        setmat.location = (0, ix * -200)
+        setmat.inputs.get('Material').default_value = shader
+        lastnodes.append(setmat)
+    
+    join = node_group.nodes.new("GeometryNodeJoinGeometry")
+    join.location = (200, -100)
+    for lastnode in lastnodes:
+        links.new(lastnode.outputs[0], join.inputs[-1])
+    
+
+    node_group.interface.new_socket("Geometry",in_out="OUTPUT", socket_type='NodeSocketGeometry')
+    outnode = nodes.new('NodeGroupOutput')
+    outnode.location = (400, -100)
+    links.new(join.outputs[0], outnode.inputs[0])
+    return obj
 
 
-def add_init_material(name, volumes, otsus, axes_order):
+def volume_material(volumes, otsus, axes_order):
     # do not check whether it exists, so a new load will force making a new mat
-    mat = bpy.data.materials.new(name)
+    mat = bpy.data.materials.new('volume')
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
-    nodes.remove(nodes.get("Principled BSDF"))
+    if nodes.get("Principled BSDF") is not None:
+        nodes.remove(nodes.get("Principled BSDF"))
+    if nodes.get("Principled Volume") is not None:
+        nodes.remove(nodes.get("Principled Volume"))
 
     lastnode, finalnode = None, None
     channels = len(otsus)
@@ -111,10 +170,8 @@ def add_init_material(name, volumes, otsus, axes_order):
 
         map_range = nodes.new(type='ShaderNodeMapRange')
         map_range.location = (-230, -400*channel)
-
         # best threshold is the one minimizing the Otsu criteria
         map_range.inputs[1].default_value = otsus[channel]
-        
         map_range.inputs[4].default_value = 0.1
         
         links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
@@ -141,19 +198,18 @@ def add_init_material(name, volumes, otsus, axes_order):
     nodes.get("Material Output").location = (350 + 150 * channels,-400*channel)
     links.new(lastnode, nodes.get("Material Output").inputs[1])
                 
-    # Assign it to object
+    # Assign it to volumes - not fully necessary, but nice to have if people want to mess around in the cache
     for vol in volumes:
         if vol.data.materials:
             vol.data.materials[0] = mat
         else:
             vol.data.materials.append(mat)
 
-    return volumes
+    return mat
 
 def init_material_scalebar():
     mat = bpy.data.materials.get("Scalebar")
     if mat:
-        print('material already exists for scalebars')
         return mat
     mat = bpy.data.materials.new('Scalebar')
     mat.blend_method = "BLEND"

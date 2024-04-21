@@ -177,7 +177,7 @@ def scale_node_group():
     culling.domain = 'POINT'
     culling.location = (1600, 10)
     links.new(join.outputs[0], culling.inputs[0])
-    links.new(demultiplex_axes.outputs[0], culling.inputs[6])
+    links.new(demultiplex_axes.outputs[0], culling.inputs.get('Value'))
     
     color =  node_group.nodes.new("GeometryNodeStoreNamedAttribute")
     color.label = "passthrough color to shader"
@@ -186,7 +186,7 @@ def scale_node_group():
     color.domain = 'POINT'
     color.location = (1800, 0)
     links.new(culling.outputs[0], color.inputs[0])
-    links.new(group_input.outputs.get('Color'), color.inputs[5])
+    links.new(group_input.outputs.get('Color'), color.inputs.get('Value'))
     
     material = node_group.nodes.new("GeometryNodeSetMaterial")
     material.location = (2000,0)

@@ -30,11 +30,13 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Preset environment', icon_value=0, emboss=True)
         grid.prop(bpy.context.scene, 'TL_otsu', 
                         text = 'Otsu on load (slow for big data)', icon_value=0, emboss=True)
+        grid.prop(bpy.context.scene, 'T2B_cache_dir', text= 'Cache dir')
 
         col = layout.column(align=True)
         col.label(text=".tif file:")
         col.prop(context.scene, "path_tif", text="")
 
+        
         split = layout.split()
         col = split.column()
         col.label(text="xy pixel size (µm):")
@@ -49,6 +51,13 @@ class TIFLoadPanel(bpy.types.Panel):
 #        col.label(text="axis order:")
         col.prop(scn, "axes_order", text="axes")
         
+
+        col.label(text="(optional) channels of label masks")
+        col.prop(bpy.context.scene, 'T2B_mask_channels', 
+                        placeholder = 'e.g. 0, 3, 4',  # this is for blender 4.1
+                        icon_value=0, emboss=True)
+
+        col.label(text="  ")
 #        layout.label(text="Big Button:")
         layout.operator("tiftool.load")
 
