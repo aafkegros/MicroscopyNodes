@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 from pathlib import Path
 
-from ..collection_handling import *
+from ..handle_blender_structs.collection_handling import *
 from .. import t2b_nodes
 
 

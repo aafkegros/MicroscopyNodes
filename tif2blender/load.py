@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from .initial_global_settings import preset_environment
-from .collection_handling import *
+from .handle_blender_structs import *
 from .load_components import *
 
 
@@ -117,7 +117,8 @@ def unpack_tif(input_file, axes_order, test=False):
     mask_arrays = {}
     for ch in mask_channels:
         mask_arrays[ch] = imgdata.take(indices=ch, axis=axes_order.find('c'))
-    volume_array = np.delete(imgdata, mask_channels, axis=axes_order.find('c'))
+    # volume_array = np.delete(imgdata, mask_channels, axis=axes_order.find('c'))
+    volume_array = imgdata
     
     # normalize values per channel
     volume_array = volume_array.astype(np.float32)
@@ -125,16 +126,19 @@ def unpack_tif(input_file, axes_order, test=False):
         ch_first = np.moveaxis(volume_array, axes_order.find('c'), 0)
         for chix, chdata in enumerate(ch_first):
             ch_first[chix] /= np.max(chdata)
-        channels = volume_array.shape[axes_order.find('c')]
+        channels = volume_array.shape[axes_order.find('c')] - len(mask_channels)
+        all_channels = imgdata.shape[axes_order.find('c')]
     else:
         volume_array /= np.max(volume_array)
-        channels = 1
+        channels = 1 -len(mask_channels)
+        all_channels = 1 
 
     # otsu compute in z MIP
-    otsus = [0] * channels
+    otsus = [-1] * all_channels
     
     if bpy.context.scene.TL_otsu:
         for channel in range(channels):
+            ix = sorted(list(set(range(all_channels)) - set(mask_channels)))[channel]
             if channels > 1:
                 im = volume_array.take(indices=channel, axis=axes_order.find('c'))
             else:
@@ -143,9 +147,10 @@ def unpack_tif(input_file, axes_order, test=False):
             z_MIP = np.amax(im, axis = ch_axes.find('z'))
             threshold_range = np.linspace(0,1,101)
             criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
-            otsus[channel] = threshold_range[np.argmin(criterias)]
+            otsus[ix] = threshold_range[np.argmin(criterias)]
 
     size_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])
+    
     return volume_array, mask_arrays, otsus, size_px
 
 
@@ -198,9 +203,10 @@ def load(input_file, xy_scale, z_scale, axes_order):
     scale =  np.array([1,1,z_scale/xy_scale])*init_scale
     loc =  tuple(center_loc * size_px*scale)
     
-    vol_obj = None
+    vol_obj, surf_obj = None, None
     if volume_array.shape[axes_order.find('c')] > 0:
-        vol_obj = load_volume(volume_array, otsus, scale, cache_coll, base_coll)
+        vol_obj, vol_coll = load_volume(volume_array, otsus, scale, cache_coll, base_coll)
+        surf_obj = load_surfaces(vol_coll, otsus, scale, cache_coll, base_coll)
     
     mask_obj = None
     if len(mask_arrays) > 0:
@@ -208,7 +214,7 @@ def load(input_file, xy_scale, z_scale, axes_order):
         
     axes_obj = init_axes(size_px, init_scale, loc)
     
-    container = init_container([axes_obj, mask_obj, vol_obj],location=loc, name=Path(input_file).stem)
+    container = init_container([axes_obj, mask_obj, vol_obj, surf_obj],location=loc, name=Path(input_file).stem)
     collection_deactivate('cache')
     axes_obj.select_set(True)
 

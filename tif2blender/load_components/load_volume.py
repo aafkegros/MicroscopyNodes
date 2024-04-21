@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from .load_generic import init_holder
-from ..collection_handling import *
+from ..handle_blender_structs import *
 
 
 def array_to_vdb_files(imgdata, test=False):
@@ -73,32 +73,7 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, test=False):
     directory = str(Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}")
     return directory, timefiles
 
-
-def load_volume(volume_array, otsus, scale, cache_coll, base_coll):
-    vdb_files, bbox_px = array_to_vdb_files(volume_array)
-    collection_activate(*cache_coll)
-    vol_collection, _ = make_subcollection('volumes')
-    volumes = []
-    # necessary to support multi-file import
-    bpy.types.Scene.files: CollectionProperty(
-        type=bpy.types.OperatorFileListElement,
-        options={'HIDDEN', 'SKIP_SAVE'},
-    )
-    for pos, vdbs in vdb_files.items():
-        fname = str(Path(vdbs['directory'])/Path(vdbs['files'][0]['name']))
-        bpy.ops.object.volume_import(filepath=fname,directory=vdbs['directory'], files=vdbs['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
-        vol = bpy.context.view_layer.objects.active
-        vol.scale = scale
-        vol.location = tuple(np.array(pos) * bbox_px *scale)
-        vol.data.frame_start = 0
-        volumes.append(vol)
-    
-    collection_activate(*base_coll)
-    vol_obj = init_holder('volume',[vol_collection], [volume_material(volumes, otsus)])
-    return vol_obj
-
-
-def volume_material(volumes, otsus):
+def volume_material(volumes, ch_names, otsus):
     # do not check whether it exists, so a new load will force making a new mat
     mat = bpy.data.materials.new('volume')
     mat.use_nodes = True
@@ -114,10 +89,9 @@ def volume_material(volumes, otsus):
     if bpy.context.scene.axes_order.find('c') == -1:
         channels = 1
     
-    for channel in range(channels):
+    for channel in ch_names:
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-500,-400*channel)
-        #print(node_attr.outputs[0].default_value)
         node_attr.attribute_name = "channel " + str(channel)
 
         map_range = nodes.new(type='ShaderNodeMapRange')
@@ -128,11 +102,8 @@ def volume_material(volumes, otsus):
         
         links.new(node_attr.outputs.get("Fac"), map_range.inputs.get("Value"))
         princ_vol = nodes.new(type='ShaderNodeVolumePrincipled')
-        if channels > 1:
-            c = Color()
-            c.hsv = (channel/channels + 1/6) % 1, 1, 1
-            princ_vol.inputs.get("Emission Color").default_value = (c.r, c.g, c.b, 1.0)
-            
+        princ_vol.inputs.get("Emission Color").default_value = get_cmap('hue-wheel', maxval=channels)[channel]
+        princ_vol.inputs.get("Color").default_value = get_cmap('hue-wheel', maxval=channels)[channel]
         princ_vol.inputs.get("Density").default_value = 0
         princ_vol.location = (0,-400*channel)
         links.new(map_range.outputs[0], princ_vol.inputs.get("Emission Strength"))
@@ -158,3 +129,33 @@ def volume_material(volumes, otsus):
             vol.data.materials.append(mat)
 
     return mat
+
+
+def load_volume(volume_array, otsus, scale, cache_coll, base_coll):
+    # consider checking whether all channels are present in vdb for remaking?
+    collection_activate(*cache_coll)
+    vol_collection, _ = make_subcollection('volumes')
+    volumes = []
+
+    ch_names = [ix for ix, val in enumerate(otsus) if val > -1]
+
+    vdb_files, bbox_px = array_to_vdb_files(volume_array)
+    
+    # necessary to support multi-file import
+    bpy.types.Scene.files: CollectionProperty(
+        type=bpy.types.OperatorFileListElement,
+        options={'HIDDEN', 'SKIP_SAVE'},
+    )
+    
+    for pos, vdbs in vdb_files.items():
+        fname = str(Path(vdbs['directory'])/Path(vdbs['files'][0]['name']))
+        bpy.ops.object.volume_import(filepath=fname,directory=vdbs['directory'], files=vdbs['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
+        vol = bpy.context.view_layer.objects.active
+        vol.scale = scale
+        vol.location = tuple(np.array(pos) * bbox_px *scale)
+        vol.data.frame_start = 0
+        volumes.append(vol)
+    
+    collection_activate(*base_coll)
+    vol_obj = init_holder('volume',[vol_collection], [volume_material(volumes, ch_names, otsus)])
+    return vol_obj, vol_collection

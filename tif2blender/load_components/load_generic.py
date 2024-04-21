@@ -1,7 +1,7 @@
 import bpy
 
 
-def init_holder(name, colls, shaders):
+def init_holder(name, colls, shaders, shared_shader=False):
     if len(colls) == 0:
         return None
     obj = bpy.ops.mesh.primitive_cube_add()
@@ -22,6 +22,7 @@ def init_holder(name, colls, shaders):
         collnode.location = (-300, ix * -200)
 
         # replace with material index when this is fixed for GN-objects
+        # if not shared_shader:
         obj.data.materials.append(shader)
         setmat = nodes.new('GeometryNodeSetMaterial')
         links.new(collnode.outputs[0], setmat.inputs.get('Geometry'))

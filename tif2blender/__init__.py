@@ -18,7 +18,7 @@ bl_info = {
     "author" : "Oane Gros",
     "description" : "",
     "blender" : (4, 0, 0),
-    "version" : (0, 1, 1),
+    "version" : (1, 0, 0),
     "location" : "",
     "warning" : "",
     "category" : "Import"
