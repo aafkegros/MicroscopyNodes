@@ -34,10 +34,10 @@ def gn_ch_tree(ch):
     links.new(store2.outputs[0], group_output.inputs[0])
     return node_group
     
-def surf_material(ch_names):
+def surf_material(ch, maxval):
     # do not check whether it exists, so a new load will force making a new mat
-    mat = bpy.data.materials.new(f'surface')
-    mat.blend_method = "BLEND"
+    mat = bpy.data.materials.new(f'surface {ch} shader')
+    mat.blend_method = "HASHED"
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
@@ -49,23 +49,7 @@ def surf_material(ch_names):
             print(e)
         princ = nodes.new("ShaderNodeBsdfPrincipled")
         links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
-    
-    idnode =  nodes.new("ShaderNodeVertexColor")
-    idnode.layer_name = 'channel'
-    idnode.location = (-800, 300)
-
-    map_range = nodes.new(type='ShaderNodeMapRange')
-    map_range.location = (-450, 300)
-    map_range.inputs[1].default_value = 0
-    map_range.inputs[2].default_value = max(ch_names)
-    links.new(idnode.outputs.get('Color'),map_range.inputs[0])
-    
-    cmap = nodes.new(type="ShaderNodeValToRGB")
-    cmap.location = (-300, 300)
-    get_cmap('hue-wheel',maxval=len(ch_names), ramp=cmap)
-    links.new(map_range.outputs[0], cmap.inputs.get('Fac'))
-    links.new(cmap.outputs[0], nodes.get("Principled BSDF").inputs.get("Base Color"))
-    
+    nodes.get("Principled BSDF").inputs.get('Base Color').default_value = get_cmap('hue-wheel', maxval=maxval)[ch]
     return mat
     
 def load_surfaces(volume_collection, thresholds, scale, cache_coll, base_coll):
@@ -96,7 +80,7 @@ def load_surfaces(volume_collection, thresholds, scale, cache_coll, base_coll):
         surf_collections.append(surf_collection)
     
     collection_activate(*base_coll)
-    surf_obj = init_holder('surface',surf_collections, [surf_material(ch_names)]*len(surf_collections), shared_shader=True)
+    surf_obj = init_holder('surface',surf_collections, [surf_material(ch, len(thresholds)) for ch in ch_names])
     surf_obj.hide_render = True
     # surf_obj.hide_viewport = True
     bpy.context.active_object.hide_set(True)
