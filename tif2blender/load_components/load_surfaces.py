@@ -51,6 +51,17 @@ def surf_material(ch, maxval):
         links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
     nodes.get("Principled BSDF").inputs.get('Base Color').default_value = get_cmap('hue-wheel', maxval=maxval)[ch]
     return mat
+
+def add_driver(ob, ob_datapath, target, t_datapath):
+    fc = ob.driver_add(ob_datapath)
+    d = fc.driver
+    d.type = "AVERAGE"
+    v = d.variables.new()
+    t = v.targets[0]
+    t.id_type = 'OBJECT'
+    t.id = target
+    t.data_path = t_datapath
+    return
     
 def load_surfaces(volume_collection, thresholds, scale, cache_coll, base_coll):
     ch_names, otsus = [], []
@@ -62,12 +73,12 @@ def load_surfaces(volume_collection, thresholds, scale, cache_coll, base_coll):
     surf_collections = []
     for ch_name, otsu in zip(ch_names, otsus):
         collection_activate(*cache_coll)
-        surf_collection, _ = make_subcollection(f'channel {ch_name} surface')
+        surf_collection, _ = make_subcollection(f'surface ch {ch_name}')
         for vol in volume_collection.all_objects:
             bpy.ops.mesh.primitive_cube_add()
             obj = bpy.context.view_layer.objects.active
 
-            obj.name = 'surface of ' + vol.name 
+            obj.name = f'surface of channel {ch_name}'  
 
             bpy.ops.object.modifier_add(type='VOLUME_TO_MESH')
             obj.modifiers[-1].object = vol
@@ -81,6 +92,14 @@ def load_surfaces(volume_collection, thresholds, scale, cache_coll, base_coll):
     
     collection_activate(*base_coll)
     surf_obj = init_holder('surface',surf_collections, [surf_material(ch, len(thresholds)) for ch in ch_names])
+    
+    for ix, (ch, otsu, surf_collection) in enumerate(zip(ch_names, otsus, surf_collections)):
+        name = f"Threshold {ch} channel"
+        surf_obj.modifiers[-1].node_group.interface.new_socket(name, in_out="INPUT",socket_type='NodeSocketFloat')
+        for surf in surf_collection.all_objects:
+            add_driver(surf, 'modifiers["Volume to Mesh"].threshold', surf_obj, f'modifiers["GeometryNodes"]["Socket_{ix+1}"]', )
+        surf_obj.modifiers["GeometryNodes"][f"Socket_{ix+1}"] = otsu
+
     surf_obj.hide_render = True
     # surf_obj.hide_viewport = True
     bpy.context.active_object.hide_set(True)
