@@ -4,7 +4,9 @@ import bmesh
 from bpy_extras.object_utils import AddObjectHelper, object_data_add
 from pathlib import Path
 import json, difflib,time
-from .collection_handling import *
+from ..collection_handling import *
+from .load_generic import init_holder
+
 
 def labelmask_shader(maskchannel, maxval):
     # do not check whether it exists, so a new load will force making a new mat
@@ -181,7 +183,7 @@ def abcfname(channel, timestep):
 def jsonfname(channel):
     return str(Path(bpy.context.scene.T2B_cache_dir) / f"mask_locs_ch{channel}.json")
 
-def export_alembic_and_loc(mask, maskchannel, scale):
+def export_alembic_and_loc(mask, maskchannel):
     from skimage.measure import marching_cubes
     from scipy.ndimage import find_objects
     axes_order = bpy.context.scene.axes_order.replace("c","")
@@ -202,7 +204,7 @@ def export_alembic_and_loc(mask, maskchannel, scale):
                 obj=bpy.context.view_layer.objects.active
                 obj.name = objname
                 obj.data.name = objname
-                obj.scale = scale
+                # obj.scale = scale
                 objnames[obj_id_val] = obj.name
                 locations[obj.name]={}
                 locations[obj.name][0] = {'x':-1,'y':-1,'z':-1}
@@ -250,7 +252,6 @@ def export_alembic_and_loc(mask, maskchannel, scale):
                         evaluation_mode = "RENDER",
                         )
         for obj in tmp_collection.all_objects: 
-            # if obj.name in objnames.values():
             obj.data.clear_geometry()
 
     for objname in objnames.values():
@@ -261,7 +262,7 @@ def export_alembic_and_loc(mask, maskchannel, scale):
         json.dump(locations, fp, indent=4)
     return 
 
-def import_abc_and_loc(maskchannel, maxval):
+def import_abc_and_loc(maskchannel, maxval, scale):
     mask_objs = []
     parentcoll, parentlcoll = get_current_collection()
     channel_collection, _ = make_subcollection(f"channel {maskchannel} labelmask")
@@ -280,11 +281,10 @@ def import_abc_and_loc(maskchannel, maxval):
         locnames_newnames[(oid, ch)] = obj
 
     for objname in locations:
-        print(locnames_newnames.keys(), objname, locations.keys())
         oid = int(objname.split('_')[1].strip('obj'))
         ch = int(objname.split('_')[0].strip('ch'))
         obj = locnames_newnames[(oid, ch)]   
-        print(objname, obj.name)
+        obj.scale = scale
         mask_objs.append(obj)
         for time, loc in locations[objname].items():
             obj.location = (loc['x'], loc['y'], loc['z'])
@@ -299,25 +299,22 @@ def import_abc_and_loc(maskchannel, maxval):
     collection_activate(parentcoll, parentlcoll)
     return mask_objs, channel_collection, shader_labelmask
 
-def load_labelmask(mask_arrays, scale):
+def load_labelmask(mask_arrays, scale, cache_coll, base_coll):
     mask_objs = []
     mask_colls, mask_shaders = [], []
     locations = {}
-    
+    collection_activate(*cache_coll)
     for maskchannel, mask in mask_arrays.items():
         if not Path(abcfname(maskchannel,0)).exists() or bpy.context.scene.TL_remake:
-            export_alembic_and_loc(mask, maskchannel, scale)
-        
-        
-        objs, coll, shader = import_abc_and_loc(maskchannel, np.max(mask))
-        
+            export_alembic_and_loc(mask, maskchannel)
+        objs, coll, shader = import_abc_and_loc(maskchannel, np.max(mask), scale)
         
         mask_objs.extend(objs)
         mask_colls.append(coll)
         mask_shaders.append(shader)
-
-        
-    return mask_objs, mask_colls, mask_shaders
+    collection_activate(*base_coll)
+    mask_obj = init_holder('masks' ,mask_colls, mask_shaders)
+    return mask_obj
 
 
 
