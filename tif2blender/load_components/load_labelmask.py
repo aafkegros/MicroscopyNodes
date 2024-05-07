@@ -114,20 +114,17 @@ def dissolve(obj, obj_id):
     m.update()
     return
 
-def abcfname(channel, timestep):
-    return str(Path(bpy.context.scene.T2B_cache_dir) / f"mask_ch{channel}_t_{timestep:04}.abc")
-def jsonfname(channel):
-    return str(Path(bpy.context.scene.T2B_cache_dir) / f"mask_locs_ch{channel}.json")
+def abcfname(cache_dir, channel, timestep):
+    return str(Path(cache_dir) / f"mask_ch{channel}_t_{timestep:04}.abc")
+def jsonfname(cache_dir, channel):
+    return str(Path(cache_dir) / f"mask_locs_ch{channel}.json")
 
-def export_alembic_and_loc(mask, maskchannel):
+def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
     from skimage.measure import marching_cubes
     from scipy.ndimage import find_objects
-    axes_order = bpy.context.scene.axes_order.replace("c","")
-    if 't' not in axes_order:
-        axes_order = axes_order + 't'
-        mask = mask[:,:,:,np.newaxis]
+    axes_order = axes_order.replace("c","")
     mask= np.moveaxis(mask, [axes_order.find('t'), axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3])
-    new_order = 'txyz'
+
     parentcoll = get_current_collection()
     tmp_collection, _ = collection_by_name('tmp')
     objnames = {} # register objnames as dict at start value : name
@@ -136,7 +133,6 @@ def export_alembic_and_loc(mask, maskchannel):
     for timestep in range(0,mask.shape[0]):
         bpy.ops.object.select_all(action='DESELECT')
         if timestep == 0:
-            print( np.unique(mask), 'hey')
             for obj_id_val in np.unique(mask)[1:]: #skip zero, register all objects with new names, need to be present in first frame
                 objname=f"ch{maskchannel}_obj{obj_id_val}_" 
                 bpy.ops.mesh.primitive_cube_add()
@@ -154,10 +150,9 @@ def export_alembic_and_loc(mask, maskchannel):
             obj_id_val = obj_id + 1
             objarray = np.pad(mask[timestep][objslice], 1, constant_values=0)
             verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=1)
-#            obj = get_obj_by_id(fname, obj_id_val)
             
             obj = bpy.data.objects.get(objnames[obj_id_val])
-            # print(objnames[obj_id_val], obj)
+
             mesh = obj.data
             mesh.clear_geometry()
             mesh.from_pydata(verts,[], faces)
@@ -165,7 +160,7 @@ def export_alembic_and_loc(mask, maskchannel):
 
             loc = (objslice[0].start, objslice[1].start, objslice[2].start)
             obj.location = loc
-            # locations[obj.name]({"timestep": timestep,"location":loc})
+
             locations[obj.name][timestep] = {'x':loc[0],'y':loc[1],'z':loc[2]} 
 
             dissolve(obj, obj_id)
@@ -176,8 +171,8 @@ def export_alembic_and_loc(mask, maskchannel):
             obj.select_set(True)
         
 
-        fname = abcfname(maskchannel, timestep)
-        if Path(fname).exists() and bpy.context.scene.TL_remake:
+        fname = abcfname(cache_dir, maskchannel, timestep)
+        if Path(fname).exists() and bpy.context.scene.remake:
             Path(fname).unlink() # this may fix an issue with subsequent loads
         bpy.ops.wm.alembic_export(filepath=fname,
                         visible_objects_only=False,
@@ -199,20 +194,20 @@ def export_alembic_and_loc(mask, maskchannel):
     bpy.data.collections.remove(tmp_collection)
     collection_activate(*parentcoll)
 
-    with open(jsonfname(maskchannel), 'w') as fp:
+    with open(jsonfname(cache_dir, maskchannel), 'w') as fp:
         json.dump(locations, fp, indent=4)
     return 
 
-def import_abc_and_loc(maskchannel, maxval, scale):
+def import_abc_and_loc(maskchannel, maxval, scale, cache_dir):
     mask_objs = []
     parentcoll = get_current_collection()
     
     channel_collection, _ = make_subcollection(f"channel {maskchannel} labelmask")
-    bpy.ops.wm.alembic_import(filepath=abcfname(maskchannel, 0), is_sequence=True)
+    bpy.ops.wm.alembic_import(filepath=abcfname(cache_dir, maskchannel, 0), is_sequence=True)
 
     shader_labelmask = labelmask_shader(maskchannel,maxval + 1)
 
-    with open(jsonfname(maskchannel), 'r') as fp:
+    with open(jsonfname(cache_dir, maskchannel), 'r') as fp:
         locations = json.load(fp)
 
     locnames_newnames = {}
@@ -236,16 +231,16 @@ def import_abc_and_loc(maskchannel, maxval, scale):
     collection_activate(*parentcoll)
     return mask_objs, channel_collection, shader_labelmask
 
-def load_labelmask(mask_arrays, scale, cache_coll, base_coll):
+def load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order):
     mask_objs = []
     mask_colls, mask_shaders = [], []
     locations = {}
     
     collection_activate(*cache_coll)
     for maskchannel, mask in mask_arrays.items():
-        if not Path(abcfname(maskchannel,0)).exists() or bpy.context.scene.TL_remake:
-            export_alembic_and_loc(mask, maskchannel)
-        objs, coll, shader = import_abc_and_loc(maskchannel, np.max(mask), scale)
+        if not Path(abcfname(cache_dir, maskchannel,0)).exists() or remake:
+            export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order)
+        objs, coll, shader = import_abc_and_loc(maskchannel, np.max(mask), scale, cache_dir)
         
         mask_objs.extend(objs)
         mask_colls.append(coll)

@@ -16,23 +16,22 @@ def changePathTif(self, context):
     # the raise gets handled upstream, so only prints to cli, somehow.
     try: 
         import tifffile
-        with tifffile.TiffFile(context.scene.path_tif) as ifstif:
+        with tifffile.TiffFile(context.scene.T2B_input_file) as ifstif:
             try:
-                context.scene.axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
+                context.scene.T2B_axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
             except Exception as e:
                 print(e)
-                context.scene.property_unset("axes_order")
+                context.scene.property_unset("T2B_axes_order")
             try:
-                context.scene.xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
+                context.scene.T2B_xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
             except Exception as e:
                 print(e)
-                context.scene.property_unset("xy_size")
+                context.scene.property_unset("T2B_xy_size")
             try:
-                context.scene.z_size = dict(ifstif.imagej_metadata)['spacing']
+                context.scene.T2B_z_size = dict(ifstif.imagej_metadata)['spacing']
             except Exception as e:
                 print(e)
-                context.scene.property_unset("z_size")
-            # if this gets improved in bpy: set max of maskchannel selector
+                context.scene.property_unset("T2B_z_size")
     except Exception as e:
         context.scene.property_unset("axes_order")
         context.scene.property_unset("xy_size")
@@ -40,21 +39,15 @@ def changePathTif(self, context):
         raise
     return
 
-bpy.types.Scene.TL_remake = bpy.props.BoolProperty(
+bpy.types.Scene.T2B_remake = bpy.props.BoolProperty(
     name = "TL_remake", 
     description = "Force remaking vdb files",
     default = False
     )
 
-bpy.types.Scene.TL_preset_environment = bpy.props.BoolProperty(
+bpy.types.Scene.T2B_preset_environment = bpy.props.BoolProperty(
     name = "TL_preset_environment", 
     description = "Set environment variables",
-    default = True
-    )
-
-bpy.types.Scene.TL_otsu = bpy.props.BoolProperty(
-    name = "TL_otsu", 
-    description = "Otsu on load (slow for big data)",
     default = True
     )
 
@@ -74,18 +67,18 @@ bpy.types.Scene.T2B_cache_dir = StringProperty(
     subtype = 'FILE_PATH'
     )
 
-bpy.types.Scene.axes_order = StringProperty(
+bpy.types.Scene.T2B_axes_order = StringProperty(
         name="",
         description="axes order (only z is used currently)",
         default="zyx",
         maxlen=6)
     
-bpy.types.Scene.xy_size = FloatProperty(
+bpy.types.Scene.T2B_xy_size = FloatProperty(
         name="",
         description="xy physical pixel size in micrometer",
         default=1.0)
     
-bpy.types.Scene.z_size = FloatProperty(
+bpy.types.Scene.T2B_z_size = FloatProperty(
         name="",
         description="z physical pixel size in micrometer",
         default=1.0)
@@ -138,18 +131,18 @@ def unpack_tif(input_file, axes_order, test=False):
     # otsu compute in z MIP
     otsus = [-1] * all_channels
     
-    if bpy.context.scene.TL_otsu:
-        for channel in range(channels):
-            ix = sorted(list(set(range(all_channels)) - set(mask_channels)))[channel]
-            if channels > 1:
-                im = volume_array.take(indices=channel, axis=axes_order.find('c'))
-            else:
-                im = volume_array
-            ch_axes = axes_order.replace("c","")
-            z_MIP = np.amax(im, axis = ch_axes.find('z'))
-            threshold_range = np.linspace(0,1,101)
-            criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
-            otsus[ix] = threshold_range[np.argmin(criterias)]
+    
+    for channel in range(channels):
+        ix = sorted(list(set(range(all_channels)) - set(mask_channels)))[channel]
+        if channels > 1:
+            im = volume_array.take(indices=channel, axis=axes_order.find('c'))
+        else:
+            im = volume_array
+        ch_axes = axes_order.replace("c","")
+        z_MIP = np.amax(im, axis = ch_axes.find('z'))
+        threshold_range = np.linspace(0,1,101)
+        criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
+        otsus[ix] = threshold_range[np.argmin(criterias)]
 
     size_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])
     
@@ -188,49 +181,51 @@ def compute_otsu_criteria(im, th):
 
 
 def load():
-    # input_file = scn.path_tif, xy_scale=scn.xy_size, z_scale=scn.z_size, axes_order=scn.axes_order
-    orig_cache = bpy.context.scene.T2B_cache_dir
+    # Handle all globals to be scoped after this
     input_file = bpy.context.scene.T2B_input_file
-    # this could be cleaner
-    cache_dir = str(Path(bpy.context.scene.T2B_cache_dir) / Path(input_file).stem)
+    axes_order = bpy.context.scene.T2B_axes_order
+    remake = bpy.context.scene.T2B_remake
+    xy_size = bpy.context.scene.T2B_xy_size
+    z_size = bpy.context.scene.T2B_z_size
+    cache_dir = Path(bpy.context.scene.T2B_cache_dir) / Path(input_file).stem
+
+    if bpy.context.scene.T2B_preset_environment:
+        preset_environment()    
+    
+    cache_dir.mkdir(parents=True, exist_ok=True)
     
     base_coll = collection_by_name('Collection')
-    collection_activate(base_coll)
+    collection_activate(*base_coll)
     collection_by_name('cache')
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
-    
-    if bpy.context.scene.TL_preset_environment:
-        preset_environment()
     
     # pads axes order with 1-size elements for missing axes
     volume_array, mask_arrays, otsus, size_px, axes_order = unpack_tif(input_file, axes_order)
 
-    objects = []
+    to_be_parented = []
 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
     init_scale = 0.02
-    scale =  np.array([1,1,z_scale/xy_scale])*init_scale
+    scale =  np.array([1,1,z_size/xy_size])*init_scale
     loc =  tuple(center_loc * size_px*scale)
 
     if len(mask_arrays) != len(otsus):
-        vol_obj, vol_coll = load_volume(volume_array, otsus, scale, cache_coll, base_coll)
+        vol_obj, vol_coll = load_volume(volume_array, otsus, scale, cache_coll, base_coll, remake, cache_dir, axes_order)
         surf_obj = load_surfaces(vol_coll, otsus, scale, cache_coll, base_coll)
-        objects.extend([vol for vol in vol_coll.all_objects])
-        objects.extend([vol_obj, surf_obj])
+        to_be_parented.extend([vol for vol in vol_coll.all_objects])
+        to_be_parented.extend([vol_obj, surf_obj])
     
     if len(mask_arrays) > 0:
-        mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll)
-        [objects.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
-        objects.extend([mask_obj])
+        mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
+        [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
+        to_be_parented.extend([mask_obj])
 
-    axes_obj = init_axes(size_px, init_scale, loc)
-    objects.append(axes_obj)
+    axes_obj = init_axes(size_px, init_scale, loc, xy_size, z_size, input_file)
+    to_be_parented.append(axes_obj)
 
-    container = init_container(objects ,location=loc, name=Path(input_file).stem)
+    container = init_container(to_be_parented ,location=loc, name=Path(input_file).stem)
     collection_deactivate('cache')
     axes_obj.select_set(True)
-
-    bpy.context.scene.T2B_cache_dir = orig_cache
     return
 
 

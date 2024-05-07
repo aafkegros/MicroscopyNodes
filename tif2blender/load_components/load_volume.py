@@ -8,9 +8,8 @@ from ..handle_blender_structs import *
 from .. import t2b_nodes
 
 
-def array_to_vdb_files(imgdata, test=False):
+def array_to_vdb_files(imgdata, axes_order, remake, cache_dir, test=False):
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
-    axes_order = bpy.context.scene.axes_order
     n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
@@ -22,27 +21,19 @@ def array_to_vdb_files(imgdata, test=False):
         for b_ix, b_chunk in enumerate(b_chunks):
             c_chunks = np.array_split(b_chunk, n_splits[2], axis=axes_order.find('z'))
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
-                directory, time_vdbs = make_vdb(c_chunk, a_ix, b_ix, c_ix, axes_order, test=test)
+                directory, time_vdbs = make_vdb(c_chunk, (a_ix, b_ix, c_ix), axes_order, remake, cache_dir, test=test)
                 vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "channels": time_vdbs}
     bbox_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])//np.array(n_splits)
     return vdb_files, bbox_px
 
-def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, test=False):
+def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, test=False):
     if test: 
         # pyopenvdb is not available outside of blender; for tests tifs are written
         # moving writing to a separate function would induce a very high RAM cost
         import tifffile
     else:
         import pyopenvdb as vdb
-    origfname = Path(bpy.context.scene.path_tif).stem
-
-    axes_order = axes_order_in
-    if axes_order.find('c') == -1:
-        imgdata =  np.expand_dims(imgdata, axis=-1)
-        axes_order = axes_order + "c"
-    if axes_order.find('t') == -1:
-        imgdata =  np.expand_dims(imgdata, axis=-1)
-        axes_order = axes_order + "t"
+    x_ix, y_ix, z_ix = chunk_ix
     
     timefiles = []
     for ch in range(imgdata.shape[axes_order.find('c')]):
@@ -50,14 +41,14 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, test=False):
 
     for t_ix, t in enumerate(range(imgdata.shape[axes_order.find('t')])):
         identifier = "x"+str(x_ix)+"y"+str(y_ix)+"z"+str(z_ix)
-        (Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}").mkdir(exist_ok=True,parents=True)
+        (Path(cache_dir)/f"{identifier}").mkdir(exist_ok=True,parents=True)
         frame = imgdata.take(indices=t,axis=axes_order.find('t'))
         channels = []
         for ch in range(imgdata.shape[axes_order.find('c')]):
-            fname = (Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}"/f"Channel {ch}_{t}.vdb")
+            fname = (Path(cache_dir)/f"{identifier}"/f"Channel {ch}_{t}.vdb")
             entry = {"name":str(fname.name)}
             timefiles[ch].append(entry)
-            if not fname.exists() or bpy.context.scene.TL_remake:
+            if not fname.exists() or remake:
                 frame_axes = axes_order.replace("t","")
                 chdata = frame.take(indices=ch,axis=frame_axes.find('c'))
 
@@ -69,7 +60,7 @@ def make_vdb(imgdata, x_ix, y_ix, z_ix, axes_order_in, test=False):
                 grid.copyFromArray(chdata)
                 vdb.write(str(fname), grids=[grid])
 
-    directory = str(Path(bpy.context.scene.T2B_cache_dir)/f"{identifier}")
+    directory = str(Path(cache_dir)/f"{identifier}")
     return directory, timefiles
 
 
@@ -134,7 +125,7 @@ def volume_material(vol, otsus, ch, channels):
     return mat
 
 
-def load_volume(volume_array, otsus, scale, cache_coll, base_coll):
+def load_volume(volume_array, otsus, scale, cache_coll, base_coll, remake, cache_dir, axes_order):
     # consider checking whether all channels are present in vdb for remaking?
     collection_activate(*cache_coll)
     vol_collection, _ = make_subcollection('volumes')
@@ -142,7 +133,7 @@ def load_volume(volume_array, otsus, scale, cache_coll, base_coll):
 
     ch_names = [ix for ix, val in enumerate(otsus) if val > -1]
 
-    vdb_files, bbox_px = array_to_vdb_files(volume_array)
+    vdb_files, bbox_px = array_to_vdb_files(volume_array, axes_order, remake, cache_dir)
     print('made vdb files')
     # necessary to support multi-file import
     bpy.types.Scene.files: CollectionProperty(

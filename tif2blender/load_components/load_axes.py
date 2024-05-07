@@ -6,15 +6,13 @@ from ..handle_blender_structs.collection_handling import *
 from .. import t2b_nodes
 
 
-def init_axes(size_px, init_scale, location):
-    xy_scale, z_scale = bpy.context.scene.xy_size, bpy.context.scene.z_size
-    axes_order = bpy.context.scene.axes_order
+def init_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     axesobj = bpy.ops.mesh.primitive_cube_add(location=location)
     axesobj = bpy.context.view_layer.objects.active
     axesobj.name = 'axes'
 
     bpy.ops.object.modifier_add(type='NODES')
-    node_group = bpy.data.node_groups.new('axes of ' + str(Path(bpy.context.scene.path_tif).stem) , 'GeometryNodeTree')  
+    node_group = bpy.data.node_groups.new('axes of ' + str(Path(input_file).stem) , 'GeometryNodeTree')  
     axesobj.modifiers[-1].node_group = node_group
     nodes = node_group.nodes
     links = node_group.links
@@ -30,14 +28,14 @@ def init_axes(size_px, init_scale, location):
     initscale_node.name = 'init_scale'
     initscale_node.label = "Scale transform on load"
     initscale_node.location = (-400, 0)
-    initscale_node.vector = np.array([1,1,z_scale/xy_scale])*init_scale
+    initscale_node.vector = np.array([1,1,z_size/xy_size])*init_scale
 
     scale_node = nodes.new('FunctionNodeInputVector')
     scale_node.name = 'input_scale'
     scale_node.label = 'scale (µm/px)'
-    scale_node.vector[0] = xy_scale
-    scale_node.vector[1] = xy_scale
-    scale_node.vector[2] = z_scale
+    scale_node.vector[0] = xy_size
+    scale_node.vector[1] = xy_size
+    scale_node.vector[2] = z_size
     scale_node.location = (-400, -200)
 
     axnode_um = nodes.new('ShaderNodeVectorMath')
