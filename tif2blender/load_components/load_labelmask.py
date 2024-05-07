@@ -123,6 +123,9 @@ def export_alembic_and_loc(mask, maskchannel):
     from skimage.measure import marching_cubes
     from scipy.ndimage import find_objects
     axes_order = bpy.context.scene.axes_order.replace("c","")
+    if 't' not in axes_order:
+        axes_order = axes_order + 't'
+        mask = mask[:,:,:,np.newaxis]
     mask= np.moveaxis(mask, [axes_order.find('t'), axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3])
     new_order = 'txyz'
     parentcoll = get_current_collection()
@@ -249,7 +252,7 @@ def load_labelmask(mask_arrays, scale, cache_coll, base_coll):
         mask_shaders.append(shader)
     collection_activate(*base_coll)
     mask_obj = init_holder('masks' ,mask_colls, mask_shaders)
-    return mask_obj
+    return mask_obj, mask_colls
 
 
 

@@ -58,7 +58,7 @@ bpy.types.Scene.TL_otsu = bpy.props.BoolProperty(
     default = True
     )
 
-bpy.types.Scene.path_tif = StringProperty(
+bpy.types.Scene.T2B_input_file = StringProperty(
         name="",
         description="tif file",
         update=changePathTif,
@@ -104,6 +104,11 @@ def unpack_tif(input_file, axes_order, test=False):
     if len(axes_order) != len(imgdata.shape):
         raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
+    for dim in 'tzcyx':
+        if dim not in axes_order:
+            imgdata = imgdata.expand_dims(axis=0)
+            axes_order = dim + axes_order
+
     mask_channels = []
     if bpy.context.scene.T2B_mask_channels != '':
         try:
@@ -122,16 +127,13 @@ def unpack_tif(input_file, axes_order, test=False):
     
     # normalize values per channel
     volume_array = volume_array.astype(np.float32)
-    if 'c' in axes_order:
-        ch_first = np.moveaxis(volume_array, axes_order.find('c'), 0)
-        for chix, chdata in enumerate(ch_first):
-            ch_first[chix] /= np.max(chdata)
-        channels = volume_array.shape[axes_order.find('c')] - len(mask_channels)
-        all_channels = imgdata.shape[axes_order.find('c')]
-    else:
-        volume_array /= np.max(volume_array)
-        channels = 1 -len(mask_channels)
-        all_channels = 1 
+    ch_first = np.moveaxis(volume_array, axes_order.find('c'), 0)
+    for chix, chdata in enumerate(ch_first):
+        ch_first[chix] -= np.min(chdata)
+        ch_first[chix] /= np.max(chdata)
+    channels = volume_array.shape[axes_order.find('c')] - len(mask_channels)
+    all_channels = imgdata.shape[axes_order.find('c')]
+    
 
     # otsu compute in z MIP
     otsus = [-1] * all_channels
@@ -151,7 +153,7 @@ def unpack_tif(input_file, axes_order, test=False):
 
     size_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])
     
-    return volume_array, mask_arrays, otsus, size_px
+    return volume_array, mask_arrays, otsus, size_px, axes_order
 
 
 # adapted from https://en.wikipedia.org/wiki/Otsu%27s_method
@@ -185,36 +187,46 @@ def compute_otsu_criteria(im, th):
     return weight0 * var0 + weight1 * var1
 
 
-def load(input_file, xy_scale, z_scale, axes_order):
+def load():
+    # input_file = scn.path_tif, xy_scale=scn.xy_size, z_scale=scn.z_size, axes_order=scn.axes_order
     orig_cache = bpy.context.scene.T2B_cache_dir
-    bpy.context.scene.T2B_cache_dir = str(Path(bpy.context.scene.T2B_cache_dir) / Path(input_file).stem)
+    input_file = bpy.context.scene.T2B_input_file
+    # this could be cleaner
+    cache_dir = str(Path(bpy.context.scene.T2B_cache_dir) / Path(input_file).stem)
     
-    base_coll = get_current_collection()
+    base_coll = collection_by_name('Collection')
+    collection_activate(base_coll)
     collection_by_name('cache')
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
     if bpy.context.scene.TL_preset_environment:
         preset_environment()
-            
-    volume_array, mask_arrays, otsus, size_px = unpack_tif(input_file, axes_order)
+    
+    # pads axes order with 1-size elements for missing axes
+    volume_array, mask_arrays, otsus, size_px, axes_order = unpack_tif(input_file, axes_order)
+
+    objects = []
 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
     init_scale = 0.02
     scale =  np.array([1,1,z_scale/xy_scale])*init_scale
     loc =  tuple(center_loc * size_px*scale)
-    
-    vol_obj, surf_obj = None, None
-    if volume_array.shape[axes_order.find('c')] > 0:
+
+    if len(mask_arrays) != len(otsus):
         vol_obj, vol_coll = load_volume(volume_array, otsus, scale, cache_coll, base_coll)
         surf_obj = load_surfaces(vol_coll, otsus, scale, cache_coll, base_coll)
+        objects.extend([vol for vol in vol_coll.all_objects])
+        objects.extend([vol_obj, surf_obj])
     
-    mask_obj = None
     if len(mask_arrays) > 0:
-        mask_obj = load_labelmask(mask_arrays, scale, cache_coll, base_coll)
-        
+        mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll)
+        [objects.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
+        objects.extend([mask_obj])
+
     axes_obj = init_axes(size_px, init_scale, loc)
-    
-    container = init_container([axes_obj, mask_obj, vol_obj, surf_obj],location=loc, name=Path(input_file).stem)
+    objects.append(axes_obj)
+
+    container = init_container(objects ,location=loc, name=Path(input_file).stem)
     collection_deactivate('cache')
     axes_obj.select_set(True)
 
