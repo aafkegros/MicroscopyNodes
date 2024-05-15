@@ -99,7 +99,7 @@ def unpack_tif(input_file, axes_order, test=False):
 
     for dim in 'tzcyx':
         if dim not in axes_order:
-            imgdata = imgdata.expand_dims(axis=0)
+            imgdata = np.expand_dims(imgdata,axis=0)
             axes_order = dim + axes_order
 
     mask_channels = []
