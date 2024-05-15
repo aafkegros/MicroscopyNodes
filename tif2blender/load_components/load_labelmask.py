@@ -129,6 +129,7 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
     tmp_collection, _ = collection_by_name('tmp')
     objnames = {} # register objnames as dict at start value : name
     locations = {} 
+    abcfiles = []
 
     for timestep in range(0,mask.shape[0]):
         bpy.ops.object.select_all(action='DESELECT')
@@ -172,6 +173,7 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
         
 
         fname = abcfname(cache_dir, maskchannel, timestep)
+        abcfiles.append(fname)
         if Path(fname).exists() and bpy.context.scene.remake:
             Path(fname).unlink() # this may fix an issue with subsequent loads
         bpy.ops.wm.alembic_export(filepath=fname,
