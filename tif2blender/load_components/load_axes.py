@@ -6,7 +6,7 @@ from ..handle_blender_structs.collection_handling import *
 from .. import t2b_nodes
 
 
-def init_axes(size_px, init_scale, location, xy_size, z_size, input_file):
+def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     axesobj = bpy.ops.mesh.primitive_cube_add(location=location)
     axesobj = bpy.context.view_layer.objects.active
     axesobj.name = 'axes'
@@ -16,6 +16,8 @@ def init_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     axesobj.modifiers[-1].node_group = node_group
     nodes = node_group.nodes
     links = node_group.links
+
+    node_group.interface.new_socket("Geometry",in_out="INPUT", socket_type='NodeSocketGeometry')
 
     axnode = nodes.new('FunctionNodeInputVector')
     axnode.name = "n pixels"
@@ -78,6 +80,18 @@ def init_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     outnode = nodes.new('NodeGroupOutput')
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
+
+    inputnode = nodes.new('NodeGroupInput')
+    join = nodes.new("GeometryNodeJoinGeometry")
+    links.new(scale_node.outputs[0], join.inputs[-1])
+    links.new(inputnode.outputs.get("Geometry"), join.inputs[-1])
+    links.new(join.outputs[0], outnode.inputs[0])
+
+
+    realize = nodes.new("GeometryNodeRealizeInstances")
+    links.new(join.outputs[0], realize.inputs[0])
+    links.new(realize.outputs[0], outnode.inputs[0])
+
 
     if axesobj.data.materials:
         axesobj.data.materials[0] = init_material_axes()
@@ -161,4 +175,5 @@ def init_material_axes():
     out = nodes.get("Material Output")
     out.location = (650, 0)
     links.new(mix.outputs[0], out.inputs[0])
+
     return mat

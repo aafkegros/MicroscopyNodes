@@ -115,6 +115,7 @@ def unpack_tif(input_file, axes_order, test=False):
     mask_arrays = {}
     for ch in mask_channels:
         mask_arrays[ch] = imgdata.take(indices=ch, axis=axes_order.find('c'))
+        # maybe check input here?
     # volume_array = np.delete(imgdata, mask_channels, axis=axes_order.find('c'))
     volume_array = imgdata
     
@@ -192,6 +193,9 @@ def load():
     if bpy.context.scene.T2B_preset_environment:
         preset_environment()    
     
+    if xy_size <= 0  or z_size <= 0:
+        raise ValueError("cannot do zero-size pixels")
+
     cache_dir.mkdir(parents=True, exist_ok=True)
     
     base_coll = collection_by_name('Collection')
@@ -220,7 +224,7 @@ def load():
         [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
         to_be_parented.extend([mask_obj])
 
-    axes_obj = init_axes(size_px, init_scale, loc, xy_size, z_size, input_file)
+    axes_obj = load_axes(size_px, init_scale, loc, xy_size, z_size, input_file)
     to_be_parented.append(axes_obj)
 
     container = init_container(to_be_parented ,location=loc, name=Path(input_file).stem)

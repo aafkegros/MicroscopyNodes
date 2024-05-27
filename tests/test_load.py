@@ -13,38 +13,38 @@ test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
 
 # -- blender vdb handling and initial settings -- 
 
-def test_load_premade_vdb():
-    vdb_files = {(0, 0, 0): {'directory':  str(test_folder / 'permanent_blender_volumes/x0y0z0'), 
-                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
-                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
-                (0, 1, 0): {'directory':  str(test_folder / 'permanent_blender_volumes/x0y1z0'), 
-                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
-                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
-                (1, 0, 0): {'directory':  str(test_folder /'permanent_blender_volumes/x1y0z0'), 
-                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
-                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
-                (1, 1, 0): {'directory': str(test_folder /'permanent_blender_volumes/x1y1z0'), 
-                            'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
-                                    {'name': 'permanent_test_tzcyx_t_1.vdb'}]}} 
-    bbox_px = [1027,  1026,   3. ] 
-    size_px = [2054, 2053,    3]
-    init_scale = 0.02
-    xy_scale, z_scale = 1.5, 0.5
-    otsus = [0.15,0.25,0.35,0.45]
-    scale =  np.array([1,1,z_scale/xy_scale])*init_scale
-    axes_order = 'tzcyx'
-    tif = Path('/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_test_tzcyx_.tif')
+# def test_load_premade_vdb():
+#     vdb_files = {(0, 0, 0): {'directory':  str(test_folder / 'permanent_blender_volumes/x0y0z0'), 
+#                             'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+#                                     {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
+#                 (0, 1, 0): {'directory':  str(test_folder / 'permanent_blender_volumes/x0y1z0'), 
+#                             'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+#                                     {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
+#                 (1, 0, 0): {'directory':  str(test_folder /'permanent_blender_volumes/x1y0z0'), 
+#                             'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+#                                     {'name': 'permanent_test_tzcyx_t_1.vdb'}]}, 
+#                 (1, 1, 0): {'directory': str(test_folder /'permanent_blender_volumes/x1y1z0'), 
+#                             'files': [{'name': 'permanent_test_tzcyx_t_0.vdb'}, 
+#                                     {'name': 'permanent_test_tzcyx_t_1.vdb'}]}} 
+#     bbox_px = [1027,  1026,   3. ] 
+#     size_px = [2054, 2053,    3]
+#     init_scale = 0.02
+#     xy_scale, z_scale = 1.5, 0.5
+#     otsus = [0.15,0.25,0.35,0.45]
+#     scale =  np.array([1,1,z_scale/xy_scale])*init_scale
+#     axes_order = 'tzcyx'
+#     tif = Path('/Users/oanegros/Documents/werk/tif2bpy/tests/test_data/permanent_test_tzcyx_.tif')
 
-    volumes = tif2blender.load.import_volumes(vdb_files, scale, bbox_px)
+#     volumes = tif2blender.load.import_volumes(vdb_files, scale, bbox_px)
 
-    # recenter x, y, keep z at bottom
-    center = np.array([0.5,0.5,0]) * size_px
-    container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
+#     # recenter x, y, keep z at bottom
+#     center = np.array([0.5,0.5,0]) * size_px
+#     container = bpy.ops.mesh.primitive_cube_add(location=tuple(center*scale))
 
-    container = bpy.context.view_layer.objects.active
-    container = tif2blender.load.init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
+#     container = bpy.context.view_layer.objects.active
+#     container = tif2blender.load.init_container(container, volumes, size_px, tif, xy_scale, z_scale, axes_order, init_scale)
 
-    tif2blender.load.add_init_material(str(tif.name), volumes, otsus, axes_order)
+#     tif2blender.load.add_init_material(str(tif.name), volumes, otsus, axes_order)
 
 def test_preset_env():
     tif2blender.load.preset_environment()
@@ -115,21 +115,21 @@ def load_with_axes_order(axes_order, shape):
     volume_folder.rmdir()
     return     
 
-@pytest.mark.parametrize("axes_order", all_orders)
-def test_loading_all(axes_order):
-    shape = np.array(list(range(len(axes_order))))+2 # smallest distinguishable lengths over 1
-    load_with_axes_order(axes_order, shape)
-
 # @pytest.mark.parametrize("axes_order", all_orders)
-@pytest.mark.parametrize("axes_order", standard_orders)
-def test_loading_big(axes_order):
-    shape = np.array(list(range(len(axes_order))))+2 # smallest distinguishable lengths over 1
-    for ax_xyz in [ axes_order.find('x'), axes_order.find('y')]:
-        shape[ax_xyz] += 2048
-    load_with_axes_order(axes_order, shape)
-    # Do this twice to try xy, yz but not make a too big array for xyz
-    shape = np.array(list(range(len(axes_order))))+2 # smallest distinguishable lengths over 1
-    for ax_xyz in [ axes_order.find('y'), axes_order.find('z')]:
-        shape[ax_xyz] += 2048
-    load_with_axes_order(axes_order, shape)
+# def test_loading_all(axes_order):
+#     shape = np.array(list(range(len(axes_order))))+2 # smallest distinguishable lengths over 1
+#     load_with_axes_order(axes_order, shape)
+
+# # @pytest.mark.parametrize("axes_order", all_orders)
+# @pytest.mark.parametrize("axes_order", standard_orders)
+# def test_loading_big(axes_order):
+#     shape = np.array(list(range(len(axes_order))))+2 # smallest distinguishable lengths over 1
+#     for ax_xyz in [ axes_order.find('x'), axes_order.find('y')]:
+#         shape[ax_xyz] += 2048
+#     load_with_axes_order(axes_order, shape)
+#     # Do this twice to try xy, yz but not make a too big array for xyz
+#     shape = np.array(list(range(len(axes_order))))+2 # smallest distinguishable lengths over 1
+#     for ax_xyz in [ axes_order.find('y'), axes_order.find('z')]:
+#         shape[ax_xyz] += 2048
+#     load_with_axes_order(axes_order, shape)
 

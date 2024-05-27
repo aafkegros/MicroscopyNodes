@@ -123,13 +123,18 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
     from skimage.measure import marching_cubes
     from scipy.ndimage import find_objects
     axes_order = axes_order.replace("c","")
+    
+    for dim in 'txyz': # essential for mask loading
+        if dim not in axes_order:
+            mask = np.expand_dims(mask,axis=0)
+            axes_order = dim + axes_order
+    # print(axes_order, mask.shape)
     mask= np.moveaxis(mask, [axes_order.find('t'), axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3])
 
     parentcoll = get_current_collection()
     tmp_collection, _ = collection_by_name('tmp')
     objnames = {} # register objnames as dict at start value : name
     locations = {} 
-    abcfiles = []
 
     for timestep in range(0,mask.shape[0]):
         bpy.ops.object.select_all(action='DESELECT')
@@ -173,8 +178,8 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
         
 
         fname = abcfname(cache_dir, maskchannel, timestep)
-        abcfiles.append(fname)
-        if Path(fname).exists() and bpy.context.scene.remake:
+
+        if Path(fname).exists() and remake:
             Path(fname).unlink() # this may fix an issue with subsequent loads
         bpy.ops.wm.alembic_export(filepath=fname,
                         visible_objects_only=False,
@@ -200,14 +205,12 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
         json.dump(locations, fp, indent=4)
     return 
 
-def import_abc_and_loc(maskchannel, maxval, scale, cache_dir):
+def import_abc_and_loc(maskchannel, scale, cache_dir):
     mask_objs = []
     parentcoll = get_current_collection()
     
     channel_collection, _ = make_subcollection(f"channel {maskchannel} labelmask")
     bpy.ops.wm.alembic_import(filepath=abcfname(cache_dir, maskchannel, 0), is_sequence=True)
-
-    shader_labelmask = labelmask_shader(maskchannel,maxval + 1)
 
     with open(jsonfname(cache_dir, maskchannel), 'r') as fp:
         locations = json.load(fp)
@@ -217,7 +220,7 @@ def import_abc_and_loc(maskchannel, maxval, scale, cache_dir):
         oid = int(obj.name.split('_')[1].strip('obj'))
         ch = int(obj.name.split('_')[0].strip('ch'))
         locnames_newnames[(oid, ch)] = obj
-
+    
     for objname in locations:
         oid = int(objname.split('_')[1].strip('obj'))
         ch = int(objname.split('_')[0].strip('ch'))
@@ -231,7 +234,7 @@ def import_abc_and_loc(maskchannel, maxval, scale, cache_dir):
         obj.modifiers[-1].node_group = gn_oid_tree(oid, ch)
 
     collection_activate(*parentcoll)
-    return mask_objs, channel_collection, shader_labelmask
+    return mask_objs, channel_collection
 
 def load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order):
     mask_objs = []
@@ -242,11 +245,11 @@ def load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake,
     for maskchannel, mask in mask_arrays.items():
         if not Path(abcfname(cache_dir, maskchannel,0)).exists() or remake:
             export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order)
-        objs, coll, shader = import_abc_and_loc(maskchannel, np.max(mask), scale, cache_dir)
+        objs, coll = import_abc_and_loc(maskchannel, scale, cache_dir)
         
         mask_objs.extend(objs)
         mask_colls.append(coll)
-        mask_shaders.append(shader)
+        mask_shaders.append(labelmask_shader(maskchannel,np.max(maskchannel) + 1))
     collection_activate(*base_coll)
     mask_obj = init_holder('masks' ,mask_colls, mask_shaders)
     return mask_obj, mask_colls

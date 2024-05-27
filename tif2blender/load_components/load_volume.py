@@ -8,7 +8,7 @@ from ..handle_blender_structs import *
 from .. import t2b_nodes
 
 
-def array_to_vdb_files(imgdata, axes_order, remake, cache_dir, test=False):
+def array_to_vdb_files(imgdata, axes_order, remake, cache_dir):
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
     # Loops over all axes and splits based on length
@@ -21,18 +21,14 @@ def array_to_vdb_files(imgdata, axes_order, remake, cache_dir, test=False):
         for b_ix, b_chunk in enumerate(b_chunks):
             c_chunks = np.array_split(b_chunk, n_splits[2], axis=axes_order.find('z'))
             for c_ix, c_chunk in enumerate(reversed(c_chunks)):
-                directory, time_vdbs = make_vdb(c_chunk, (a_ix, b_ix, c_ix), axes_order, remake, cache_dir, test=test)
+                directory, time_vdbs = make_vdb(c_chunk, (a_ix, b_ix, c_ix), axes_order, remake, cache_dir)
                 vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "channels": time_vdbs}
     bbox_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])//np.array(n_splits)
     return vdb_files, bbox_px
 
-def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, test=False):
-    if test: 
-        # pyopenvdb is not available outside of blender; for tests tifs are written
-        # moving writing to a separate function would induce a very high RAM cost
-        import tifffile
-    else:
-        import pyopenvdb as vdb
+def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir):
+
+    import pyopenvdb as vdb
     x_ix, y_ix, z_ix = chunk_ix
     
     timefiles = []
