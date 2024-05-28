@@ -11,8 +11,6 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     axesobj = bpy.context.view_layer.objects.active
     axesobj.data.name = 'axes'
     axesobj.name = 'axes'
-    print(size_px, init_scale, location, xy_size, z_size, input_file)
-
 
     bpy.ops.object.modifier_add(type='NODES')
     node_group = bpy.data.node_groups.new('axes of ' + str(Path(input_file).stem) , 'GeometryNodeTree')  
@@ -84,16 +82,6 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     outnode = nodes.new('NodeGroupOutput')
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
-
-    # inputnode = nodes.new('NodeGroupInput')
-    # join = nodes.new("GeometryNodeJoinGeometry")
-    # links.new(scale_node.outputs[0], join.inputs[-1])
-    # links.new(inputnode.outputs.get("Geometry"), join.inputs[-1])
-    # links.new(join.outputs[0], outnode.inputs[0])
-
-    # realize = nodes.new("GeometryNodeRealizeInstances")
-    # links.new(join.outputs[0], realize.inputs[0])
-    # links.new(realize.outputs[0], outnode.inputs[0])
 
     if axesobj.data.materials:
         axesobj.data.materials[0] = init_material_axes()
