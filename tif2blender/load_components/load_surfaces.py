@@ -26,7 +26,6 @@ def load_surfaces(volume_collection, otsus, scale, cache_coll, base_coll):
     for ix, val in enumerate(otsus):
         if val > -1:
             ch_names.append(ix)
-    print(ch_names, otsus)
     
     collection_activate(*base_coll)
     volumes = [vol for ix, vol in enumerate(volume_collection.all_objects) if ix in ch_names]

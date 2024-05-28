@@ -24,10 +24,10 @@ def array_to_vdb_files(imgdata, axes_order, remake, cache_dir):
                 directory, time_vdbs = make_vdb(c_chunk, (a_ix, b_ix, c_ix), axes_order, remake, cache_dir)
                 vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "channels": time_vdbs}
     bbox_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])//np.array(n_splits)
+    print(vdb_files, bbox_px)
     return vdb_files, bbox_px
 
 def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir):
-
     import pyopenvdb as vdb
     x_ix, y_ix, z_ix = chunk_ix
     
@@ -121,7 +121,7 @@ def volume_material(vol, otsus, ch, channels):
     return mat
 
 
-def load_volume(volume_array, otsus, scale, cache_coll, base_coll, remake, cache_dir, axes_order):
+def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll):
     # consider checking whether all channels are present in vdb for remaking?
     collection_activate(*cache_coll)
     vol_collection, _ = make_subcollection('volumes')
@@ -129,8 +129,6 @@ def load_volume(volume_array, otsus, scale, cache_coll, base_coll, remake, cache
 
     ch_names = [ix for ix, val in enumerate(otsus) if val > -1]
 
-    vdb_files, bbox_px = array_to_vdb_files(volume_array, axes_order, remake, cache_dir)
-    print('made vdb files')
     # necessary to support multi-file import
     bpy.types.Scene.files: CollectionProperty(
         type=bpy.types.OperatorFileListElement,

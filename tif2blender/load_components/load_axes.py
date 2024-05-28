@@ -9,7 +9,10 @@ from .. import t2b_nodes
 def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     axesobj = bpy.ops.mesh.primitive_cube_add(location=location)
     axesobj = bpy.context.view_layer.objects.active
+    axesobj.data.name = 'axes'
     axesobj.name = 'axes'
+    print(size_px, init_scale, location, xy_size, z_size, input_file)
+
 
     bpy.ops.object.modifier_add(type='NODES')
     node_group = bpy.data.node_groups.new('axes of ' + str(Path(input_file).stem) , 'GeometryNodeTree')  
@@ -17,7 +20,7 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     nodes = node_group.nodes
     links = node_group.links
 
-    node_group.interface.new_socket("Geometry",in_out="INPUT", socket_type='NodeSocketGeometry')
+    # node_group.interface.new_socket("Geometry",in_out="INPUT", socket_type='NodeSocketGeometry')
 
     axnode = nodes.new('FunctionNodeInputVector')
     axnode.name = "n pixels"
@@ -63,6 +66,7 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     axes_select = nodes.new('GeometryNodeGroup')
     axes_select.node_tree = t2b_nodes.axes_multiplexer_node_group()
     axes_select.label = "Subselect axes"
+    axes_select.name = "Axis Selection"
     axes_select.width = 150
     axes_select.location = (-50, -320)
 
@@ -81,17 +85,15 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
 
-    inputnode = nodes.new('NodeGroupInput')
-    join = nodes.new("GeometryNodeJoinGeometry")
-    links.new(scale_node.outputs[0], join.inputs[-1])
-    links.new(inputnode.outputs.get("Geometry"), join.inputs[-1])
-    links.new(join.outputs[0], outnode.inputs[0])
+    # inputnode = nodes.new('NodeGroupInput')
+    # join = nodes.new("GeometryNodeJoinGeometry")
+    # links.new(scale_node.outputs[0], join.inputs[-1])
+    # links.new(inputnode.outputs.get("Geometry"), join.inputs[-1])
+    # links.new(join.outputs[0], outnode.inputs[0])
 
-
-    realize = nodes.new("GeometryNodeRealizeInstances")
-    links.new(join.outputs[0], realize.inputs[0])
-    links.new(realize.outputs[0], outnode.inputs[0])
-
+    # realize = nodes.new("GeometryNodeRealizeInstances")
+    # links.new(join.outputs[0], realize.inputs[0])
+    # links.new(realize.outputs[0], outnode.inputs[0])
 
     if axesobj.data.materials:
         axesobj.data.materials[0] = init_material_axes()

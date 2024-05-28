@@ -10,7 +10,6 @@ from .handle_blender_structs import *
 from .load_components import *
 
 
-
 def changePathTif(self, context):
     # infers metadata, resets to default if not found
     # the raise gets handled upstream, so only prints to cli, somehow.
@@ -214,7 +213,8 @@ def load():
     loc =  tuple(center_loc * size_px*scale)
 
     if len(mask_arrays) != len(otsus):
-        vol_obj, vol_coll = load_volume(volume_array, otsus, scale, cache_coll, base_coll, remake, cache_dir, axes_order)
+        vdb_files, bbox_px = array_to_vdb_files(volume_array, axes_order, remake, cache_dir)
+        vol_obj, vol_coll = load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll)
         surf_obj = load_surfaces(vol_coll, otsus, scale, cache_coll, base_coll)
         to_be_parented.extend([vol for vol in vol_coll.all_objects])
         to_be_parented.extend([vol_obj, surf_obj])

@@ -1,5 +1,6 @@
 import bpy
-
+import numpy as np
+import bmesh
 """
 ADAPTED FROM MOLECULARNODES BY BRADY JOHNSTON
 """
@@ -14,9 +15,8 @@ def apply_mods(obj):
     """
     bpy.context.view_layer.objects.active = obj
     for modifier in obj.modifiers:
-        print(modifier.name)
         bpy.ops.object.modifier_apply(modifier = modifier.name)
-    obj.data.mesh.update()
+    
 
 
 
@@ -72,9 +72,8 @@ def get_verts(objs, float_decimals=4, n_verts=100, apply_modifiers=True, seed=42
             except RuntimeError as ex:
                 print("error in applying modifier", ex)
                 return str(ex)
-        print(obj.data.vertices)
         vert_list.extend([(v.co.x, v.co.y, v.co.z) for v in obj.data.vertices])
-    print(vert_list)
+
     if n_verts > len(vert_list):
         n_verts = len(vert_list)
 
@@ -89,19 +88,16 @@ def get_verts(objs, float_decimals=4, n_verts=100, apply_modifiers=True, seed=42
     return verts_string
 
 
-def remove_all_objects(mda_session):
+def remove_all_objects():
     for object in bpy.data.objects:
         try:
-            obj_type = object["type"]
             
             bpy.data.objects.remove(object)
-            # add collection remove
-        except KeyError:
+
+        except KeyError as e:
+            print(e)
             pass
     # remove frame change
     bpy.context.scene.frame_set(0)
 
-    mda_session.universe_reps = {}
-    mda_session.atom_reps = {}
-    mda_session.rep_names = []
 
