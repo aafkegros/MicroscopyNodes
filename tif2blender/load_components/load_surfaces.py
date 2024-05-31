@@ -28,7 +28,7 @@ def load_surfaces(volume_collection, otsus, scale, cache_coll, base_coll):
             ch_names.append(ix)
     
     collection_activate(*base_coll)
-    volumes = [vol for ix, vol in enumerate(volume_collection.all_objects) if ix in ch_names]
+    volumes = [vol for ix, vol in enumerate(volume_collection.children) if ix in ch_names]
     surf_obj = init_holder('surface', volumes, [surf_material(ch_name, len(otsus)) for ch_name in ch_names])
     node_group = surf_obj.modifiers[-1].node_group 
     nodes = node_group.nodes
@@ -44,17 +44,20 @@ def load_surfaces(volume_collection, otsus, scale, cache_coll, base_coll):
         v2m = nodes.new('GeometryNodeVolumeToMesh')
         v2m.location = volnode.location
         volnode.location = (volnode.location[0] - 300, volnode.location[1])    
-        links.new(volnode.outputs.get('Geometry'), v2m.inputs.get('Volume'))
+        links.new(volnode.outputs[0], v2m.inputs.get('Volume'))
         links.new(v2m.outputs.get('Mesh'), nodes.get('Set Material '+ vol.name).inputs.get('Geometry'))
         
         interface.new_socket(f"Channel {ch} Threshold",in_out="INPUT",socket_type='NodeSocketFloat')
         interface.items_tree[-1].min_value = 0.0
         interface.items_tree[-1].max_value = 1.001
+        interface.items_tree[-1].attribute_domain = 'POINT'
         interface.items_tree[-1].default_value = otsus[ch]
         interface.items_tree[-1].name = f"Channel {ch} Threshold"
+
+        # set correct otsu value
         identifier= interface.items_tree[-1].identifier
-        surf_obj.modifiers[-1][identifier] = otsus[ch]
-        interface.items_tree[-1].attribute_domain = 'POINT'
+        surf_obj.modifiers[-1][identifier] = float(otsus[ch])
+        
         node_group.interface.move(node_group.interface.items_tree[f"Channel {ch} Threshold"] , ix*2 + 2)
         links.new(inputnode.outputs.get(f"Channel {ch} Threshold"), v2m.inputs.get('Threshold'))
 

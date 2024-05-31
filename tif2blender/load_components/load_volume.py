@@ -24,7 +24,7 @@ def array_to_vdb_files(imgdata, axes_order, remake, cache_dir):
                 directory, time_vdbs = make_vdb(c_chunk, (a_ix, b_ix, c_ix), axes_order, remake, cache_dir)
                 vdb_files[(a_ix,b_ix,c_ix)] = {"directory" : directory, "channels": time_vdbs}
     bbox_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])//np.array(n_splits)
-    print(vdb_files, bbox_px)
+
     return vdb_files, bbox_px
 
 def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir):
@@ -61,7 +61,7 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir):
 
 
 
-def volume_material(vol, otsus, ch, channels):
+def volume_material(ch_coll, otsus, ch, channels):
     # do not check whether it exists, so a new load will force making a new mat
     mat = bpy.data.materials.new(f'channel {ch}')
     mat.use_nodes = True
@@ -76,47 +76,50 @@ def volume_material(vol, otsus, ch, channels):
     node_attr.location = (-500, 0)
     node_attr.attribute_name = f'data_channel_{ch}'
 
-    bound_map_range_node = nodes.new('ShaderNodeGroup')
-    bound_map_range_node.node_tree = t2b_nodes.bounded_map_range_node_group()
-    bound_map_range_node.width = 300
-    bound_map_range_node.location = (-250, 0)
-    bound_map_range_node.label = "Brightness & Contrast"
-    # best threshold is the one minimizing the Otsu criteria
-    bound_map_range_node.inputs.get('Minimum').default_value = otsus[ch]
-    links.new(node_attr.outputs.get("Fac"), bound_map_range_node.inputs.get("Data"))
+    ramp_node = nodes.new(type="ShaderNodeValToRGB")
+    ramp_node.location = (-300, 0)
+    ramp_node.color_ramp.elements[0].position = otsus[ch]
+    color = get_cmap('hue-wheel', maxval=channels)[ch]
+    ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
+    links.new(node_attr.outputs.get("Fac"), ramp_node.inputs.get("Fac"))  
 
-    color = nodes.new("ShaderNodeRGB")
-    color.outputs[0].default_value = get_cmap('hue-wheel', maxval=channels)[ch]
-    color.location = (-250, 200)
-
+    scale = nodes.new(type='ShaderNodeVectorMath')
+    scale.location = (0,-150)
+    scale.operation = "SCALE"
+    links.new(ramp_node.outputs[0], scale.inputs.get("Vector"))
+    scale.inputs.get('Scale').default_value = 1
+    
     emit = nodes.new(type='ShaderNodeEmission')
-    emit.location = (150,0)
-    links.new(color.outputs[0], emit.inputs.get('Color'))
-    links.new(bound_map_range_node.outputs[0], emit.inputs.get('Strength'))
-
+    emit.location = (250,0)
+    links.new(ramp_node.outputs[0], emit.inputs.get('Color'))
+    links.new(scale.outputs[0], emit.inputs.get('Strength'))
+    
 
     adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
-    adsorb.location = (150,-200)
-    links.new(color.outputs[0], adsorb.inputs.get('Color'))
-    links.new(bound_map_range_node.outputs[0], adsorb.inputs.get('Density'))
+    adsorb.location = (250,-200)
+    links.new(ramp_node.outputs[0], adsorb.inputs.get('Color'))
+    links.new(scale.outputs[0], adsorb.inputs.get('Density'))
     scatter = nodes.new(type='ShaderNodeVolumeScatter')
-    scatter.location = (150,-300)
-    links.new(color.outputs[0], scatter.inputs.get('Color'))
-    links.new(bound_map_range_node.outputs[0], scatter.inputs.get('Density'))
+    scatter.location = (250,-300)
+    links.new(ramp_node.outputs[0], scatter.inputs.get('Color'))
+    links.new(scale.outputs[0], scatter.inputs.get('Density'))
 
     add = nodes.new(type='ShaderNodeAddShader')
-    add.location = (350, -300)
+    add.location = (450, -300)
     links.new(adsorb.outputs[0], add.inputs[0])
     links.new(scatter.outputs[0], add.inputs[1])
 
-    nodes.get("Material Output").location = (400,00)
+    
+
+    nodes.get("Material Output").location = (700,00)
     links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
     
     # Assign it to volume - not fully necessary, but nice to have if people want to mess around in the cache
-    if vol.data.materials:
-        vol.data.materials[0] = mat
-    else:
-        vol.data.materials.append(mat)
+    for vol in ch_coll.all_objects:
+        if vol.data.materials:
+            vol.data.materials[0] = mat
+        else:
+            vol.data.materials.append(mat)
 
     return mat
 
@@ -124,7 +127,7 @@ def volume_material(vol, otsus, ch, channels):
 def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll):
     # consider checking whether all channels are present in vdb for remaking?
     collection_activate(*cache_coll)
-    vol_collection, _ = make_subcollection('volumes')
+    vol_collection, vol_lcoll = make_subcollection('volumes')
     volumes = []
 
     ch_names = [ix for ix, val in enumerate(otsus) if val > -1]
@@ -136,20 +139,22 @@ def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll):
     )
     
     for pos, vdbs in vdb_files.items():
-        for ch_files in vdbs['channels']:
+        for ch_name, ch_files in enumerate(vdbs['channels']):
+            ch_collection, _ = make_subcollection(f'channel {ch_name}')
             bpy.ops.object.volume_import(filepath=ch_files[0]['name'],directory=vdbs['directory'], files=ch_files,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
             vol = bpy.context.view_layer.objects.active
             vol.scale = scale
             vol.name = vol.name[:-2]
             vol.location = tuple(np.array(pos) * bbox_px *scale)
             vol.data.frame_start = 0
-            volumes.append(vol)
-    print('imported volumes')
+            collection_activate(vol_collection, vol_lcoll)
+
     collection_activate(*base_coll)
-    volumes = [vol for ix, vol in enumerate(vol_collection.all_objects) if ix in ch_names]
-    materials = [volume_material(volumes[ix], otsus,  channel, len(otsus)) for ix, channel in enumerate(ch_names)]
-    vol_obj = init_holder('volume',volumes, materials)
+    ch_colls = [vol for ix, vol in enumerate(vol_collection.children) if ix in ch_names]
+
+    materials = [volume_material(ch_colls[ix], otsus,  channel, len(otsus)) for ix, channel in enumerate(ch_names)]
+    vol_obj = init_holder('volume',vol_collection.children, materials)
     for mat in vol_obj.data.materials:
         mat.node_tree.nodes["Emission"].inputs[1].show_expanded = True
-    print('made volume holder')
+
     return vol_obj, vol_collection

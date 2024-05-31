@@ -9,6 +9,9 @@ from .initial_global_settings import preset_environment
 from .handle_blender_structs import *
 from .load_components import *
 
+from mathutils import Matrix
+
+
 
 def changePathTif(self, context):
     # infers metadata, resets to default if not found
@@ -141,11 +144,16 @@ def unpack_tif(input_file, axes_order, test=False):
         ch_axes = axes_order.replace("c","")
         z_MIP = np.amax(im, axis = ch_axes.find('z'))
         threshold_range = np.linspace(0,1,101)
-        criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
-        otsus[ix] = threshold_range[np.argmin(criterias)]
+        try:
+            from skimage.filters import threshold_otsu
+            otsus[ix] = threshold_otsu(z_MIP)
+            print('used scikit image' )
+        except:
+            criterias = [compute_otsu_criteria(z_MIP, th) for th in threshold_range]
+            otsus[ix] = threshold_range[np.argmin(criterias)]
 
     size_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])
-    
+    print(otsus)
     return volume_array, mask_arrays, otsus, size_px, axes_order
 
 
@@ -153,8 +161,6 @@ def unpack_tif(input_file, axes_order, test=False):
 # TODO see if skimage is there and then use that one + do some planes, and not MIP
 def compute_otsu_criteria(im, th):
     """Otsu's method to compute criteria."""
-    # create the thresholded image
-    # print(th)
     thresholded_im = np.zeros(im.shape)
     thresholded_im[im >= th] = 1
 
@@ -223,6 +229,9 @@ def load():
         mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
         [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
         to_be_parented.extend([mask_obj])
+
+    slicecube = load_slice_cube(to_be_parented, size_px, scale)
+    to_be_parented.append(slicecube)
 
     axes_obj = load_axes(size_px, init_scale, loc, xy_size, z_size, input_file)
     to_be_parented.append(axes_obj)

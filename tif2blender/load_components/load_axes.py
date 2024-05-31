@@ -18,8 +18,6 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     nodes = node_group.nodes
     links = node_group.links
 
-    # node_group.interface.new_socket("Geometry",in_out="INPUT", socket_type='NodeSocketGeometry')
-
     axnode = nodes.new('FunctionNodeInputVector')
     axnode.name = "n pixels"
     axnode.label = "n pixels"
