@@ -52,6 +52,7 @@ def load_surfaces(volume_collection, otsus, scale, cache_coll, base_coll):
         interface.items_tree[-1].max_value = 1.001
         interface.items_tree[-1].attribute_domain = 'POINT'
         interface.items_tree[-1].default_value = otsus[ch]
+        # interface.items_tree[-1].default_value = 1
         interface.items_tree[-1].name = f"Channel {ch} Threshold"
 
         # set correct otsu value

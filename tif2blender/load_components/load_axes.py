@@ -70,10 +70,11 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     scale_node.node_tree = t2b_nodes.scale_node_group()
     scale_node.width = 300
     scale_node.location = (200, 100)
+    scale_node.inputs.get("µm per tick").default_value = max(1, size_px[0]//10)
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))
     links.new(axes_select.outputs[0], scale_node.inputs.get('Axis Selection'))
-    links.new(crosshatch.outputs[0], scale_node.inputs.get('Tick Geometry'))
+    # links.new(crosshatch.outputs[0], scale_node.inputs.get('Tick Geometry'))
     scale_node.inputs.get("Material").default_value = init_material_axes()
     
     node_group.interface.new_socket("Geometry",in_out="OUTPUT", socket_type='NodeSocketGeometry')

@@ -30,6 +30,13 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Preset environment', icon_value=0, emboss=True)
         grid.prop(bpy.context.scene, 'T2B_cache_dir', text= 'Cache dir')
 
+        split = layout.split()
+        col = split.column()
+        col.prop(bpy.context.scene, 'T2B_Surface', text= 'Surfaces')
+        
+        col = split.column(align=True)
+        col.prop(bpy.context.scene, 'T2B_Emission', text= 'Emission')
+
         col = layout.column(align=True)
         col.label(text=".tif file:")
         col.prop(context.scene, "T2B_input_file", text="")

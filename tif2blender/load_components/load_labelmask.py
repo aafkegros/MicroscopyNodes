@@ -128,9 +128,9 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
         if dim not in axes_order:
             mask = np.expand_dims(mask,axis=0)
             axes_order = dim + axes_order
-    # print(axes_order, mask.shape)
-    mask= np.moveaxis(mask, [axes_order.find('t'), axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3])
 
+    mask= np.moveaxis(mask, [axes_order.find('t'), axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3])
+    
     parentcoll = get_current_collection()
     tmp_collection, _ = collection_by_name('tmp')
     objnames = {} # register objnames as dict at start value : name

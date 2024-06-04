@@ -48,7 +48,7 @@ def insert_slicing(group, slice_obj):
     lastnode, outnode, output_input = get_nodes_last_output(group)
     texcoord = nodes.new('ShaderNodeTexCoord')
     texcoord.object = slice_obj
-    texcoord.width = 250
+    texcoord.width = 200
     texcoord.location = (outnode.location[0], outnode.location[1]+100)
 
     slicecube = nodes.new('ShaderNodeGroup')

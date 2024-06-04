@@ -10,7 +10,7 @@ from .. import t2b_nodes
 
 def array_to_vdb_files(imgdata, axes_order, remake, cache_dir):
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
-    n_splits = [(imgdata.shape[dim] // 2048)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
+    n_splits = [(imgdata.shape[dim] // 2049)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
     volumes =[]
@@ -61,8 +61,9 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir):
 
 
 
-def volume_material(ch_coll, otsus, ch, channels):
+def volume_material(ch_coll, otsus, ch, ch_ix, channels, emission_setting):
     # do not check whether it exists, so a new load will force making a new mat
+    print(ch, ch_ix, otsus)
     mat = bpy.data.materials.new(f'channel {ch}')
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
@@ -79,7 +80,7 @@ def volume_material(ch_coll, otsus, ch, channels):
     ramp_node = nodes.new(type="ShaderNodeValToRGB")
     ramp_node.location = (-300, 0)
     ramp_node.color_ramp.elements[0].position = otsus[ch]
-    color = get_cmap('hue-wheel', maxval=channels)[ch]
+    color = get_cmap('hue-wheel', maxval=channels)[ch_ix]
     ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
     links.new(node_attr.outputs.get("Fac"), ramp_node.inputs.get("Fac"))  
 
@@ -91,8 +92,8 @@ def volume_material(ch_coll, otsus, ch, channels):
     
     emit = nodes.new(type='ShaderNodeEmission')
     emit.location = (250,0)
-    links.new(ramp_node.outputs[0], emit.inputs.get('Color'))
-    links.new(scale.outputs[0], emit.inputs.get('Strength'))
+    links.new(ramp_node.outputs[0], emit.inputs.get('Color'))\
+    
     
 
     adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
@@ -109,10 +110,14 @@ def volume_material(ch_coll, otsus, ch, channels):
     links.new(adsorb.outputs[0], add.inputs[0])
     links.new(scatter.outputs[0], add.inputs[1])
 
-    
+
 
     nodes.get("Material Output").location = (700,00)
-    links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
+    if emission_setting:
+        links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
+    else:
+        links.new(add.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
+        
     
     # Assign it to volume - not fully necessary, but nice to have if people want to mess around in the cache
     for vol in ch_coll.all_objects:
@@ -124,7 +129,7 @@ def volume_material(ch_coll, otsus, ch, channels):
     return mat
 
 
-def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll):
+def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll, emission_setting):
     # consider checking whether all channels are present in vdb for remaking?
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
@@ -138,9 +143,11 @@ def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll):
         options={'HIDDEN', 'SKIP_SAVE'},
     )
     
+    ch_collections = []
     for pos, vdbs in vdb_files.items():
         for ch_name, ch_files in enumerate(vdbs['channels']):
             ch_collection, _ = make_subcollection(f'channel {ch_name}')
+            ch_collections.append(ch_collection)
             bpy.ops.object.volume_import(filepath=ch_files[0]['name'],directory=vdbs['directory'], files=ch_files,use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
             vol = bpy.context.view_layer.objects.active
             vol.scale = scale
@@ -150,11 +157,13 @@ def load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll):
             collection_activate(vol_collection, vol_lcoll)
 
     collection_activate(*base_coll)
-    ch_colls = [vol for ix, vol in enumerate(vol_collection.children) if ix in ch_names]
-
-    materials = [volume_material(ch_colls[ix], otsus,  channel, len(otsus)) for ix, channel in enumerate(ch_names)]
-    vol_obj = init_holder('volume',vol_collection.children, materials)
+    
+    materials = [volume_material(ch_collections[channel], otsus,  channel, name_ix, len(ch_names), emission_setting) for name_ix, channel in enumerate(ch_names)]
+    volumes = [ch_coll for ix, ch_coll in enumerate(ch_collections) if ix in ch_names]
+    vol_obj = init_holder('volume',volumes, materials)
     for mat in vol_obj.data.materials:
-        mat.node_tree.nodes["Emission"].inputs[1].show_expanded = True
+        # make sure color ramp is immediately visibile under Volume shader
+        # mat.node_tree.nodes["Slice Cube"].inputs[0].show_expanded = True
+        mat.node_tree.nodes["Emission"].inputs[0].show_expanded = True
 
     return vol_obj, vol_collection
