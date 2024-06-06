@@ -26,7 +26,7 @@ bpy.types.Scene.T2B_preset_environment = bpy.props.BoolProperty(
 
 bpy.types.Scene.T2B_Emission = bpy.props.BoolProperty(
     name = "TL_EM", 
-    description = "Electron microscopy data preset (absorbent volume)",
+    description = "Volumes emit light, instead of absorbing light",
     default = True
     )
 
@@ -102,7 +102,7 @@ def load():
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
     # pads axes order with 1-size elements for missing axes
-    volume_array, mask_arrays, otsus, size_px, axes_order = unpack_tif(input_file, axes_order, mask_channels)
+    volume_arrays, mask_arrays, size_px, axes_order = unpack_tif(input_file, axes_order, mask_channels)
 
     to_be_parented = []
 
@@ -111,15 +111,19 @@ def load():
     scale =  np.array([1,1,z_size/xy_size])*init_scale
     loc =  tuple(center_loc * size_px*scale)
 
-    if len(mask_arrays) != len(otsus):
-        vdb_files, bbox_px = array_to_vdb_files(volume_array, axes_order, remake, cache_dir)
-        vol_obj, vol_coll = load_volume(vdb_files, bbox_px, otsus, scale, cache_coll, base_coll, emission)
-        to_be_parented.extend([vol for vol in vol_coll.all_objects])
+    if len(volume_arrays) > 0:
+        #TODO check remake
+        volume_inputs, bbox_px = arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir)
+        vol_obj, volume_inputs = load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission)
+        for volume_input in volume_inputs.values():
+            print(volume_inputs.keys, volume_input['collection'])
+            to_be_parented.extend([vol for vol in volume_input['collection'].all_objects])
         to_be_parented.extend([vol_obj])
         if surfaces:
-            surf_obj = load_surfaces(vol_coll, otsus, scale, cache_coll, base_coll)
+            surf_obj = load_surfaces(volume_inputs, scale, cache_coll, base_coll)
             to_be_parented.extend([surf_obj])
     
+
     if len(mask_arrays) > 0:
         mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
         [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]

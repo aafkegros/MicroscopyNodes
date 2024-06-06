@@ -242,14 +242,14 @@ def load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake,
     locations = {}
     
     collection_activate(*cache_coll)
-    for maskchannel, mask in mask_arrays.items():
-        if not Path(abcfname(cache_dir, maskchannel,0)).exists() or remake:
-            export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order)
-        objs, coll = import_abc_and_loc(maskchannel, scale, cache_dir)
+    for ch in mask_arrays:
+        if not Path(abcfname(cache_dir, ch,0)).exists() or remake:
+            export_alembic_and_loc(mask_arrays[ch]['data'], ch, cache_dir, remake, axes_order)
+        objs, coll = import_abc_and_loc(ch, scale, cache_dir)
         
         mask_objs.extend(objs)
         mask_colls.append(coll)
-        mask_shaders.append(labelmask_shader(maskchannel,np.max(maskchannel) + 1))
+        mask_shaders.append(labelmask_shader(ch,np.max(mask_arrays[ch]['data']) + 1))
     collection_activate(*base_coll)
     mask_obj = init_holder('masks' ,mask_colls, mask_shaders)
     return mask_obj, mask_colls
