@@ -106,7 +106,7 @@ def test_load_labelmask(snapshot):
     cache_coll = collection_by_name('testcache')
     cache_dir = (test_folder / 'tmp' / 'load_labelmask') 
     cache_dir.mkdir(exist_ok=True, parents=True)
-    remake = True
+    remake = False
     channels = 1
     if 'c' in axes_order:
         channels = data.shape[axes_order.find('c')]
@@ -118,12 +118,15 @@ def test_load_labelmask(snapshot):
     mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
 
     objs = [obj for obj in mask_colls[0].all_objects]
-
+    
     assert(len(objs) == len(np.unique(data))-1)
     assert(len(mask_obj.data.materials) == data.shape[axes_order.find('c')])
 
-    verts = get_verts(objs, apply_modifiers=True)
+    verts = get_verts(objs, apply_modifiers=False)
     snapshot.assert_match(verts, f'maskload_1.txt')
+
+    shutil.rmtree(cache_dir)
+    cache_dir.mkdir(exist_ok=True, parents=True)
     mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
     objs = [obj for obj in mask_colls[0].all_objects]
 
