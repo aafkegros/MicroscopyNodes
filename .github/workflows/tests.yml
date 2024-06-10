@@ -24,9 +24,6 @@ jobs:
         with:
           python-version: '3.11.6'
           cache: 'pip'
-      - uses: moguri/setup-blender@v1
-        with:
-          blender-version: ${{ matrix.blender-version }}
       - run: pip install bpy==${{ matrix.blender-version }}
 
       - name: Install poetry
