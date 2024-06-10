@@ -2,6 +2,7 @@ test:
 	poetry install 
 	pytest -vx
 
+
 version := $(shell grep version pyproject.toml | grep -o -E "\b[0-9]+\.[0-9]+\.[0-9]+\b")
 
 template:

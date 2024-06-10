@@ -25,7 +25,7 @@ See the [video introduction](https://youtu.be/TCQojYEYxVo) to the tif2blender ad
 
 Download:
 
-- Download blender from https://www.blender.org/download/. You need version 3.5 or 3.6 for the tif loader Add-On. Blender 4.0 support is coming soon
+- Download blender from https://www.blender.org/download/. Download Blender 4.0.x for the newest version of tif2blender. Blender 3.5 and 3.6 are also supported in different releases, so please check on the releases page!
 
 - Download the tif loader zip file from the [releases page](https://github.com/oanegros/tif2blender/releases). 
 
