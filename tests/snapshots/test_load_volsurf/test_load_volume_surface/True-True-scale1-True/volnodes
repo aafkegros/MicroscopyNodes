@@ -1,0 +1,1 @@
+[bpy.data.node_groups['volume.010'].nodes["Group Input"], bpy.data.node_groups['volume.010'].nodes["channel 1"], bpy.data.node_groups['volume.010'].nodes["Set Material channel 1"], bpy.data.node_groups['volume.010'].nodes["Switch"], bpy.data.node_groups['volume.010'].nodes["Join Geometry"], bpy.data.node_groups['volume.010'].nodes["Group Output"]]

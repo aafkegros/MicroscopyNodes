@@ -113,7 +113,8 @@ def test_load_labelmask(snapshot):
 
     mask_arrays = {}
     for ch in range(channels):
-        mask_arrays[ch] = data.take(indices=ch, axis=axes_order.find('c'))
+        mask_arrays[ch] = {'data':data.take(indices=ch, axis=axes_order.find('c'))}
+    axes_order.replace('c', '')
     mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
 
     objs = [obj for obj in mask_colls[0].all_objects]
@@ -121,8 +122,11 @@ def test_load_labelmask(snapshot):
     assert(len(objs) == len(np.unique(data))-1)
     assert(len(mask_obj.data.materials) == data.shape[axes_order.find('c')])
 
-    verts = get_verts(objs, apply_modifiers=False)
+    verts = get_verts(objs, apply_modifiers=True)
     snapshot.assert_match(verts, f'maskload_1.txt')
+    mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
+    objs = [obj for obj in mask_colls[0].all_objects]
+
     bpy.context.scene.frame_set(2)
     verts2 = get_verts(objs, apply_modifiers=True)
     assert(verts != verts2)

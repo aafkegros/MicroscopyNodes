@@ -3,29 +3,32 @@ import bpy
 from .load_generic import init_holder
 from ..handle_blender_structs import *
     
-def surf_material(ch, maxval):
+def surf_material(volume_inputs):
     # do not check whether it exists, so a new load will force making a new mat
-    mat = bpy.data.materials.new(f'surface {ch} shader')
-    mat.blend_method = "HASHED"
-    mat.use_nodes = True
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
+    mats = []
+    for ix, ch in enumerate(volume_inputs):
+        mat = bpy.data.materials.new(f'surface {ch} shader')
+        mat.blend_method = "HASHED"
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
 
-    if nodes.get("Principled BSDF") is None:
-        try: 
-            nodes.remove(nodes.get("Principled Volume"))
-        except Exception as e:
-            print(e)
-        princ = nodes.new("ShaderNodeBsdfPrincipled")
-        links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
-    nodes.get("Principled BSDF").inputs.get('Base Color').default_value = get_cmap('hue-wheel', maxval=maxval)[ch]
-    return mat
+        if nodes.get("Principled BSDF") is None:
+            try: 
+                nodes.remove(nodes.get("Principled Volume"))
+            except Exception as e:
+                print(e)
+            princ = nodes.new("ShaderNodeBsdfPrincipled")
+            links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
+        nodes.get("Principled BSDF").inputs.get('Base Color').default_value = get_cmap('hue-wheel', maxval=len(volume_inputs))[ix]
+        mats.append(mat)
+    return mats
 
 def load_surfaces(volume_inputs, scale, cache_coll, base_coll):
 
     collection_activate(*base_coll)
     volume_colls = [volume_inputs[ch]['collection'] for ch in volume_inputs]
-    surf_obj = init_holder('surface', volume_colls, [surf_material(ch, len(volume_inputs)) for ch in volume_inputs])
+    surf_obj = init_holder('surface', volume_colls, surf_material(volume_inputs))
     node_group = surf_obj.modifiers[-1].node_group 
     nodes = node_group.nodes
     links = node_group.links

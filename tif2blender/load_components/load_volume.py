@@ -16,7 +16,7 @@ def arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir):
     for ch in volume_arrays:
         volume_arrays[ch]['vdbs'] = []
         imgdata = volume_arrays[ch]['data']
-        n_splits = [(imgdata.shape[dim] // 2049)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
+        n_splits = [(imgdata.shape[dim] // 50)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
         a_chunks = np.array_split(imgdata, n_splits[0], axis=axes_order.find('x'))
         for a_ix, a_chunk in enumerate(a_chunks):
             b_chunks = np.array_split(a_chunk, n_splits[1], axis=axes_order.find('y'))
@@ -118,7 +118,7 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
     volumes = []
-
+    print(volume_inputs)
     # necessary to support multi-file import
     bpy.types.Scene.files: CollectionProperty(
         type=bpy.types.OperatorFileListElement,
@@ -126,7 +126,7 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
     )
     
     for ch in volume_inputs:
-        ch_collection, _ = make_subcollection(f'channel {ch}')
+        ch_collection, ch_lcoll = make_subcollection(f'channel {ch}')
         volume_inputs[ch]['collection'] = ch_collection
         for chunk in volume_inputs[ch]['vdbs']:
             bpy.ops.object.volume_import(filepath=chunk['files'][0]['name'],directory=chunk['directory'], files=chunk['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
@@ -135,7 +135,7 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
             vol.name = vol.name[:-2]
             vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
             vol.data.frame_start = 0
-            collection_activate(vol_collection, vol_lcoll)
+        collection_activate(vol_collection, vol_lcoll)
 
     collection_activate(*base_coll)
     
