@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: '3.11.6'
           cache: 'pip'
-      - run: pip install bpy==${{ matrix.blender-version }}
+      # - run: pip install bpy==${{ matrix.blender-version }}
 
       - name: Install poetry
         run: pip install poetry
