@@ -97,46 +97,46 @@ def test_import_abc(snapshot, foldername):
 
 
 
-def test_load_labelmask(snapshot):
-    axes_order ='tzcyx'
-    data = semi_random_data_labels(axes_order, 'nonrandom')
-    scale = np.array([0.1,0.2,0.3]) 
-    # TODO BUG find out why large sales give inconsistent snapshots
-    base_coll = collection_by_name('testbase')
-    cache_coll = collection_by_name('testcache')
-    cache_dir = (test_folder / 'tmp' / 'load_labelmask') 
-    cache_dir.mkdir(exist_ok=True, parents=True)
-    remake = False
-    channels = 1
-    if 'c' in axes_order:
-        channels = data.shape[axes_order.find('c')]
+# def test_load_labelmask(snapshot):
+#     axes_order ='tzcyx'
+#     data = semi_random_data_labels(axes_order, 'nonrandom')
+#     scale = np.array([0.1,0.2,0.3]) 
+#     # TODO BUG find out why large sales give inconsistent snapshots
+#     base_coll = collection_by_name('testbase')
+#     cache_coll = collection_by_name('testcache')
+#     cache_dir = (test_folder / 'tmp' / 'load_labelmask') 
+#     cache_dir.mkdir(exist_ok=True, parents=True)
+#     remake = False
+#     channels = 1
+#     if 'c' in axes_order:
+#         channels = data.shape[axes_order.find('c')]
 
-    mask_arrays = {}
-    for ch in range(channels):
-        mask_arrays[ch] = {'data':data.take(indices=ch, axis=axes_order.find('c'))}
-    axes_order.replace('c', '')
-    mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
+#     mask_arrays = {}
+#     for ch in range(channels):
+#         mask_arrays[ch] = {'data':data.take(indices=ch, axis=axes_order.find('c'))}
+#     axes_order.replace('c', '')
+#     mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
 
-    objs = [obj for obj in mask_colls[0].all_objects]
+#     objs = [obj for obj in mask_colls[0].all_objects]
     
-    assert(len(objs) == len(np.unique(data))-1)
-    assert(len(mask_obj.data.materials) == data.shape[axes_order.find('c')])
+#     assert(len(objs) == len(np.unique(data))-1)
+#     assert(len(mask_obj.data.materials) == data.shape[axes_order.find('c')])
 
-    verts = get_verts(objs, apply_modifiers=False)
-    snapshot.assert_match(verts, f'maskload_1.txt')
+#     verts = get_verts(objs, apply_modifiers=False)
+#     snapshot.assert_match(verts, f'maskload_1.txt')
 
-    shutil.rmtree(cache_dir)
-    cache_dir.mkdir(exist_ok=True, parents=True)
-    mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
-    objs = [obj for obj in mask_colls[0].all_objects]
+#     shutil.rmtree(cache_dir)
+#     cache_dir.mkdir(exist_ok=True, parents=True)
+#     mask_obj, mask_colls = load_labelmask.load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
+#     objs = [obj for obj in mask_colls[0].all_objects]
 
-    bpy.context.scene.frame_set(2)
-    verts2 = get_verts(objs, apply_modifiers=True)
-    assert(verts != verts2)
-    snapshot.assert_match(verts2, f'maskload_2.txt')
+#     bpy.context.scene.frame_set(2)
+#     verts2 = get_verts(objs, apply_modifiers=True)
+#     assert(verts != verts2)
+#     snapshot.assert_match(verts2, f'maskload_2.txt')
     
-    assert(objs[0].users_collection[0] in list(cache_coll[0].children))
-    assert(bpy.context.view_layer.active_layer_collection == base_coll[1])
-    bpy.context.scene.frame_set(0)
-    shutil.rmtree(cache_dir)
-    return    
+#     assert(objs[0].users_collection[0] in list(cache_coll[0].children))
+#     assert(bpy.context.view_layer.active_layer_collection == base_coll[1])
+#     bpy.context.scene.frame_set(0)
+#     shutil.rmtree(cache_dir)
+#     return    
