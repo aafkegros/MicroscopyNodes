@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tif2blender"
-version = "0.1.1"
+version = "1.0.0"
 description = "Loading and handling microscopy data in Blender."
 authors = ["Oane Gros <oane.gros@embl.de>"]
 include = [
@@ -8,9 +8,10 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "~=3.10.0"
-bpy = ">=4.0.0"
+python = "~=3.11.6"
+bpy = ">=4.1.0"
 tifffile = "==2023.4.12"
+scikit-image = "==0.22.0"
 
 
 [tool.poetry.dev-dependencies]
