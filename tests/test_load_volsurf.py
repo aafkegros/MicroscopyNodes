@@ -6,6 +6,7 @@ from .utils import get_verts, remove_all_objects
 import numpy as np
 from pathlib import Path
 import os
+from os.path import join, dirname, realpath
 
 # Combined volume and surface loading
 scales = [[0.02,0.02,0.062], [2,1,1]]

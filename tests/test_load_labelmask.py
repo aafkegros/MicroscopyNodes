@@ -11,6 +11,7 @@ import tif2blender.load_components as load_labelmask
 import shutil
 import hashlib
 from tif2blender.handle_blender_structs import collection_by_name
+from os.path import join, dirname, realpath
 
 def semi_random_data_labels(axes_order, arrtype):
     np.random.seed(11)
