@@ -44,7 +44,7 @@ def test_export_labelmask(snapshot,axes_order, arrtype):
     np.random.seed(10)
     data = semi_random_data_labels(axes_order, arrtype)
     cache_dir = (test_folder / 'tmp' / f"{axes_order}_{arrtype}") 
-    cache_dir.mkdir(exist_ok=True)
+    cache_dir.mkdir(exist_ok=True, parents=True)
     assert(cache_dir.exists())
     remake = True
     # load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)

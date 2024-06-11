@@ -20,7 +20,7 @@ def apply_mods(obj):
 
 
 
-def get_verts(objs, float_decimals=4, n_verts=100, apply_modifiers=True, seed=42):
+def get_verts(objs, float_decimals=2, n_verts=100, apply_modifiers=True, seed=42):
     """
     Randomly samples a specified number of vertices from a list of objects.
 
@@ -82,7 +82,7 @@ def get_verts(objs, float_decimals=4, n_verts=100, apply_modifiers=True, seed=42
     verts_string = ""
     for i, vert in enumerate(random_verts):
         if i < n_verts:
-            rounded = [round(x, float_decimals) for x in vert]
+            rounded = [np.round(x, float_decimals) for x in vert]
             verts_string += "{},{},{}\n".format(rounded[0], rounded[1], rounded[2])
     
     return verts_string
