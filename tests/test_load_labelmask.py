@@ -87,6 +87,7 @@ scale = np.array([0.2, 0.2, 0.6])
 def test_import_abc(snapshot, foldername):
     maskchannel = 3 # hardcoded in data names
     cache_dir = test_folder / 'permanent_abcs' / foldername 
+    assert(load_labelmask.abcfname(cache_dir, maskchannel, 0).exists())
     objs, coll = load_labelmask.import_abc_and_loc(maskchannel, scale, cache_dir)
     verts = get_verts(objs, apply_modifiers=False)
     snapshot.assert_match(verts, f'abcload_{foldername}.txt')
