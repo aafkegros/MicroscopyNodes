@@ -36,7 +36,7 @@ def test_load_axes(snapshot, size_px, size):
 
     assert(len(axes_obj.modifiers) == 1)
     verts = get_verts([axes_obj], apply_modifiers=True)
-    snapshot.assert_match(verts, f"axes_{int(sum(size_px))}_{int(np.sum(np.array(sizes)))} ")
+    snapshot.assert_match(verts, f"axes_{int(sum(size_px))}_{int(np.sum(np.array(sizes)))}")
     assert("Error" not in verts)
     # check if not only cube persists:
     assert( np.count_nonzero(np.abs([(v.co.x, v.co.y, v.co.z) for v in axes_obj.data.vertices])-1))
