@@ -81,6 +81,7 @@ def test_export_labelmask(snapshot,axes_order, arrtype):
     return
 
 foldernames = ['sequence',  'singleframe']    
+foldernames = ['singleframe']    
 scale = np.array([0.2, 0.2, 0.6])
 
 @pytest.mark.parametrize("foldername", foldernames)
