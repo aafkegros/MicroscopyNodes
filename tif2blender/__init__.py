@@ -17,8 +17,8 @@ bl_info = {
     "name" : "tif2blender",
     "author" : "Oane Gros",
     "description" : "",
-    "blender" : (4, 0, 0),
-    "version" : (0, 1, 1),
+    "blender" : (4, 1, 1),
+    "version" : (1, 0, 0),
     "location" : "",
     "warning" : "",
     "category" : "Import"

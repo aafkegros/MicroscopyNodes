@@ -23,8 +23,8 @@ def init():
     global ordered_classes
 
     modules = get_all_submodules(Path(__file__).parent)
-    print(modules)
-    ordered_classes = get_ordered_classes_to_register(modules)
+
+    ordered_classes = get_ordered_classes_to_register(modules) 
 
 def register():
     for cls in ordered_classes:
@@ -54,7 +54,7 @@ def get_all_submodules(directory):
     return list(iter_submodules(directory, directory.name))
 
 def iter_submodules(path, package_name):
-    for name in sorted(iter_submodule_names(path)):
+    for ix, name in enumerate(sorted(iter_submodule_names(path))):
         yield importlib.import_module("." + name, package_name)
 
 def iter_submodule_names(path, root=""):

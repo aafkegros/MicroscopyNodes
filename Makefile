@@ -1,12 +1,14 @@
 test:
-	poetry install --with test
-	poetry pytest -v
+	python -m pip install .
+	pytest -v
+
 
 version := $(shell grep version pyproject.toml | grep -o -E "\b[0-9]+\.[0-9]+\.[0-9]+\b")
 
 template:
 	cd tif2blender/assets/template && zip -r tif2blender.zip ../../../tif2blender
 
+# git clean -dfX
 release:
 	git clean -dfX
 	make template
