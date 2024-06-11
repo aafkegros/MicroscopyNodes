@@ -1,5 +1,5 @@
 test:
-	poetry install 
+	python -m pip install .
 	pytest -v
 
 

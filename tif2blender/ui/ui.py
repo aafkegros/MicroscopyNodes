@@ -1,5 +1,5 @@
 import bpy
-from . import load
+from .. import load
 
 from bpy.types import (Panel,
                         Operator,
