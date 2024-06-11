@@ -3,23 +3,22 @@ import pathlib
 from .. import pkg
 from bpy.types import AddonPreferences
 
-# install_instructions = "https://bradyajohnston.github.io/MolecularNodes/installation.html#installing-biotite-mdanalysis"
+
 ADDON_DIR = pathlib.Path(__file__).resolve().parent.parent
 
-raise(ValueError)
+
 bpy.types.Scene.pypi_mirror_provider = bpy.props.StringProperty(
     name='pypi_mirror_provider',
-    description='PyPI Mirror Provider',
+    description='PyPI Mirror Provider (normally leave blank, BFSU or TUNA for Beijing)',
     options={'TEXTEDIT_UPDATE', 'LIBRARY_EDITABLE'},
     default='Default',
     subtype='NONE',
-    search=pkg.get_pypi_mirror_alias,
+    # search=pkg.get_pypi_mirror_alias,
 )
+
 
 # Defines the preferences panel for the addon, which shows the buttons for
 # installing and reinstalling the required python packages defined in 'requirements.txt'
-
-
 class Tif2BlenderPreferences(AddonPreferences):
     bl_idname = 'tif2blender'
 

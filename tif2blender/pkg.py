@@ -6,28 +6,25 @@ import subprocess
 import sys
 import os
 import logging
-from pkg_resources import get_distribution, DistributionNotFound
-# switch to importlib?
+from importlib.metadata import version as get_version, PackageNotFoundError
 import bpy
 import pathlib
-import platform
 
-
-
-ADDON_DIR = pathlib.Path(__file__).resolve().parent
+ADDON_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent)
 """Folder for the addon on the local machine."""
 
 PYPI_MIRROR = {
     # the original.
-    'Default':'', 
+    'Default': '',
     # two mirrors in China Mainland to help those poor victims under GFW.
-    'BFSU (Beijing)':'https://mirrors.bfsu.edu.cn/pypi/web/simple',
-    'TUNA (Beijing)':'https://pypi.tuna.tsinghua.edu.cn/simple',
+    'BFSU': 'https://mirrors.bfsu.edu.cn/pypi/web/simple',
+    'TUNA': 'https://pypi.tuna.tsinghua.edu.cn/simple',
     # append more if necessary.
 }
 """
 Possible PyPi mirrors to install from.
 """
+
 
 def start_logging(logfile_name: str = 'side-packages-install') -> logging.Logger:
     """
@@ -60,10 +57,6 @@ def start_logging(logfile_name: str = 'side-packages-install') -> logging.Logger
     # Return logger object
     return logging.getLogger()
 
-"""Determine if the current system is running on Apple Silicon.
-True if the system is running on Apple Silicon, False otherwise.
-"""
-_is_apple_silicon = (sys.platform == "darwin") and ('arm' in platform.machine())
 
 def get_pypi_mirror_alias(self, context, edit_text):
     """
@@ -86,7 +79,8 @@ def get_pypi_mirror_alias(self, context, edit_text):
     """
     return PYPI_MIRROR.keys()
 
-def process_pypi_mirror_to_url(pypi_mirror_provider: str) -> str: 
+
+def process_pypi_mirror_to_url(pypi_mirror_provider: str) -> str:
     """
     Process a PyPI mirror provider and return the corresponding URL.
 
@@ -108,10 +102,11 @@ def process_pypi_mirror_to_url(pypi_mirror_provider: str) -> str:
     """
     if pypi_mirror_provider.startswith('https:'):
         return pypi_mirror_provider
-    elif pypi_mirror_provider in PYPI_MIRROR.keys(): 
+    elif pypi_mirror_provider in PYPI_MIRROR.keys():
         return PYPI_MIRROR[pypi_mirror_provider]
     else:
-        raise ValueError(f"Invalid PyPI mirror provider: {pypi_mirror_provider}")
+        raise ValueError(
+            f"Invalid PyPI mirror provider: {pypi_mirror_provider}")
 
 
 def get_pkgs(requirements: str = None) -> dict:
@@ -182,9 +177,11 @@ def get_pkgs(requirements: str = None) -> dict:
                 pass
     return pkgs
 
+
 def is_current(package: str) -> bool:
     """
-    Check if the specified package is the current version.
+    Check if the specified package is installed and the version matches that specified
+    in the `requirements.txt` file.
 
     Parameters
     ----------
@@ -198,37 +195,14 @@ def is_current(package: str) -> bool:
 
     """
     pkg = get_pkgs().get(package)
-    return is_available(pkg.get('name'), pkg.get('version'))
-
-def is_available(package: str, version: str = None) -> bool:
-    """
-    Check if a given package is available with the specified version.
-
-    Parameters
-    ----------
-    package : str
-        The name of the package to check.
-    version : str, optional
-        The version of the package to check.
-
-    Returns
-    -------
-    bool
-        True if the package with the specified version is available, False otherwise.
-
-    Examples
-    --------
-    >>> is_available('numpy', '1.20.1')
-    True
-    """
-    try: 
-        available_version = get_distribution(package).version
-        return available_version == version
-    except DistributionNotFound:
+    try:
+        available_version = get_version(package)
+        return available_version == pkg['version']
+    except PackageNotFoundError:
         return False
 
 
-def run_python(cmd_list: list=None, mirror_url: str='', timeout: int=600):
+def run_python(cmd_list: list = None, mirror_url: str = '', timeout: int = 600):
     """
     Runs pip command using the specified command list and returns the command output.
 
@@ -263,17 +237,18 @@ def run_python(cmd_list: list=None, mirror_url: str='', timeout: int=600):
     python_exe = os.path.realpath(sys.executable)
 
     # build the command list
-    cmd_list=[python_exe] + cmd_list
+    cmd_list = [python_exe] + cmd_list
 
     # add mirror to the command list if it's valid
     if mirror_url and mirror_url.startswith('https'):
-        cmd_list+=['-i', mirror_url]
-    
+        cmd_list += ['-i', mirror_url]
+
     log = start_logging()
     log.info(f"Running Pip: '{cmd_list}'")
 
     # run the command and capture the output
-    result = subprocess.run(cmd_list, timeout=timeout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(cmd_list, timeout=timeout,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if result.returncode != 0:
         log.error('Command failed: %s', cmd_list)
@@ -284,6 +259,7 @@ def run_python(cmd_list: list=None, mirror_url: str='', timeout: int=600):
         log.info('stdout: %s', result.stdout.decode())
     # return the command list, return code, stdout, and stderr as a tuple
     return result
+
 
 def install_package(package: str, pypi_mirror_provider: str = 'Default') -> list:
     """
@@ -320,15 +296,18 @@ def install_package(package: str, pypi_mirror_provider: str = 'Default') -> list
 
     print(f"Installing {package}...")
 
-    mirror_url=process_pypi_mirror_to_url(pypi_mirror_provider=pypi_mirror_provider)
+    mirror_url = process_pypi_mirror_to_url(
+        pypi_mirror_provider=pypi_mirror_provider)
     print(f"Using PyPI mirror: {pypi_mirror_provider} {mirror_url}")
-    
+
     run_python(["-m", "ensurepip"]),
-    run_python(["-m", "pip", "install", "--upgrade", "pip"], mirror_url=mirror_url)
-    
-    result = run_python(["-m", "pip", "install", package], mirror_url=mirror_url)
-    
+    run_python(["-m", "pip", "install", "--upgrade", "pip"],
+               mirror_url=mirror_url)
+    result = run_python(["-m", "pip", "install", package],
+                        mirror_url=mirror_url)
+
     return result
+
 
 class InstallationError(Exception):
     """
@@ -348,7 +327,8 @@ class InstallationError(Exception):
         self.error_message = error_message
         super().__init__(f"Failed to install {package_name}: {error_message}")
 
-def install_all_packages(pypi_mirror_provider: str='Default') -> list:
+
+def install_all_packages(pypi_mirror_provider: str = 'Default') -> list:
     """
     Install all packages listed in the 'requirements.txt' file.
 
@@ -376,57 +356,80 @@ def install_all_packages(pypi_mirror_provider: str='Default') -> list:
     ```
 
     """
-    mirror_url=process_pypi_mirror_to_url(pypi_mirror_provider=pypi_mirror_provider)
+    mirror_url = process_pypi_mirror_to_url(
+        pypi_mirror_provider=pypi_mirror_provider)
 
     pkgs = get_pkgs()
     results = []
     for pkg in pkgs.items():
 
         try:
-            result = install_package(package=f"{pkg.get('name')}=={pkg.get('version')}", 
+            result = install_package(package=f"{pkg.get('name')}=={pkg.get('version')}",
                                      pypi_mirror_provider=mirror_url)
             results.append(result)
         except InstallationError as e:
-            raise InstallationError(f"Error installing package {pkg.get('name')}: {str(e)}")
+            raise InstallationError(
+                f"Error installing package {pkg.get('name')}: {str(e)}")
     return results
+
 
 class MN_OT_Install_Package(bpy.types.Operator):
     bl_idname = 'mn.install_package'
     bl_label = 'Install Given Python Package'
     bl_options = {'REGISTER', 'INTERNAL'}
     package: bpy.props.StringProperty(
-        name = 'Python Package', 
-        description = 'Python Package to Install', 
-        default = 'biotite'
+        name='Python Package',
+        description='Python Package to Install',
+        default='biotite'
     )
     version: bpy.props.StringProperty(
-        name = 'Python Package', 
-        description = 'Python Package to Install', 
-        default = '0.36.1'
+        name='Python Package',
+        description='Python Package to Install',
+        default='0.36.1'
     )
-    
+
     description: bpy.props.StringProperty(
-        name = 'Operator description', 
+        name='Operator description',
         default='Install specified python package.'
     )
-    
+
     @classmethod
     def description(cls, context, properties):
         return properties.description
-    
+
     def execute(self, context):
         installable = f"{self.package}=={self.version}"
         result = install_package(package=installable,
                                  pypi_mirror_provider=bpy.context.scene.pypi_mirror_provider)
         if result.returncode == 0 and is_current(self.package):
             self.report(
-                {'INFO'}, 
+                {'INFO'},
                 f"Successfully installed {self.package} v{self.version}"
-                )
+            )
         else:
             log_dir = os.path.join(os.path.abspath(ADDON_DIR), 'logs')
             self.report(
-                {'ERROR'}, 
+                {'ERROR'},
                 f"Error installing package. Please check the log files in '{log_dir}'."
-                )
+            )
         return {'FINISHED'}
+
+
+def button_install_pkg(layout, name, version, desc=''):
+    layout = layout.row()
+    if is_current(name):
+        row = layout.row()
+        row.label(text=f"{name} version {version} is installed.")
+        op = row.operator('mn.install_package', text=f'Reinstall {name}')
+        op.package = name
+        op.version = version
+        op.description = f'Reinstall {name}'
+    else:
+        row = layout.row(heading=f"Package: {name}")
+        col = row.column()
+        col.label(text=str(desc))
+        col = row.column()
+        op = col.operator('mn.install_package', text=f'Install {name}')
+        op.package = name
+        op.version = version
+        op.description = f'Install required python package: {name}'
