@@ -35,7 +35,8 @@ def semi_random_data_labels(axes_order, arrtype):
     return data.astype(int)
 
 standard_orders = ['zyx', 'tzcyx', 'zcyx', 'xy']
-test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
+test_folder = join(dirname(realpath(__file__)), "test_data")
+# test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
 
 
 @pytest.mark.parametrize("axes_order", standard_orders)

@@ -14,6 +14,7 @@ nonstartchannel = [False, True]
 
 
 test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
+test_folder = join(dirname(realpath(__file__)), "test_data")
 
 def old_modifier_surface_objs(volume_inputs, scale, cache_coll, base_coll):
     surf_collections = []
