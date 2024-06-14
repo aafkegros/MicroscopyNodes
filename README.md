@@ -6,7 +6,7 @@ If you post using this addon on social media please either tag me (@GrosOane on 
 
 ## Video introduction
 
-See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKclnXfFE9yiA43q8Js50sI5) to the tif2blender add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
+See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the tif2blender add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
 
 <img src="./figures/newprettyside.png" width="600"/>
 
