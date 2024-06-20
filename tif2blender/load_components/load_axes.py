@@ -161,6 +161,9 @@ def init_material_axes():
     links.new(trbsdf.outputs[0], mix.inputs[2])
     links.new(and_op.outputs[0], mix.inputs[0])
 
+    if nodes.get("Material Output") is None:
+            outnode = nodes.new(type='ShaderNodeOutputMaterial')
+            outnode.name = 'Material Output'
     out = nodes.get("Material Output")
     out.location = (650, 0)
     links.new(mix.outputs[0], out.inputs[0])

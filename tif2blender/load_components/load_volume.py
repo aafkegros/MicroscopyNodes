@@ -102,7 +102,10 @@ def volume_materials(volume_inputs, emission_setting):
         add.location = (450, -300)
         links.new(adsorb.outputs[0], add.inputs[0])
         links.new(scatter.outputs[0], add.inputs[1])
-
+        
+        if nodes.get("Material Output") is None:
+            outnode = nodes.new(type='ShaderNodeOutputMaterial')
+            outnode.name = 'Material Output'
         nodes.get("Material Output").location = (700,00)
         if emission_setting:
             links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
