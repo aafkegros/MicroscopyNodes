@@ -22,6 +22,9 @@ def labelmask_shader(maskchannel, maxval):
         except Exception as e:
             print(e)
         princ = nodes.new("ShaderNodeBsdfPrincipled")
+        if nodes.get("Material Output") is None:
+            outnode = nodes.new(type='ShaderNodeOutputMaterial')
+            outnode.name = 'Material Output'
         links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
     
     idnode =  nodes.new("ShaderNodeVertexColor")
@@ -181,6 +184,7 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
 
         if Path(fname).exists() and remake:
             Path(fname).unlink() # this may fix an issue with subsequent loads
+        
         bpy.ops.wm.alembic_export(filepath=fname,
                         visible_objects_only=False,
                         selected=True,
@@ -211,7 +215,7 @@ def import_abc_and_loc(maskchannel, scale, cache_dir):
     
     channel_collection, _ = make_subcollection(f"channel {maskchannel} labelmask")
     bpy.ops.wm.alembic_import(filepath=abcfname(cache_dir, maskchannel, 0), is_sequence=True)
-
+    
     with open(jsonfname(cache_dir, maskchannel), 'r') as fp:
         locations = json.load(fp)
 

@@ -16,7 +16,7 @@ def arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir):
     for ch in volume_arrays:
         volume_arrays[ch]['vdbs'] = []
         imgdata = volume_arrays[ch]['data']
-        n_splits = [(imgdata.shape[dim] // 50)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
+        n_splits = [(imgdata.shape[dim] // 2049)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
         a_chunks = np.array_split(imgdata, n_splits[0], axis=axes_order.find('x'))
         for a_ix, a_chunk in enumerate(a_chunks):
             b_chunks = np.array_split(a_chunk, n_splits[1], axis=axes_order.find('y'))
@@ -102,7 +102,10 @@ def volume_materials(volume_inputs, emission_setting):
         add.location = (450, -300)
         links.new(adsorb.outputs[0], add.inputs[0])
         links.new(scatter.outputs[0], add.inputs[1])
-
+        
+        if nodes.get("Material Output") is None:
+            outnode = nodes.new(type='ShaderNodeOutputMaterial')
+            outnode.name = 'Material Output'
         nodes.get("Material Output").location = (700,00)
         if emission_setting:
             links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
@@ -145,6 +148,8 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
     for mat in vol_obj.data.materials:
         # make sure color ramp is immediately visibile under Volume shader
         # mat.node_tree.nodes["Slice Cube"].inputs[0].show_expanded = True
-        mat.node_tree.nodes["Emission"].inputs[0].show_expanded = True
-
+        try:
+            mat.node_tree.nodes["Emission"].inputs[0].show_expanded = True
+        except:
+            pass
     return vol_obj, volume_inputs

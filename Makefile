@@ -6,6 +6,8 @@ test:
 version := $(shell grep version pyproject.toml | grep -o -E "\b[0-9]+\.[0-9]+\.[0-9]+\b")
 
 template:
+	mkdir tif2blender/assets
+	mkdir tif2blender/assets/template
 	cd tif2blender/assets/template && zip -r tif2blender.zip ../../../tif2blender
 
 # git clean -dfX
