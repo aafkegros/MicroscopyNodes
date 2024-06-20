@@ -12,6 +12,7 @@ python = "~=3.11.6"
 bpy = ">=4.1.0"
 tifffile = "==2023.4.12"
 scikit-image = "==0.22.0"
+numpy = "< 2.0.0"
 
 
 [tool.poetry.dev-dependencies]
