@@ -31,12 +31,16 @@ def make_subcollection(name):
     collection_activate(coll, lcoll)
     return coll, lcoll
 
-def collection_deactivate(name, supercollections=[]):
+def collection_deactivate_by_name(name, supercollections=[]):
     coll, lcoll = get_collection(name, supercollections, False)
     lcoll.exclude = True
     coll.hide_render = True
     lcoll.hide_viewport = True
+    # for obj in coll.all_objects:
+    #     obj.hide_render = True
+    #     obj.hide_viewport = True
     return coll, lcoll
+
 
 def collection_activate(coll, lcoll):
     bpy.context.view_layer.active_layer_collection = lcoll

@@ -79,11 +79,9 @@ def scale_node_group():
     links.new(normal.outputs[0], store_normal.inputs.get("Value"))
 
     cap_normal =  node_group.nodes.new("GeometryNodeCaptureAttribute")
-    cap_normal.data_type = 'FLOAT_VECTOR'
-    cap_normal.domain = 'POINT'
     cap_normal.location = (-150, 400)
     links.new(scalebox.outputs[0], cap_normal.inputs[0])
-    links.new(normal.outputs[0], cap_normal.inputs.get("Value"))
+    links.new(normal.outputs[0], cap_normal.inputs[1])
     
     # -- read out grid positions --
     grid_verts = node_group.nodes.new('GeometryNodeGroup')

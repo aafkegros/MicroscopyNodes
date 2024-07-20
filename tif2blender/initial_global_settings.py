@@ -1,7 +1,7 @@
 import bpy
 
 def preset_environment():
-    bpy.context.scene.eevee.volumetric_tile_size = '2'
+    bpy.context.scene.eevee.volumetric_tile_size = '1'
     bpy.context.scene.cycles.preview_samples = 8
     bpy.context.scene.cycles.samples = 64
     bpy.context.scene.view_settings.view_transform = 'Standard'

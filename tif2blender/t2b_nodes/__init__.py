@@ -5,3 +5,5 @@ from .nodeGridVerts import grid_verts_node_group
 from .nodeScaleBox import scalebox_node_group
 from .nodeBoundedMapRange import bounded_map_range_node_group
 from .nodeSliceCube import slice_cube_node_group
+
+CLASSES =[]

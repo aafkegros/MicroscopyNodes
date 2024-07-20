@@ -75,3 +75,4 @@ class TifLoadOperator(bpy.types.Operator):
         load.load()
         return {'FINISHED'}
 
+CLASSES = [TifLoadOperator, TIFLoadPanel]

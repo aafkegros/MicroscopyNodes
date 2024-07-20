@@ -42,7 +42,7 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
     identifier = "x"+str(x_ix)+"y"+str(y_ix)+"z"+str(z_ix)
     (Path(cache_dir)/f"{identifier}").mkdir(exist_ok=True,parents=True)
     for t, frame in enumerate(imgdata):
-        fname = (Path(cache_dir)/f"{identifier}"/f"Channel {ch}_{t}.vdb")
+        fname = (Path(cache_dir)/f"{identifier}"/f"{x_ix}_{y_ix}_{z_ix}_Channel {ch}_{t}.vdb")
         timefiles.append({"name":str(fname.name)})
         if not fname.exists() or remake:
             grid = vdb.FloatGrid()
@@ -132,13 +132,27 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
         ch_collection, ch_lcoll = make_subcollection(f'channel {ch}')
         volume_inputs[ch]['collection'] = ch_collection
         for chunk in volume_inputs[ch]['vdbs']:
-            bpy.ops.object.volume_import(filepath=chunk['files'][0]['name'],directory=chunk['directory'], files=chunk['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
-            vol = bpy.context.view_layer.objects.active
-            vol.scale = scale
-            vol.name = vol.name[:-2]
-            vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
-            vol.data.frame_start = 0
+            already_loaded = list(ch_collection.all_objects)
+            bpy.ops.object.volume_import(filepath=chunk['files'][0]['name'],directory=chunk['directory'], files=chunk['files'], align='WORLD', location=(0, 0, 0))
+            # vol = bpy.context.view_layer.objects.active
+
+            for vol in ch_collection.all_objects:
+                if vol not in already_loaded:   
+                    pos = chunk['pos']
+                    strpos = f"{pos[0]}{pos[1]}{pos[2]}"
+                
+                    vol.scale = scale
+                    vol.data.frame_offset = -1
+                
+                    
+                    vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
+
+                    vol.data.frame_start = 0
+                print(vol.location)
+
+        
         collection_activate(vol_collection, vol_lcoll)
+
 
     collection_activate(*base_coll)
     
