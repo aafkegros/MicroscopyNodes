@@ -116,7 +116,6 @@ def load():
         volume_inputs, bbox_px = arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir)
         vol_obj, volume_inputs = load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission)
         for volume_input in volume_inputs.values():
-            print(volume_inputs.keys, volume_input['collection'])
             to_be_parented.extend([vol for vol in volume_input['collection'].all_objects])
         to_be_parented.extend([vol_obj])
         if surfaces:
@@ -136,7 +135,7 @@ def load():
     to_be_parented.append(axes_obj)
 
     container = init_container(to_be_parented ,location=loc, name=Path(input_file).stem)
-    collection_deactivate('cache')
+    collection_deactivate_by_name('cache')
     axes_obj.select_set(True)
     return
 

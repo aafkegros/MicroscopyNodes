@@ -132,13 +132,22 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
         ch_collection, ch_lcoll = make_subcollection(f'channel {ch}')
         volume_inputs[ch]['collection'] = ch_collection
         for chunk in volume_inputs[ch]['vdbs']:
-            bpy.ops.object.volume_import(filepath=chunk['files'][0]['name'],directory=chunk['directory'], files=chunk['files'],use_sequence_detection=True , align='WORLD', location=(0, 0, 0))
-            vol = bpy.context.view_layer.objects.active
-            vol.scale = scale
-            vol.name = vol.name[:-2]
-            vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
-            vol.data.frame_start = 0
+            bpy.ops.object.volume_import(filepath=chunk['files'][0]['name'],directory=chunk['directory'], files=chunk['files'], align='WORLD', location=(0, 0, 0))
+            # vol = bpy.context.view_layer.objects.active
+            for vol in ch_collection.all_objects:
+                vol.scale = scale
+                vol.name = vol.name[:-2]
+                vol.data.frame_offset = -1
+                vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
+                vol.data.frame_start = 0
+
+        # for obj in bpy.data.objects:
+        #     if obj.name == chunk['files'][0]['name'][:-5]:
+        #         print(f"deleting {obj.name}")
+        #         bpy.data.objects.remove(obj)
+        
         collection_activate(vol_collection, vol_lcoll)
+
 
     collection_activate(*base_coll)
     

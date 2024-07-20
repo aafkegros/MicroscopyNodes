@@ -1,0 +1,53 @@
+schema_version = "1.0.0"
+
+id = "tif2blender"
+version = "1.1.0"
+name = "Tif2Blender"
+tagline = "Handling microscopy data in Blender, up to 5D volumes"
+maintainer = "Oane Gros <oane.gros@embl.de>"
+type = "add-on"
+
+# Optional link to documentation, support, source files, etc
+website = "https://github.com/oanegros/tif2blender"
+
+platforms = [
+	"windows-x64",
+	"linux-x64",
+	"macos-arm64",
+	"macos-x64",
+]
+tags = [
+	"Import-Export"
+]
+blender_version_min = "4.2.0"
+license = [
+  "SPDX:MIT"
+]
+copyright =[
+	"2023-2024 Oane Gros",
+]
+
+# Optional: bundle 3rd party Python modules.
+# https://docs.blender.org/manual/en/dev/advanced/extensions/python_wheels.html
+wheels = [
+	"./wheels/imageio-2.34.2-py3-none-any.whl",
+	"./wheels/lazy_loader-0.4-py3-none-any.whl",
+	"./wheels/networkx-3.3-py3-none-any.whl",
+	"./wheels/numpy-2.0.0-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/numpy-2.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/numpy-2.0.0-cp311-cp311-win_amd64.whl",
+	"./wheels/packaging-24.1-py3-none-any.whl",
+	"./wheels/pillow-10.4.0-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/pillow-10.4.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/pillow-10.4.0-cp311-cp311-win_amd64.whl",
+	"./wheels/scikit_image-0.24.0-cp311-cp311-macosx_12_0_arm64.whl",
+	"./wheels/scikit_image-0.24.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/scikit_image-0.24.0-cp311-cp311-win_amd64.whl",
+	"./wheels/scipy-1.14.0-cp311-cp311-macosx_12_0_arm64.whl",
+	"./wheels/scipy-1.14.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/scipy-1.14.0-cp311-cp311-win_amd64.whl",
+	"./wheels/tifffile-2024.7.2-py3-none-any.whl",
+]
+
+[permissions]
+files = "Importing data files from disk, writing to cache folder"
