@@ -1,17 +1,17 @@
-# tif to blender 
-This is a project building bioimage support for the open source software blender. This currently exists as the Blender add-on `tif2blender` which is able to easily load tif files as volumetric objects in Blender. 
+# Microscopy in Blender
+This is a project building bioimage support for the open source software blender. This currently exists as the Blender add-on `microscopynodes`, previously named `tif2blender`. This is able to easily load tif files as volumetric objects in Blender. 
 
 Please make some pretty figures with this add-on! 
-If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#tif2blender`.
+If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#microscopynodes`.
 
 ## Video introduction
 
-See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the tif2blender add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
+See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the microscopynodes add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
 
 <img src="./figures/newprettyside.png" width="600"/>
 
 ## Current Features
-The `tif2blender` Blender addon is still under active development, but some notable features are already supported:
+The `microscopynodes` Blender addon is still under active development, but some notable features are already supported:
 
 - up to 5D (up to tzcyx in any axis order) tifs are supported. 
 - Axes order and pixel size will be attempted to be read out automatically
@@ -21,34 +21,34 @@ The `tif2blender` Blender addon is still under active development, but some nota
 
 
 
-## Installing `tif2blender`
+## Installing `microscopynodes`
 
 Download:
 
 - Download blender from https://www.blender.org/download/. Check the supported blender version next to the release!
 
-- Download the tif2blender zip file from the [releases page](https://github.com/oanegros/tif2blender/releases). 
+- Download the microscopynodes zip file from the [releases page](https://github.com/oanegros/microscopynodes/releases). 
 
 Start blender.
 
-Install the `tif2blender` Add-On:
+Install the `microscopynodes` Add-On:
 - In Blender go to `Edit > Preferences`
 - Go to `Add-Ons` tab in `Preferences`
 - Press `Install` and give the `tif_loader.zip` file (as .zip)
-- In the added `tif2blender` add-on window in `Preferences`: press the tick box to enable, and the arrow to unfold the details
+- In the added `microscopynodes` add-on window in `Preferences`: press the tick box to enable, and the arrow to unfold the details
 - in the details press `install tifffile`
 - (if this fails please try restarting blender and seeing if it can then find `tifffile`)
 
-This should create the `tif2blender` panel in `Scene Properties`.
+This should create the `microscopynodes` panel in `Scene Properties`.
 
-## Using `tif2blender`
+## Using `microscopynodes`
 Load in tif-files in the file explorer from the panel in `Scene Properties`. 
 
-Loading with preset environment recently had a small bug, fixed on 7th nov 18:45. So either uncheck this or update your tif_loader(see below), if you have this issue. For any other problems, please open an [issue](https://github.com/oanegros/tif2blender/issues).
+Loading with preset environment recently had a small bug, fixed on 7th nov 18:45. So either uncheck this or update your tif_loader(see below), if you have this issue. For any other problems, please open an [issue](https://github.com/oanegros/microscopynodes/issues).
 
-- The `tif2blender` panel should be able to automatically read out your axis order and pixel size, but these can otherwise also manually be entered
+- The `microscopynodes` panel should be able to automatically read out your axis order and pixel size, but these can otherwise also manually be entered
 - Any tif stack from zyx to tzcyx (in any axis order) is supported
-- The `tif2blender` resaves your tif as a `.vdb` file (in a `blender_volumes` subfolder) and loads this as a volume object in your blender scene, connected to a `Container` object.
+- The `microscopynodes` resaves your tif as a `.vdb` file (in a `blender_volumes` subfolder) and loads this as a volume object in your blender scene, connected to a `Container` object.
 - With large files (over 2048 px in an axis), the volumes will be split to avoid blender crashes.
 - With the `Import option: Force Remake` you will force remaking the vdb files, if this is unchecked and the vdb files exist, these will be loaded.
 - With the `Import option: Preset Environment` some default environment variables will be set. These overwrite current other environment settings, but are useful for quickly looking at data:
@@ -60,10 +60,10 @@ Loading with preset environment recently had a small bug, fixed on 7th nov 18:45
 Upon load, multiple defaults are applied, but all of these can be changed as granularly as you want.
 
 
-## Updating `tif2blender`
-To update the `tif2blender` add-on (future versions may have bugfixes, new features) a few steps need to be taken:
+## Updating `microscopynodes`
+To update the `microscopynodes` add-on (future versions may have bugfixes, new features) a few steps need to be taken:
 - In Blender go to `Edit > Preferences`
-- Go to `Add-Ons` tab in `Preferences` and find the `tif2blender` add-on
+- Go to `Add-Ons` tab in `Preferences` and find the `microscopynodes` add-on
 - Press `Remove` 
 - Restart Blender
 - Install the new version.

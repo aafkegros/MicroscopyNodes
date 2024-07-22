@@ -5,7 +5,7 @@ import numpy as np
 
 from .load_generic import init_holder
 from ..handle_blender_structs import *
-from .. import t2b_nodes
+from .. import min_nodes
 
 
 def arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir):

@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from ..handle_blender_structs.collection_handling import *
-from .. import t2b_nodes
+from .. import min_nodes
 
 
 def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
@@ -56,18 +56,18 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     links.new(initscale_node.outputs[0], axnode_bm.inputs[1])
 
     crosshatch = nodes.new('GeometryNodeGroup')
-    crosshatch.node_tree = t2b_nodes.crosshatch_node_group()
+    crosshatch.node_tree = min_nodes.crosshatch_node_group()
     crosshatch.location = (-50, -140)
 
     axes_select = nodes.new('GeometryNodeGroup')
-    axes_select.node_tree = t2b_nodes.axes_multiplexer_node_group()
+    axes_select.node_tree = min_nodes.axes_multiplexer_node_group()
     axes_select.label = "Subselect axes"
     axes_select.name = "Axis Selection"
     axes_select.width = 150
     axes_select.location = (-50, -320)
 
     scale_node = nodes.new('GeometryNodeGroup')
-    scale_node.node_tree = t2b_nodes.scale_node_group()
+    scale_node.node_tree = min_nodes.scale_node_group()
     scale_node.width = 300
     scale_node.location = (200, 100)
     scale_node.inputs.get("µm per tick").default_value = max(1, size_px[0]//10)

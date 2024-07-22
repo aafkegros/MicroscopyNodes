@@ -1,5 +1,5 @@
 import bpy 
-from .. import t2b_nodes
+from .. import min_nodes
 
 def  get_nodes_last_output(group):
     try:
@@ -52,7 +52,7 @@ def insert_slicing(group, slice_obj):
     texcoord.location = (outnode.location[0], outnode.location[1]+100)
 
     slicecube = nodes.new('ShaderNodeGroup')
-    slicecube.node_tree = t2b_nodes.slice_cube_node_group()
+    slicecube.node_tree = min_nodes.slice_cube_node_group()
     slicecube.name = "Slice Cube"
     slicecube.width = 250
     slicecube.location = (outnode.location[0]+ 270, outnode.location[1])

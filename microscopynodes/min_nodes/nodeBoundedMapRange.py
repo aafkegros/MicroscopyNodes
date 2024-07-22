@@ -3,7 +3,7 @@ import bpy
 # UNUSED currently
 
 # This is a reskin of Map Range node to make it easier to understand for novice users
-# by removing things unnecessary for microscopy data, and bounding values to tif2blender
+# by removing things unnecessary for microscopy data, and bounding values to microscopynodes
 # ranges
 def bounded_map_range_node_group():
     node_group = bpy.data.node_groups.get("Bounded Map Range")

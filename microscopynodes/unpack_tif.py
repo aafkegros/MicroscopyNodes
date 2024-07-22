@@ -6,22 +6,22 @@ def changePathTif(self, context):
     # the raise gets handled upstream, so only prints to cli, somehow.
     try: 
         import tifffile
-        with tifffile.TiffFile(context.scene.T2B_input_file) as ifstif:
+        with tifffile.TiffFile(context.scene.MiN_input_file) as ifstif:
             try:
-                context.scene.T2B_axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
+                context.scene.MiN_axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
             except Exception as e:
                 print(e)
-                context.scene.property_unset("T2B_axes_order")
+                context.scene.property_unset("MiN_axes_order")
             try:
-                context.scene.T2B_xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
+                context.scene.MiN_xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
             except Exception as e:
                 print(e)
-                context.scene.property_unset("T2B_xy_size")
+                context.scene.property_unset("MiN_xy_size")
             try:
-                context.scene.T2B_z_size = dict(ifstif.imagej_metadata)['spacing']
+                context.scene.MiN_z_size = dict(ifstif.imagej_metadata)['spacing']
             except Exception as e:
                 print(e)
-                context.scene.property_unset("T2B_z_size")
+                context.scene.property_unset("MiN_z_size")
     except Exception as e:
         context.scene.property_unset("axes_order")
         context.scene.property_unset("xy_size")
@@ -49,7 +49,7 @@ def unpack_tif(input_file, axes_order, mask_channels_str, test=False):
     if mask_channels_str != '':
         try:
             mask_channels = [int(ch.strip()) for ch in mask_channels_str.split(',') if '-' not in ch]
-            # mask_channels.extend([list(np.arange(int(ch.strip().split('-')[0]),int(ch.strip().split('-')[1]))) for ch in bpy.context.scene.T2B_mask_channels.split(',')if '-' in ch])
+            # mask_channels.extend([list(np.arange(int(ch.strip().split('-')[0]),int(ch.strip().split('-')[1]))) for ch in bpy.context.scene.MiN_mask_channels.split(',')if '-' in ch])
         except:
             raise ValueError("could not interpret maskchannels")
         if max(mask_channels) >= imgdata.shape[axes_order.find('c')]:
