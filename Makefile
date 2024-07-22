@@ -6,12 +6,12 @@ test:
 version := $(shell grep version pyproject.toml | grep -o -E "\b[0-9]+\.[0-9]+\.[0-9]+\b")
 
 template:
-	mkdir tif2blender/assets
-	mkdir tif2blender/assets/template
-	cd tif2blender/assets/template && zip -r tif2blender.zip ../../../tif2blender
+	mkdir microscopynodes/assets
+	mkdir microscopynodes/assets/template
+	cd microscopynodes/assets/template && zip -r microscopynodes.zip ../../../microscopynodes
 
 # git clean -dfX
 release:
 	git clean -dfX
 	make template
-	zip -r tif2blender_$(version).zip tif2blender -x *pycache* *.blend1 "tif2blender/assets/template/tif2blender/*"
+	zip -r microscopynodes_$(version).zip microscopynodes -x *pycache* *.blend1 "microscopynodes/assets/template/microscopynodes/*"

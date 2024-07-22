@@ -3,14 +3,14 @@ import os
 import pytest
 import itertools
 import numpy as np
-import tif2blender
+import microscopynodes
 from pathlib import Path
 from .utils import get_verts
 import json
-import tif2blender.load_components as load_labelmask
+import microscopynodes.load_components as load_labelmask
 import shutil
 import hashlib
-from tif2blender.handle_blender_structs import collection_by_name
+from microscopynodes.handle_blender_structs import collection_by_name
 from os.path import join, dirname, realpath
 
 def semi_random_data_labels(axes_order, arrtype):

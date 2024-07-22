@@ -3,12 +3,12 @@ import os
 import pytest
 import itertools
 import numpy as np
-import tif2blender
+import microscopynodes
 from pathlib import Path
 from .utils import get_verts, remove_all_objects
-import tif2blender.load_components as load_axes
-from tif2blender import t2b_nodes
-from tif2blender.handle_blender_structs import collection_by_name, node_handling
+import microscopynodes.load_components as load_axes
+from microscopynodes import min_nodes
+from microscopynodes.handle_blender_structs import collection_by_name, node_handling
 
 
 px_sizes = [[30, 30, 30], [10,10,1], [4069, 2031,500]]

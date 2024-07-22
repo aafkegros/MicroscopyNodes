@@ -1,7 +1,7 @@
 import bpy
 import pytest
-import tif2blender.load_components as t2b
-from tif2blender.handle_blender_structs import collection_by_name, node_handling, collection_activate, make_subcollection
+import microscopynodes.load_components as min
+from microscopynodes.handle_blender_structs import collection_by_name, node_handling, collection_activate, make_subcollection
 from .utils import get_verts, remove_all_objects
 import numpy as np
 from pathlib import Path
@@ -95,7 +95,7 @@ def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchann
 
     emission_setting = False 
 
-    vol_obj, vol_inputs_mod = t2b.load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting)
+    vol_obj, vol_inputs_mod = min.load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting)
 
     modsurf_objs = old_modifier_surface_objs(vol_inputs_mod, scale, cache_coll, base_coll)
     
@@ -108,7 +108,7 @@ def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchann
     
     if multiframe:
         remove_all_objects()
-        vol_obj, vol_inputs_mod = t2b.load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting)
+        vol_obj, vol_inputs_mod = min.load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting)
 
         bpy.context.scene.frame_set(2)
         for ch in vol_inputs_mod:
@@ -119,6 +119,6 @@ def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchann
         assert("Error" not in verts)
         assert(verts != verts2)
     
-    surf_obj = t2b.load_surfaces(volume_inputs, scale, cache_coll, base_coll)
+    surf_obj = min.load_surfaces(volume_inputs, scale, cache_coll, base_coll)
     snapshot.assert_match( str(list(surf_obj.modifiers[-1].node_group.nodes)), 'surfnodes') # simple test because volumes are hard to test effectively
 

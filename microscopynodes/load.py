@@ -12,31 +12,31 @@ from .unpack_tif import unpack_tif, changePathTif
 
 from mathutils import Matrix
 
-bpy.types.Scene.T2B_remake = bpy.props.BoolProperty(
+bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "TL_remake", 
     description = "Force remaking vdb files",
     default = False
     )
 
-bpy.types.Scene.T2B_preset_environment = bpy.props.BoolProperty(
+bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
     name = "TL_preset_environment", 
     description = "Set environment variables",
     default = True
     )
 
-bpy.types.Scene.T2B_Emission = bpy.props.BoolProperty(
+bpy.types.Scene.MiN_Emission = bpy.props.BoolProperty(
     name = "TL_EM", 
     description = "Volumes emit light, instead of absorbing light",
     default = True
     )
 
-bpy.types.Scene.T2B_Surface = bpy.props.BoolProperty(
+bpy.types.Scene.MiN_Surface = bpy.props.BoolProperty(
     name = "TL_EM", 
     description = "Load isosurface object",
     default = True
     )
 
-bpy.types.Scene.T2B_input_file = StringProperty(
+bpy.types.Scene.MiN_input_file = StringProperty(
         name="",
         description="tif file",
         update=changePathTif,
@@ -45,48 +45,48 @@ bpy.types.Scene.T2B_input_file = StringProperty(
         maxlen=1024,
         subtype='FILE_PATH')
 
-bpy.types.Scene.T2B_cache_dir = StringProperty(
+bpy.types.Scene.MiN_cache_dir = StringProperty(
         description = 'Location to cache VDB and ABC files',
     options = {'TEXTEDIT_UPDATE'},
-    default = str(Path('~', '.tif2blender').expanduser()),
+    default = str(Path('~', '.microscopynodes').expanduser()),
     subtype = 'FILE_PATH'
     )
 
-bpy.types.Scene.T2B_axes_order = StringProperty(
+bpy.types.Scene.MiN_axes_order = StringProperty(
         name="",
         description="axes order (only z is used currently)",
         default="zyx",
         maxlen=6)
     
-bpy.types.Scene.T2B_xy_size = FloatProperty(
+bpy.types.Scene.MiN_xy_size = FloatProperty(
         name="",
         description="xy physical pixel size in micrometer",
         default=1.0)
     
-bpy.types.Scene.T2B_z_size = FloatProperty(
+bpy.types.Scene.MiN_z_size = FloatProperty(
         name="",
         description="z physical pixel size in micrometer",
         default=1.0)
 
 
-bpy.types.Scene.T2B_mask_channels = StringProperty(
+bpy.types.Scene.MiN_mask_channels = StringProperty(
         name="",
         description="channels with an integer label mask",
         )
 
 def load():
     # Handle all globals to be scoped after this - axes order in particular gets internally changed sometimes 
-    input_file = bpy.context.scene.T2B_input_file
-    axes_order = bpy.context.scene.T2B_axes_order
-    remake = bpy.context.scene.T2B_remake
-    xy_size = bpy.context.scene.T2B_xy_size
-    z_size = bpy.context.scene.T2B_z_size
-    cache_dir = Path(bpy.context.scene.T2B_cache_dir) / Path(input_file).stem
-    mask_channels = bpy.context.scene.T2B_mask_channels
-    surfaces = bpy.context.scene.T2B_Surface
-    emission = bpy.context.scene.T2B_Emission
+    input_file = bpy.context.scene.MiN_input_file
+    axes_order = bpy.context.scene.MiN_axes_order
+    remake = bpy.context.scene.MiN_remake
+    xy_size = bpy.context.scene.MiN_xy_size
+    z_size = bpy.context.scene.MiN_z_size
+    cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
+    mask_channels = bpy.context.scene.MiN_mask_channels
+    surfaces = bpy.context.scene.MiN_Surface
+    emission = bpy.context.scene.MiN_Emission
 
-    if bpy.context.scene.T2B_preset_environment:
+    if bpy.context.scene.MiN_preset_environment:
         preset_environment()    
         if not emission:
             preset_em_environment()

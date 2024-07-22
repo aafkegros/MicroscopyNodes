@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 
-id = "tif2blender"
-version = "1.1.0"
-name = "Tif2Blender"
+id = "microscopynodes"
+version = "1.1.1"
+name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Oane Gros <oane.gros@embl.de>"
 type = "add-on"
 
 # Optional link to documentation, support, source files, etc
-website = "https://github.com/oanegros/tif2blender"
+website = "https://github.com/oanegros/microscopynodes"
 
 platforms = [
 	"windows-x64",
