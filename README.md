@@ -4,6 +4,8 @@ This is a project building bioimage support for the open source software blender
 Please make some pretty figures with this add-on! 
 If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#microscopynodes`.
 
+You can now also find the add-on on the Blender extensions platform under https://extensions.blender.org/approval-queue/microscopynodes/ (currently still awaiting review by blender).
+
 ## Video introduction
 
 See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the microscopynodes add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
@@ -23,7 +25,9 @@ The `microscopynodes` Blender addon is still under active development, but some 
 
 ## Installing `microscopynodes`
 
-Download:
+You can now find the add-on on the Blender extensions platform under https://extensions.blender.org/approval-queue/microscopynodes/ (currently still awaiting review by blender).
+
+For older versions than Blender 4.2:
 
 - Download blender from https://www.blender.org/download/. Check the supported blender version next to the release!
 
