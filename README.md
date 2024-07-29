@@ -25,7 +25,7 @@ The `microscopynodes` Blender addon is still under active development, but some 
 
 ## Installing `microscopynodes`
 
-You can now find the add-on on the Blender extensions platform under https://extensions.blender.org/approval-queue/microscopynodes/ (currently still awaiting review by blender).
+You can now find the add-on on the Blender extensions platform under https://extensions.blender.org/approval-queue/microscopynodes/ (currently still awaiting review by blender). You can download this and drag it into the Blender 4.2 window.
 
 For older versions than Blender 4.2:
 
