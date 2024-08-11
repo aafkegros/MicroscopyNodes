@@ -29,8 +29,8 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 
 required_packages = [
-    "tifffile",
-    "scikit-image",
+    "tifffile==2023.4.12",
+    "scikit-image==0.22.0",
 ]
 
 
@@ -78,12 +78,7 @@ def update_toml_whls(platforms):
 
     # Packages to remove
     packages_to_remove = {
-        "pyarrow",
-        "certifi",
-        "charset_normalizer",
-        "idna",
-        "requests",
-        "urllib3",
+        "numpy"
     }
 
     # Filter out unwanted wheel files
