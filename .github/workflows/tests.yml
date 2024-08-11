@@ -15,7 +15,7 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        blender-version: ["4.1.1"]
+        blender-version: ["4.2.0"]
         os: [ubuntu-latest, windows-latest, macos-13]
         # os: [ubuntu-latest]
     steps:
