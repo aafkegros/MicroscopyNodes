@@ -221,13 +221,13 @@ def import_abc_and_loc(maskchannel, scale, cache_dir):
 
     locnames_newnames = {}
     for obj in channel_collection.all_objects: # for blender renaming
-        oid = int(obj.name.split('_')[1].strip('obj'))
-        ch = int(obj.name.split('_')[0].strip('ch'))
+        oid = int(obj.name.split('_')[1].removeprefix('obj'))
+        ch = int(obj.name.split('_')[0].removeprefix('ch'))
         locnames_newnames[(oid, ch)] = obj
     
     for objname in locations:
-        oid = int(objname.split('_')[1].strip('obj'))
-        ch = int(objname.split('_')[0].strip('ch'))
+        oid = int(objname.split('_')[1].removeprefix('obj'))
+        ch = int(objname.split('_')[0].removeprefix('ch'))
         obj = locnames_newnames[(oid, ch)]   
         obj.scale = scale
         mask_objs.append(obj)
