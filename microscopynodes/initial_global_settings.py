@@ -15,7 +15,7 @@ def preset_environment():
     bpy.context.scene.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise
 
     try:
-        bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0.5, 0.5, 0.5, 1)
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = (0.5, 0.5, 0.5, 1)
     except:
         pass
 
@@ -23,7 +23,7 @@ def preset_environment():
 
 def preset_em_environment():
     try:
-        bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (1, 1, 1, 1)
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = (1, 1, 1, 1)
     except:
         pass
     return

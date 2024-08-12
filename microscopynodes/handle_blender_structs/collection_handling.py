@@ -1,6 +1,6 @@
 import bpy
 
-def get_collection(name, supercollections=[], duplicate=False, under_active_coll=False):
+def get_collection(name, supercollections=['Microscopy Nodes'], duplicate=False, under_active_coll=False):
     # duplicate is not duplicated-name-safe, so intention is to have types of names with/without duplication (programmer's choice)
     coll = bpy.context.scene.collection
     lcoll = bpy.context.view_layer.layer_collection
@@ -18,7 +18,7 @@ def get_collection(name, supercollections=[], duplicate=False, under_active_coll
     lcoll = lcoll.children[name]
     return newcoll, lcoll
 
-def collection_by_name(name, supercollections=[], duplicate=False):
+def collection_by_name(name, supercollections=['Microscopy Nodes'], duplicate=False):
     coll, lcoll = get_collection(name, supercollections, duplicate, under_active_coll=False)
     collection_activate(coll, lcoll)
     return coll, lcoll
