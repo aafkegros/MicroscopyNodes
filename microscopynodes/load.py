@@ -96,9 +96,9 @@ def load():
 
     cache_dir.mkdir(parents=True, exist_ok=True)
     
-    base_coll = collection_by_name('Collection')
+    base_coll = collection_by_name('Microscopy Nodes', supercollections=[])
     collection_activate(*base_coll)
-    collection_by_name('cache')
+    collection_by_name('cache',supercollections=[])
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
     # pads axes order with 1-size elements for missing axes
