@@ -8,9 +8,19 @@ import numpy as np
 from .initial_global_settings import preset_environment, preset_em_environment
 from .handle_blender_structs import *
 from .load_components import *
-from .unpack_tif import unpack_tif, changePathTif
+from .file_to_array import ARRAYLOADERS
 
 from mathutils import Matrix
+
+def changePath(self, context):
+    for loader in ARRAYLOADERS:
+        if loader.checkSuffix():
+            loader.changePath(context)
+
+def load_array(input_file, axes_order, mask_channels_str):
+    for loader in ARRAYLOADERS:
+        if loader.checkSuffix():
+            return loader.unpack_array(input_file, axes_order, mask_channels_str)
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "TL_remake", 
@@ -39,7 +49,7 @@ bpy.types.Scene.MiN_Surface = bpy.props.BoolProperty(
 bpy.types.Scene.MiN_input_file = StringProperty(
         name="",
         description="tif file",
-        update=changePathTif,
+        update= changePath,
         options = {'TEXTEDIT_UPDATE'},
         default="",
         maxlen=1024,
@@ -67,7 +77,6 @@ bpy.types.Scene.MiN_z_size = FloatProperty(
         name="",
         description="z physical pixel size in micrometer",
         default=1.0)
-
 
 bpy.types.Scene.MiN_mask_channels = StringProperty(
         name="",
@@ -101,8 +110,7 @@ def load():
     collection_by_name('cache',supercollections=[])
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
-    # pads axes order with 1-size elements for missing axes
-    volume_arrays, mask_arrays, size_px, axes_order = unpack_tif(input_file, axes_order, mask_channels)
+    volume_arrays, mask_arrays, size_px, axes_order = load_array(input_file, axes_order, mask_channels)
 
     to_be_parented = []
 
