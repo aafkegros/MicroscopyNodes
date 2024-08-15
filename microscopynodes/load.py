@@ -22,7 +22,7 @@ def load():
     emission = bpy.context.scene.MiN_Emission
 
     cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
-    if bpy.context.scene.MiN_selected_zarr_level != bpy.context.scene.MiN_selected_zarr_level.default_value:
+    if  bpy.context.scene.MiN_selected_zarr_level != "":
         cache_dir = cache_dir / bpy.context.scene.MiN_selected_zarr_level.split(":")[0]
     
     if bpy.context.scene.MiN_preset_environment:
@@ -75,6 +75,7 @@ def load():
     container = init_container(to_be_parented ,location=loc, name=Path(input_file).stem)
     collection_deactivate_by_name('cache')
     axes_obj.select_set(True)
+
     return
 
 

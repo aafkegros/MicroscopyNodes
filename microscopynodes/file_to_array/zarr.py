@@ -32,6 +32,7 @@ class ZarrLoader(ArrayLoader):
     def checkPath(self):
         if self.suffix not in str(bpy.context.scene.MiN_input_file):
             bpy.context.scene.property_unset("MiN_selected_zarr_level")
+            bpy.context.scene.MiN_zarrLevels.clear()
         return self.suffix in str(bpy.context.scene.MiN_input_file)
 
     def load_array(self, input_file):

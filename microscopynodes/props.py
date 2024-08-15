@@ -71,6 +71,6 @@ bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
         name="",
         description="Selected zarr level/dataset",
         update= change_zarr_level,
-        default= "No Zarr Levels"
+        default= ""
         )
 

@@ -40,12 +40,13 @@ class TIFLoadPanel(bpy.types.Panel):
         col.prop(bpy.context.scene, 'MiN_Emission', text= 'Emission')
 
         col = layout.column(align=True)
-        col.label(text=".tif file:")
+        col.label(text=".tif or .zarr:")
         row = col.row(align=True)
         row.prop(bpy.context.scene, 'MiN_input_file', text= '')
         row.operator("microscopynodes.select_path", text="", icon='FILEBROWSER')
 
-        col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
+        if bpy.context.scene.MiN_selected_zarr_level != "":
+            col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
         
         split = layout.split()
         col = split.column()
