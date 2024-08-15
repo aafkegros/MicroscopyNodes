@@ -5,6 +5,7 @@ import numpy as np
 from .initial_global_settings import preset_environment, preset_em_environment
 from .handle_blender_structs import *
 from .load_components import *
+from .file_to_array import load_array
 
 from mathutils import Matrix
 

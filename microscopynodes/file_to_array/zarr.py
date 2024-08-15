@@ -1,11 +1,13 @@
 from .arrayloading import ArrayLoader
 from zarr.core import Array as ZarrArray
 from zarr.storage import FSStore, LRUStoreCache
+from zarr.convenience import load
 from collections import OrderedDict
 import json
 from aiohttp import ClientConnectorError
 import os
 import bpy
+from pathlib import Path
 
 OME_ZARR_V_0_4_KWARGS = dict(dimension_separator="/", normalize_keys=False)
 OME_ZARR_V_0_1_KWARGS = dict(dimension_separator=".")
@@ -16,6 +18,7 @@ class ZarrLevelsGroup(bpy.types.PropertyGroup):
     z_size: bpy.props.FloatProperty(name='zarr_z_size')
     axes_order: bpy.props.StringProperty(name='zarr_axes_order')
     path: bpy.props.StringProperty(name='zarr_path')
+    store: bpy.props.StringProperty(name='zarr_store')
     
 
         
@@ -32,7 +35,12 @@ class ZarrLoader(ArrayLoader):
         return self.suffix in str(bpy.context.scene.MiN_input_file)
 
     def load_array(self, input_file):
-        import zarr
+        for level in bpy.context.scene.MiN_zarrLevels:
+            if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
+                print(f'trying to load zarr {level.path}')
+                arr = load(store=level.store, path=level.path)
+                print(arr, level.store, level.path)
+                return arr
 
     # Adapted from Benedikt Best's ome-zarr loading code from ilastik (GPL-2)
     def changePath(self, context):
@@ -62,7 +70,6 @@ class ZarrLoader(ArrayLoader):
         self._store = LRUStoreCache(uncached_store, max_size=10**9)
         self.levels = {}
         for multiscale_spec in ome_spec["multiscales"]:
-            print(multiscale_spec)
             # NOT WELL ADAPTED FOR MULTIPLE DATASETS YET
             axes_order =  _get_axes_order_from_spec(multiscale_spec)
             datasets = multiscale_spec["datasets"]
@@ -72,8 +79,9 @@ class ZarrLoader(ArrayLoader):
 
             for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
                 level = bpy.context.scene.MiN_zarrLevels.add()
-                scale_key = scale["path"]
-                level.path = scale_key
+                print(uri, context.scene.MiN_input_file)
+                level.store = context.scene.MiN_input_file
+                level.path =  scale['path']
                 level.axes_order = axes_order
 
                 level.xy_size = 1.0
@@ -86,13 +94,16 @@ class ZarrLoader(ArrayLoader):
                 
                 # Loading a ZarrArray at this path is necessary to obtain the scale dimensions for the GUI.
                 # As a bonus, this also validates all scale["path"] strings passed outside this class.
-                zarray = ZarrArray(store=self._store, path=scale_key)
+                zarray = ZarrArray(store=self._store, path=scale["path"])
                 dtype = zarray.dtype.type
                 estimated_max_size = zarray.shape[0]
                 for dim in zarray.shape[1:]:
                     estimated_max_size *= dim
-                estimated_max_size = estimated_max_size *32 / 2**32
-                level.level_descriptor = f"{scale_key}: {zarray.shape}, up to {estimated_max_size:01} GB"
+                estimated_max_size = human_size(estimated_max_size *4) # vdb's are 32 bit floats == 4 byte per voxel
+
+                level.level_descriptor = f"{scale['path']}: {zarray.shape}, up to {estimated_max_size}"
+                if len(ome_spec["multiscales"]) > 1:
+                    level.level_descriptor = f"{multiscale_spec['name']}/{level.level_descriptor}"
                 bpy.context.scene.MiN_selected_zarr_level = level.level_descriptor
         return
 
@@ -126,5 +137,10 @@ def _get_axes_order_from_spec(validated_ome_spec):
         axes_order = "tczyx"
     return axes_order
 
+# from https://stackoverflow.com/questions/1094841/get-a-human-readable-version-of-a-file-size
+def human_size(bytes, units=[' bytes','KB','MB','GB','TB', 'PB', 'EB']):
+    """ Returns a human readable string representation of bytes """
+    return str(bytes) + units[0] if bytes < 1024 else human_size(bytes>>10, units[1:])
 
 CLASSES = [ZarrLevelsGroup]
+
