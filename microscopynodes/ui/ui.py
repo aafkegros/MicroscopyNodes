@@ -41,7 +41,9 @@ class TIFLoadPanel(bpy.types.Panel):
 
         col = layout.column(align=True)
         col.label(text=".tif file:")
-        col.prop(bpy.context.scene, "MiN_input_file", text="")
+        row = col.row(align=True)
+        row.prop(bpy.context.scene, 'MiN_input_file', text= '')
+        row.operator("microscopynodes.select_path", text="", icon='FILEBROWSER')
 
         col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
         
@@ -70,6 +72,38 @@ class TIFLoadPanel(bpy.types.Panel):
         layout.operator("tiftool.load")
 
 
+
+class SelectPathOperator(Operator):
+    """Select file or directory"""
+    bl_idname = "microscopynodes.select_path"
+    bl_label = "Select path"
+    bl_options = {'REGISTER'}
+
+    # These are magic keywords for Blender 
+    filepath: bpy.props.StringProperty(
+        name="filepath",
+        description=".tif path",
+        default = ""
+        )
+    directory: bpy.props.StringProperty(
+        name="directory",
+        description=".zarr path",
+        default= ""
+        )
+    
+    def execute(self, context):
+        if self.filepath != "":
+            bpy.context.scene.MiN_input_file = self.filepath
+        elif self.directory != "":
+            bpy.context.scene.MiN_input_file = self.directory
+        print(f"set min input to {self.filepath}, {self.directory}")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        self.filepath = ""
+        self.directory = ""
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
 
 class TifLoadOperator(bpy.types.Operator):
@@ -101,4 +135,4 @@ class ZarrMenu(bpy.types.Menu):
             props = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
             props.selected = zarrlevel.level_descriptor
 
-CLASSES = [TifLoadOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu]
+CLASSES = [TifLoadOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu, SelectPathOperator]

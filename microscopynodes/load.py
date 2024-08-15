@@ -17,11 +17,14 @@ def load():
     remake = bpy.context.scene.MiN_remake
     xy_size = bpy.context.scene.MiN_xy_size
     z_size = bpy.context.scene.MiN_z_size
-    cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
     mask_channels = bpy.context.scene.MiN_mask_channels
     surfaces = bpy.context.scene.MiN_Surface
     emission = bpy.context.scene.MiN_Emission
 
+    cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
+    if bpy.context.scene.MiN_selected_zarr_level != bpy.context.scene.MiN_selected_zarr_level.default_value:
+        cache_dir = cache_dir / bpy.context.scene.MiN_selected_zarr_level.split(":")[0]
+    
     if bpy.context.scene.MiN_preset_environment:
         preset_environment()    
         if not emission:

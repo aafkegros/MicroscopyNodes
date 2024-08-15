@@ -37,7 +37,7 @@ bpy.types.Scene.MiN_input_file = StringProperty(
         options = {'TEXTEDIT_UPDATE'},
         default="",
         maxlen=1024,
-        subtype='DIR_PATH')
+        )
 
 bpy.types.Scene.MiN_cache_dir = StringProperty(
         description = 'Location to store VDB and ABC files, any image data will get RESAVED into blender formats here',
@@ -71,6 +71,6 @@ bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
         name="",
         description="Selected zarr level/dataset",
         update= change_zarr_level,
-        default= "Zarr Level"
+        default= "No Zarr Levels"
         )
 
