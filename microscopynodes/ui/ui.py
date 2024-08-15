@@ -30,8 +30,11 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Force remaking vdb files', icon_value=0, emboss=True)
         grid.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = 'Preset environment', icon_value=0, emboss=True)
-        grid.prop(bpy.context.scene, 'MiN_cache_dir', text= 'Cache dir')
 
+        grid.label(text="Asset storage:")
+        grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
+        exec(props.CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element']) # makes sure to have all in the same location defined
+        
         split = layout.split()
         col = split.column()
         col.prop(bpy.context.scene, 'MiN_Surface', text= 'Surfaces')
@@ -118,13 +121,33 @@ class TifLoadOperator(bpy.types.Operator):
 
 class ZarrSelectOperator(bpy.types.Operator):
     """ Select Zarr dataset"""
-    bl_idname = "zarr.selection"
+    bl_idname = "microscopynodes.zarrselection"
     bl_label = "Zarr Selection"
     selected: bpy.props.StringProperty()
 
     def execute(self, context):
         bpy.context.scene.MiN_selected_zarr_level = self.selected
         return {'FINISHED'}
+
+class CacheSelectOperator(bpy.types.Operator):
+    """ Select Zarr dataset"""
+    bl_idname = "microscopynodes.cacheselection"
+    bl_label = "Cache Selection"
+    selected: bpy.props.StringProperty()
+
+    def execute(self, context):
+        bpy.context.scene.MiN_selected_cache_option = self.selected
+        return {'FINISHED'}
+
+class CacheSelectionMenu(bpy.types.Menu):
+    bl_label = "Cache/asset location"
+    bl_idname = "SCENE_MT_CacheSelectionMenu"
+
+    def draw(self, context):
+        layout = self.layout
+        for location in props.CACHE_LOCATIONS:
+            prop = layout.operator(CacheSelectOperator.bl_idname, text=location, icon=props.CACHE_LOCATIONS[location]["icon"])
+            prop.selected = location
 
 class ZarrMenu(bpy.types.Menu):
     bl_label = "Zarr datasets"
@@ -133,7 +156,7 @@ class ZarrMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         for zarrlevel in bpy.context.scene.MiN_zarrLevels:
-            props = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
-            props.selected = zarrlevel.level_descriptor
+            prop = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
+            prop.selected = zarrlevel.level_descriptor
 
-CLASSES = [TifLoadOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu, SelectPathOperator]
+CLASSES = [TifLoadOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu, SelectPathOperator, CacheSelectionMenu, CacheSelectOperator]

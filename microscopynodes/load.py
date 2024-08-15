@@ -6,6 +6,7 @@ from .initial_global_settings import preset_environment, preset_em_environment
 from .handle_blender_structs import *
 from .load_components import *
 from .file_to_array import load_array
+from .props import update_cache_dir
 
 from mathutils import Matrix
 
@@ -21,6 +22,7 @@ def load():
     surfaces = bpy.context.scene.MiN_Surface
     emission = bpy.context.scene.MiN_Emission
 
+    update_cache_dir(None, bpy.context.scene) # make sure 'With Project is at current fname'
     cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
     if  bpy.context.scene.MiN_selected_zarr_level != "":
         cache_dir = cache_dir / bpy.context.scene.MiN_selected_zarr_level.split(":")[0]

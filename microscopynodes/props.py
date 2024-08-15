@@ -5,6 +5,32 @@ from bpy.props import (StringProperty, FloatProperty,
 
 from .file_to_array import change_path, change_zarr_level
 from pathlib import Path
+import tempfile
+
+# --- cache dir helpers
+
+CACHE_LOCATIONS = {
+    'Temporary' : {
+        'icon' : 'FILE_HIDDEN',
+        'cache_dir' : "tempfile.gettempdir()",
+        'ui_element': "grid.label(text ='Deleted files may break your project', icon='SEQUENCE_COLOR_01')"
+    },
+    'Path' : {
+        'icon' : 'FILE_CACHE',
+        'cache_dir' : "bpy.context.scene.MiN_explicit_cache_dir",
+        'ui_element': "grid.prop(bpy.context.scene, 'MiN_explicit_cache_dir', text= 'Asset dir')"
+    },
+    'With Project' : {
+        'icon' : 'FILE_BLEND',
+        'cache_dir' : "bpy.path.abspath('//')",
+        'ui_element' : "grid.label(text ='Make sure the project is saved')"
+    },
+}
+def update_cache_dir(self, context):
+    bpy.context.scene.MiN_cache_dir = eval(CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['cache_dir'])
+    
+
+# -- props --
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 
@@ -39,12 +65,26 @@ bpy.types.Scene.MiN_input_file = StringProperty(
         maxlen=1024,
         )
 
-bpy.types.Scene.MiN_cache_dir = StringProperty(
-        description = 'Location to store VDB and ABC files, any image data will get RESAVED into blender formats here',
+bpy.types.Scene.MiN_explicit_cache_dir = StringProperty(
+    description = 'Location to store VDB and ABC files, any image data will get RESAVED into blender formats here',
     options = {'TEXTEDIT_UPDATE'},
     default = str(Path('~', '.microscopynodes').expanduser()),
-    subtype = 'FILE_PATH'
+    subtype = 'DIR_PATH',
+    update = update_cache_dir
     )
+
+bpy.types.Scene.MiN_selected_cache_option = StringProperty(
+        name="",
+        description="Where VDB and ABC files are created",
+        default= "Temporary",
+        update= update_cache_dir
+        )
+
+bpy.types.Scene.MiN_cache_dir = StringProperty(
+        name="MiN cache dir",
+        description="Cache/asset location",
+        default= tempfile.gettempdir()
+        )
 
 bpy.types.Scene.MiN_axes_order = StringProperty(
         name="",
@@ -66,6 +106,7 @@ bpy.types.Scene.MiN_mask_channels = StringProperty(
         name="",
         description="channels with an integer label mask",
         )
+
 
 bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
         name="",
