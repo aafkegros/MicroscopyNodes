@@ -1,5 +1,7 @@
 import bpy
 from .. import load
+from .. import props
+
 
 from bpy.types import (Panel,
                         Operator,
@@ -39,8 +41,9 @@ class TIFLoadPanel(bpy.types.Panel):
 
         col = layout.column(align=True)
         col.label(text=".tif file:")
-        col.prop(context.scene, "MiN_input_file", text="")
+        col.prop(bpy.context.scene, "MiN_input_file", text="")
 
+        col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
         
         split = layout.split()
         col = split.column()
@@ -67,12 +70,35 @@ class TIFLoadPanel(bpy.types.Panel):
         layout.operator("tiftool.load")
 
 
+
+
 class TifLoadOperator(bpy.types.Operator):
+    """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
     bl_idname = "tiftool.load"
-    bl_label = "Load TIF"
+    bl_label = "Load"
     
     def execute(self, context):
         load.load()
         return {'FINISHED'}
 
-CLASSES = [TifLoadOperator, TIFLoadPanel]
+class ZarrSelectOperator(bpy.types.Operator):
+    """ Select Zarr dataset"""
+    bl_idname = "zarr.selection"
+    bl_label = "Zarr Selection"
+    selected: bpy.props.StringProperty()
+
+    def execute(self, context):
+        bpy.context.scene.MiN_selected_zarr_level = self.selected
+        return {'FINISHED'}
+
+class ZarrMenu(bpy.types.Menu):
+    bl_label = "Zarr datasets"
+    bl_idname = "SCENE_MT_ZarrMenu"
+
+    def draw(self, context):
+        layout = self.layout
+        for zarrlevel in bpy.context.scene.MiN_zarrLevels:
+            props = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
+            props.selected = zarrlevel.level_descriptor
+
+CLASSES = [TifLoadOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu]

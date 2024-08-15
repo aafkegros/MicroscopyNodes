@@ -1,87 +1,13 @@
 import bpy
-from bpy.props import (StringProperty, FloatProperty,
-                        PointerProperty, IntProperty
-                        )
 from pathlib import Path
 import numpy as np
 
 from .initial_global_settings import preset_environment, preset_em_environment
 from .handle_blender_structs import *
 from .load_components import *
-from .file_to_array import ARRAYLOADERS
 
 from mathutils import Matrix
 
-def changePath(self, context):
-    for loader in ARRAYLOADERS:
-        if loader.checkSuffix():
-            loader.changePath(context)
-
-def load_array(input_file, axes_order, mask_channels_str):
-    for loader in ARRAYLOADERS:
-        if loader.checkSuffix():
-            return loader.unpack_array(input_file, axes_order, mask_channels_str)
-
-bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
-    name = "TL_remake", 
-    description = "Force remaking vdb files",
-    default = False
-    )
-
-bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
-    name = "TL_preset_environment", 
-    description = "Set environment variables",
-    default = True
-    )
-
-bpy.types.Scene.MiN_Emission = bpy.props.BoolProperty(
-    name = "TL_EM", 
-    description = "Volumes emit light, instead of absorbing light",
-    default = True
-    )
-
-bpy.types.Scene.MiN_Surface = bpy.props.BoolProperty(
-    name = "TL_EM", 
-    description = "Load isosurface object",
-    default = True
-    )
-
-bpy.types.Scene.MiN_input_file = StringProperty(
-        name="",
-        description="tif file",
-        update= changePath,
-        options = {'TEXTEDIT_UPDATE'},
-        default="",
-        maxlen=1024,
-        subtype='FILE_PATH')
-
-bpy.types.Scene.MiN_cache_dir = StringProperty(
-        description = 'Location to cache VDB and ABC files',
-    options = {'TEXTEDIT_UPDATE'},
-    default = str(Path('~', '.microscopynodes').expanduser()),
-    subtype = 'FILE_PATH'
-    )
-
-bpy.types.Scene.MiN_axes_order = StringProperty(
-        name="",
-        description="axes order (only z is used currently)",
-        default="zyx",
-        maxlen=6)
-    
-bpy.types.Scene.MiN_xy_size = FloatProperty(
-        name="",
-        description="xy physical pixel size in micrometer",
-        default=1.0)
-    
-bpy.types.Scene.MiN_z_size = FloatProperty(
-        name="",
-        description="z physical pixel size in micrometer",
-        default=1.0)
-
-bpy.types.Scene.MiN_mask_channels = StringProperty(
-        name="",
-        description="channels with an integer label mask",
-        )
 
 def load():
     # Handle all globals to be scoped after this - axes order in particular gets internally changed sometimes 

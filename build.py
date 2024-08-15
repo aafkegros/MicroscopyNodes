@@ -32,19 +32,24 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 required_packages = [
     "tifffile==2023.4.12",
-    "scikit-image==0.22.0",
+    # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm 
+    "scikit-image==0.22.0", 
+
+    # dependencies of zarr:
+    "fasteners==0.19",
+    "numcodecs==0.13.0",
+    "fsspec==2024.6.0",
+    "aiohttp==3.10.3"
 ]
 nodeps_packages = [
-    "zarr==2.17.2",
-    "fasteners==0.19",
-    "numcodecs==0.13.0"
+    "zarr==2.17.2"
 ]
 
 build_platforms = [
-    windows_x64,
-    linux_x64,
+    # windows_x64,
+    # linux_x64,
     macos_arm,
-    macos_intel,
+    # macos_intel,
 ]
 
 
@@ -57,6 +62,7 @@ def remove_whls():
     for whl_file in glob.glob(os.path.join(whl_path, "*.whl")):
         if whl_file not in permanent_whls:
             os.remove(whl_file)
+    # exit()
 
 
 def download_whls(

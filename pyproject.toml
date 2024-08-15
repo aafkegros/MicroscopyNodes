@@ -13,6 +13,7 @@ python = "~=3.11.6"
 tifffile = "==2023.4.12"
 scikit-image = "==0.22.0"
 numpy = "1.24.3"
+zarr = "*"
 
 
 [tool.poetry.dev-dependencies]

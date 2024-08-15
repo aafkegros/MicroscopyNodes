@@ -5,7 +5,7 @@ import numpy as np
 class ArrayLoader():
     suffix = None
 
-    def checkSuffix(self):
+    def checkPath(self):
         return Path(bpy.context.scene.MiN_input_file).suffix == self.suffix
 
     def changePath(self, context):
@@ -56,7 +56,6 @@ class ArrayLoader():
             volume_arrays[ch]['otsu'] = threshold_otsu(np.amax(volume_array, axis = axes_order.find('z')))
 
         return volume_arrays, mask_arrays, size_px, axes_order
-
 
 
 
