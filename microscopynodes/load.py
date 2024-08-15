@@ -76,6 +76,7 @@ def load():
     collection_deactivate_by_name('cache')
     axes_obj.select_set(True)
 
+    bpy.context.scene.MiN_preset_environment = False 
     return
 
 
