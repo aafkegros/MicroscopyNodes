@@ -31,9 +31,10 @@ class TIFLoadPanel(bpy.types.Panel):
         grid.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = 'Preset environment', icon_value=0, emboss=True)
 
-        grid.label(text="Asset storage:")
+        grid.label(text="Data storage:")
         grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
-        exec(props.CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element']) # makes sure to have all in the same location defined
+        props.CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
+        
         
         split = layout.split()
         col = split.column()
@@ -62,7 +63,6 @@ class TIFLoadPanel(bpy.types.Panel):
         col.prop(scn, "MiN_z_size")
         
         col = layout.column(align=True)
-#        col.label(text="axis order:")
         col.prop(scn, "MiN_axes_order", text="axes")
         
 

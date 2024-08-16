@@ -6,28 +6,30 @@ from bpy.props import (StringProperty, FloatProperty,
 from .file_to_array import change_path, change_zarr_level
 from pathlib import Path
 import tempfile
+import functools
+from operator import attrgetter
 
 # --- cache dir helpers
 
 CACHE_LOCATIONS = {
     'Temporary' : {
         'icon' : 'FILE_HIDDEN',
-        'cache_dir' : "tempfile.gettempdir()",
-        'ui_element': "grid.label(text ='Deleted files may break your project', icon='SEQUENCE_COLOR_01')"
+        'cache_dir' : functools.partial(tempfile.gettempdir),
+        'ui_element': functools.partial(lambda ui_layout : ui_layout.label(text ='Deleted files may break your project', icon='SEQUENCE_COLOR_01'))
     },
     'Path' : {
         'icon' : 'FILE_CACHE',
-        'cache_dir' : "bpy.context.scene.MiN_explicit_cache_dir",
-        'ui_element': "grid.prop(bpy.context.scene, 'MiN_explicit_cache_dir', text= 'Asset dir')"
+        'cache_dir' : functools.partial(attrgetter('context.scene.MiN_explicit_cache_dir'), bpy),
+        'ui_element': functools.partial(lambda ui_layout : ui_layout.prop(bpy.context.scene, "MiN_explicit_cache_dir", text= 'Asset dir'))
     },
     'With Project' : {
         'icon' : 'FILE_BLEND',
-        'cache_dir' : "bpy.path.abspath('//')",
-        'ui_element' : "grid.label(text ='Make sure the project is saved')"
+        'cache_dir' : functools.partial(bpy.path.abspath, '//'),
+        'ui_element' : functools.partial(lambda ui_layout: ui_layout.label(text ='Make sure the project is saved'))
     },
 }
 def update_cache_dir(self, context):
-    bpy.context.scene.MiN_cache_dir = eval(CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['cache_dir'])
+    bpy.context.scene.MiN_cache_dir = CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['cache_dir']()
     
 
 # -- props --
