@@ -13,7 +13,7 @@ from mathutils import Matrix
 
 def load():
     # Handle all globals to be scoped after this - axes order in particular gets internally changed sometimes 
-    input_file = bpy.context.scene.MiN_input_file
+    
     axes_order = bpy.context.scene.MiN_axes_order
     remake = bpy.context.scene.MiN_remake
     xy_size = bpy.context.scene.MiN_xy_size
@@ -22,6 +22,9 @@ def load():
     surfaces = bpy.context.scene.MiN_Surface
     emission = bpy.context.scene.MiN_Emission
 
+    if bpy.context.scene.MiN_cache_dir == '':
+        raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
+    input_file = bpy.context.scene.MiN_input_file
     update_cache_dir(None, bpy.context.scene) # make sure 'With Project is at current fname'
     cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
     if  bpy.context.scene.MiN_selected_zarr_level != "":
