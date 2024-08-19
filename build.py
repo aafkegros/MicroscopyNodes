@@ -32,16 +32,24 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 required_packages = [
     "tifffile==2023.4.12",
-    # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm 
+    # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm, or the fast find_objects
     "scikit-image==0.22.0", 
+    
+    "dask==2024.8.0",
+    "imagecodecs==2024.6.1", # allows LZW compressed tif loading
 
     # dependencies of zarr:
     "fasteners==0.19",
     "numcodecs==0.13.0",
     "fsspec==2024.6.0",
-    "aiohttp==3.10.3"
+    "aiohttp==3.10.3",
+    # asciitree is permanently added
+
+    # development
+    "ipycytoscape" # for visualizing dask trees
 ]
-nodeps_packages = [
+nodeps_packages = [ 
+    # zarr relies on one package without .whl (asciitree)
     "zarr==2.17.2"
 ]
 

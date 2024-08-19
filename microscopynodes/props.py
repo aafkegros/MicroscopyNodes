@@ -31,7 +31,6 @@ CACHE_LOCATIONS = {
 def update_cache_dir(self, context):
     bpy.context.scene.MiN_cache_dir = CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['cache_dir']()
     
-
 # -- props --
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(

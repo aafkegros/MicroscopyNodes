@@ -30,13 +30,12 @@ import bpy
 from . import ui
 from . import file_to_array
 
-print("IN INIT  ")
 all_classes = (
     ui.CLASSES +
     file_to_array.CLASSES
 )
 
-print(all_classes)
+
 def _test_register():
     try:
         register()
@@ -47,14 +46,12 @@ def _test_register():
 
 def register():
     # register all of the import operators
-    print("HEYs")
     for op in all_classes:
         try:
             bpy.utils.register_class(op)
         except Exception as e:
             print(op, e)
             pass
-        print(f'registered {op}')
     bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=file_to_array.ZarrLevelsGroup)
 
 

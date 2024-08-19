@@ -1,6 +1,8 @@
 import bpy
 from pathlib import Path
 import numpy as np
+import dask.array as da
+from copy import deepcopy
 
 class ArrayLoader():
     suffix = None
@@ -16,46 +18,51 @@ class ArrayLoader():
 
     def unpack_array(self, input_file, axes_order, mask_channels_str):
         from skimage.filters import threshold_otsu
-        imgdata = self.load_array(input_file)
+        # dask array makes sure lazy actions actually get performed lazily
+        imgdata = da.from_array(self.load_array(input_file))
+        
         if len(axes_order) != len(imgdata.shape):
             raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
-        size_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])
+        size_px = np.array([imgdata.shape[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
 
-        for dim in 'tzcyx':
-            if dim not in axes_order:
-                imgdata = np.expand_dims(imgdata,axis=0)
-                axes_order = dim + axes_order
-                
         mask_channels = []
         if mask_channels_str != '':
             try:
                 mask_channels = [int(ch.strip()) for ch in mask_channels_str.split(',') if '-' not in ch]
-                # mask_channels.extend([list(np.arange(int(ch.strip().split('-')[0]),int(ch.strip().split('-')[1]))) for ch in bpy.context.scene.MiN_mask_channels.split(',')if '-' in ch])
             except:
                 raise ValueError("could not interpret maskchannels")
             if max(mask_channels) >= imgdata.shape[axes_order.find('c')]:
                 raise ValueError(f"mask channel is too high, max is {imgdata.shape[axes_order.find('c')]-1}, it starts counting at 0" )
         
-        mask_arrays = {}
-        volume_arrays = {}
-        for ch in range(imgdata.shape[axes_order.find('c')]):
+        ch_arrays = {}
+        ch_array =  {'data': None, 'volume' : True, 'mask':False}
+        if 'c' in axes_order:
+            for ch in range(imgdata.shape[axes_order.find('c')]):
+                ch_arrays[ch] = deepcopy(ch_array)
+                ch_arrays[ch]['data'] = np.take(imgdata, indices=ch, axis=axes_order.find('c'))
+        else:
+            ch_arrays[0] = deepcopy(ch_array)
+            ch_arrays[0]['data'] = imgdata
+        axes_order = axes_order.replace("c","") 
+        
+        for ch in ch_arrays: 
             if ch in mask_channels:
-                mask_arrays[ch] = {'data':imgdata.take(indices=ch, axis=axes_order.find('c'))}
-            else:
-                volume_arrays[ch] = {'data':imgdata.take(indices=ch, axis=axes_order.find('c'))}
-        axes_order = axes_order.replace("c","")
+                # this is a bit double because i want to extend the per-channel choices later
+                ch_arrays[ch]['mask'] = True
+                ch_arrays[ch]['volume'] = False
 
         # normalize values per channel
-        for ch in volume_arrays:
-            volume_array = volume_arrays[ch]['data']
-            volume_array = volume_array.astype(np.float32)
-            volume_array -= np.min(volume_array)
-            volume_array /= np.max(volume_array)
-            volume_arrays[ch]['data'] = volume_array
-            volume_arrays[ch]['otsu'] = threshold_otsu(np.amax(volume_array, axis = axes_order.find('z')))
+        for ch in ch_arrays:
+            ch_arrays[ch]['otsu'] = 0.1
+            # volume_array = volume_arrays[ch]['data']
+            # volume_array = volume_array.astype(np.float32)
+            # volume_array -= np.min(volume_array)
+            # volume_array /= np.max(volume_array)
+            # volume_arrays[ch]['data'] = volume_array
+            # volume_arrays[ch]['otsu'] = threshold_otsu(np.amax(volume_array, axis = axes_order.find('z')))
 
-        return volume_arrays, mask_arrays, size_px, axes_order
+        return ch_arrays, size_px
 
 
 

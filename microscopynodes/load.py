@@ -45,7 +45,8 @@ def load():
     collection_by_name('cache',supercollections=[])
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
-    volume_arrays, mask_arrays, size_px, axes_order = load_array(input_file, axes_order, mask_channels)
+    ch_arrays, size_px = load_array(input_file, axes_order, mask_channels)
+    axes_order = axes_order.replace('c', "") # channels are separated
 
     to_be_parented = []
 
@@ -54,9 +55,9 @@ def load():
     scale =  np.array([1,1,z_size/xy_size])*init_scale
     loc =  tuple(center_loc * size_px*scale)
 
-    if len(volume_arrays) > 0:
-        #TODO check remake
-        volume_inputs, bbox_px = arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir)
+    if any([ch_dct['volume']==True for ch_dct in ch_arrays.values()]): 
+        volume_channels = {k:v for k, v in ch_arrays.items() if v['volume'] == True}
+        volume_inputs, bbox_px = arrays_to_vdb_files(volume_channels, axes_order, remake, cache_dir)
         vol_obj, volume_inputs = load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission)
         for volume_input in volume_inputs.values():
             to_be_parented.extend([vol for vol in volume_input['collection'].all_objects])
@@ -66,7 +67,8 @@ def load():
             to_be_parented.extend([surf_obj])
     
 
-    if len(mask_arrays) > 0:
+    if any([ch_dct['mask']==True for ch_dct in ch_arrays.values()]): 
+        mask_arrays = {k : v for k, v in ch_arrays.items() if v['mask'] == True}
         mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
         [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
         to_be_parented.extend([mask_obj])

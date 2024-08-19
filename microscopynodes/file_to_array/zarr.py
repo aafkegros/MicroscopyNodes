@@ -19,12 +19,8 @@ class ZarrLevelsGroup(bpy.types.PropertyGroup):
     axes_order: bpy.props.StringProperty(name='zarr_axes_order')
     path: bpy.props.StringProperty(name='zarr_path')
     store: bpy.props.StringProperty(name='zarr_store')
-    
-
-        
-
-# This is created in __init__ of the package due to registration issues:
-# bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=ZarrLevelsGroup)
+    # The scene collectionproperty is created in __init__ of the package due to registration issues:
+    # bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=ZarrLevelsGroup)
 
 class ZarrLoader(ArrayLoader):
     suffix = '.zarr'
@@ -36,14 +32,18 @@ class ZarrLoader(ArrayLoader):
         return self.suffix in str(bpy.context.scene.MiN_input_file)
 
     def load_array(self, input_file):
+        
         for level in bpy.context.scene.MiN_zarrLevels:
             if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
-                print(f'trying to load zarr {level.path}')
-                arr = load(store=level.store, path=level.path)
-                print(arr, level.store, level.path)
-                return arr
+                # uncached_store = FSStore(level.store, mode="r", **OME_ZARR_V_0_4_KWARGS)
+                uncached_store = FSStore(level.store, mode="r", **OME_ZARR_V_0_4_KWARGS)
+                store = LRUStoreCache(uncached_store, max_size=5*(10**9))
+                zarray = ZarrArray(store=store, path=level.path)
+                # print(f'trying to load zarr {level.path}')
+                # arr = load(store=level.store, path=level.path)
+                # print(arr, level.store, level.path)
+                return zarray
 
-    # Adapted from Benedikt Best's ome-zarr loading code from ilastik (GPL-2)
     def changePath(self, context):
         bpy.context.scene.MiN_zarrLevels.clear()
         # infers metadata, resets to default if not found
@@ -59,16 +59,18 @@ class ZarrLoader(ArrayLoader):
             ome_spec = json.loads(uncached_store[".zattrs"])
         except Exception as e:
             # Connection problems on FSSpec side raise a ClientConnectorError wrapped in a KeyError
-            print(uri,uncached_store, [k for k in uncached_store.keys()])
+            # print(uri,uncached_store, [k for k in uncached_store.keys()])
+            # print(uncached_store.keys()[0])
             if isinstance(e.__context__, ClientConnectorError):
                 raise ConnectionError(f"Could not connect to {e.__context__.host}:{e.__context__.port}.") from e
             elif isinstance(e, KeyError):
                 raise ValueError("Expected a Zarr store, but could not find .zattrs file at the address.") from e
             else: 
                 raise e
+        print(ome_spec)
         if ome_spec.get("multiscales", [{}])[0].get("version") == "0.1":
             uncached_store = FSStore(self.uri, mode="r", **OME_ZARR_V_0_1_KWARGS)
-        self._store = LRUStoreCache(uncached_store, max_size=10**9)
+        store = LRUStoreCache(uncached_store, max_size=10**9)
         self.levels = {}
         for multiscale_spec in ome_spec["multiscales"]:
             # NOT WELL ADAPTED FOR MULTIPLE DATASETS YET
@@ -95,7 +97,7 @@ class ZarrLoader(ArrayLoader):
                 
                 # Loading a ZarrArray at this path is necessary to obtain the scale dimensions for the GUI.
                 # As a bonus, this also validates all scale["path"] strings passed outside this class.
-                zarray = ZarrArray(store=self._store, path=scale["path"])
+                zarray = ZarrArray(store=store, path=scale["path"])
                 dtype = zarray.dtype.type
                 estimated_max_size = zarray.shape[0]
                 for dim in zarray.shape[1:]:
