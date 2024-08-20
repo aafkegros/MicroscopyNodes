@@ -100,6 +100,47 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
 
     return str(dirpath), time_vdbs, time_hists
 
+def get_leading_trailing_zero_float(arr):
+    min_val = max(np.argmax(arr > 0)-1, 0) / len(arr)
+    max_val = min(len(arr) - (np.argmax(arr[::-1] > 0)-1), len(arr)) / len(arr)
+    return min_val, max_val
+
+def shader_histogram(nodes, links, in_node, loc_x, hist, trim):
+    min_val = skimage.filters.threshold_isodata(hist=hist)/len(hist)
+    max_val = 1
+
+    ramp_node = nodes.new(type="ShaderNodeValToRGB")
+    ramp_node.location = (loc_x, 0)
+    ramp_node.width = 1000
+    ramp_node.color_ramp.elements[0].position = min_val
+    ramp_node.color_ramp.elements[1].position = max_val
+    links.new(in_node, ramp_node.inputs.get("Fac"))  
+
+    histnode =nodes.new(type="ShaderNodeFloatCurve")
+    histnode.location = (loc_x, 300)
+    histmap = histnode.mapping
+    histnode.width = 1000
+    histnode.label = 'Histogram (non-interactive)' 
+    histnode.inputs.get('Factor').hide = True
+    histnode.inputs.get('Value').hide = True
+    histnode.outputs.get('Value').hide = True
+    # print(np.max(hist), 'maxvalhist')
+    histnorm = hist / np.max(hist)
+    if len(histnorm) > 150:
+        histnorm = scipy.stats.binned_statistic(np.arange(len(histnorm)), histnorm, bins=150,statistic='sum')[0]
+        histnorm /= np.max(histnorm) 
+    for ix, val in enumerate(histnorm):
+        if ix == 0:
+            histmap.curves[0].points[-1].location = ix/len(histnorm), val
+            histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
+        if ix==len(histnorm)-1:
+            histmap.curves[0].points[-1].location = ix/len(histnorm), val
+        else:
+            histmap.curves[0].points.new(ix/len(histnorm), val)
+            histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
+        histmap.curves[0].points[ix].handle_type = 'VECTOR'
+    return ramp_node, histnode
+        
 
 
 def volume_materials(volume_inputs, emission_setting):
@@ -116,71 +157,39 @@ def volume_materials(volume_inputs, emission_setting):
             nodes.remove(nodes.get("Principled Volume"))
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
-        node_attr.location = (-800, 0)
+        node_attr.location = (-1400, 0)
         node_attr.attribute_name = f'data_channel_{ch}'
 
-        ramp_node = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node.location = (-600, 0)
-        ramp_node.color_ramp.elements[0].position = volume_inputs[ch]['min_val']
-        ramp_node.color_ramp.elements[1].position = volume_inputs[ch]['max_val']
-        links.new(node_attr.outputs.get("Fac"), ramp_node.inputs.get("Fac"))  
+        normnode = nodes.new(type="ShaderNodeMapRange")
+        normnode.location = (-1200, 0)
+        normnode.label = "Normalize data"
+        normnode.inputs[1].default_value = volume_inputs[ch]['min_val']       
+        normnode.inputs[2].default_value = volume_inputs[ch]['max_val']    
+        links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
+        normnode.hide = True
 
-        histnode =nodes.new(type="ShaderNodeFloatCurve")
-        histnode.location = (-600, 400)
-        histmap = histnode.mapping
-        hist = volume_inputs[ch]['hist']
-        print(hist, 'h1')
-        hist = scipy.stats.binned_statistic(hist,np.arange(len(hist)), bins=32,statistic='sum')[0]
-        print(hist, 'h2')
-        hist /= np.max(hist)
-        print(hist, 'h3')
-        for ix, val in enumerate(hist):
-            if ix == 0 or ix==len(hist)-1:
-                histmap.curves[0].points[ix].location = ix/len(hist), val
-            else:
-                histmap.curves[0].points.new(ix/len(hist), val)
-            histmap.curves[0].points[ix].handle_type = 'VECTOR'
-        
-        ramp_node2 = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node2.location = (-300, 0)
-        ramp_node2.color_ramp.elements[0].position = volume_inputs[ch]['norm_threshold']
+        ramp_node, hist_node2 = shader_histogram(nodes, links, normnode.outputs.get('Result'), -1000, volume_inputs[ch]['histnorm'], 0.001)
         color = get_cmap('hue-wheel', maxval=len(volume_inputs))[vol_ix]
-        ramp_node2.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
-        links.new(ramp_node.outputs.get("Color"), ramp_node2.inputs.get("Fac"))  
-
-        histnode2 =nodes.new(type="ShaderNodeFloatCurve")
-        histnode2.location = (-300, 400)
-        histmap = histnode2.mapping
-        # hist = np.trim_zeros(volume_inputs[ch]['hist'] > 1/65536) * volume_inputs[ch]['hist']
-        hist = volume_inputs[ch]['hist'][int(volume_inputs[ch]['min_val'] * NR_HIST_BINS): int(volume_inputs[ch]['max_val'] * NR_HIST_BINS)]
-        if len(hist)> 32:
-            hist = scipy.stats.binned_statistic(hist, np.arange(len(hist)),bins=32,statistic='sum')[0]
-        print(hist)
-        hist /= np.max(hist)
-        for ix, val in enumerate(hist):
-            if ix == 0 or ix==len(hist)-1:
-                histmap.curves[0].points[ix].location = ix/len(hist), val
-            else:
-                histmap.curves[0].points.new(ix/len(hist), val)
-            histmap.curves[0].points[ix].handle_type = 'VECTOR'
+        ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
+        # ramp_node, hist_node2, hist2 = shader_trim_histogram(nodes, links, ramp_node1.outputs.get('Color'), -300, hist1, 0.1)
 
         scale = nodes.new(type='ShaderNodeVectorMath')
         scale.location = (0,-150)
         scale.operation = "SCALE"
-        links.new(ramp_node2.outputs[0], scale.inputs.get("Vector"))
+        links.new(ramp_node.outputs[0], scale.inputs.get("Vector"))
         scale.inputs.get('Scale').default_value = 1
         
         emit = nodes.new(type='ShaderNodeEmission')
         emit.location = (250,0)
-        links.new(ramp_node2.outputs[0], emit.inputs.get('Color'))
+        links.new(ramp_node.outputs[0], emit.inputs.get('Color'))
         
         adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
         adsorb.location = (250,-200)
-        links.new(ramp_node2.outputs[0], adsorb.inputs.get('Color'))
+        links.new(ramp_node.outputs[0], adsorb.inputs.get('Color'))
         links.new(scale.outputs[0], adsorb.inputs.get('Density'))
         scatter = nodes.new(type='ShaderNodeVolumeScatter')
         scatter.location = (250,-300)
-        links.new(ramp_node2.outputs[0], scatter.inputs.get('Color'))
+        links.new(ramp_node.outputs[0], scatter.inputs.get('Color'))
         links.new(scale.outputs[0], scatter.inputs.get('Density'))
 
         add = nodes.new(type='ShaderNodeAddShader')
@@ -237,12 +246,8 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
                 print(hist, histtotal)
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
-        volume_inputs[ch]['hist'] = histtotal
-        volume_inputs[ch]['min_val'] = max(np.argmax(histtotal > (.001*np.sum(histtotal))) -1, 0) / NR_HIST_BINS
-        volume_inputs[ch]['max_val'] = min(NR_HIST_BINS - np.argmax(histtotal[::-1] > (.001*np.sum(histtotal))) +1, NR_HIST_BINS) /NR_HIST_BINS
-        volume_inputs[ch]['unnorm_threshold'] = skimage.filters.threshold_isodata(hist=histtotal)/NR_HIST_BINS
-        volume_inputs[ch]['norm_threshold'] = (volume_inputs[ch]['unnorm_threshold'] - volume_inputs[ch]['min_val']) / volume_inputs[ch]['max_val']
-        print(volume_inputs)
+        volume_inputs[ch]['min_val'],volume_inputs[ch]['max_val'] = get_leading_trailing_zero_float(histtotal)
+        volume_inputs[ch]['histnorm'] = histtotal[int(volume_inputs[ch]['min_val'] * NR_HIST_BINS): int(volume_inputs[ch]['max_val'] * NR_HIST_BINS)]
         collection_activate(vol_collection, vol_lcoll)
 
     collection_activate(*base_coll)
