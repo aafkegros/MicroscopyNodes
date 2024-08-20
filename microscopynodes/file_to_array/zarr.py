@@ -35,13 +35,9 @@ class ZarrLoader(ArrayLoader):
         
         for level in bpy.context.scene.MiN_zarrLevels:
             if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
-                # uncached_store = FSStore(level.store, mode="r", **OME_ZARR_V_0_4_KWARGS)
                 uncached_store = FSStore(level.store, mode="r", **OME_ZARR_V_0_4_KWARGS)
                 store = LRUStoreCache(uncached_store, max_size=5*(10**9))
                 zarray = ZarrArray(store=store, path=level.path)
-                # print(f'trying to load zarr {level.path}')
-                # arr = load(store=level.store, path=level.path)
-                # print(arr, level.store, level.path)
                 return zarray
 
     def changePath(self, context):

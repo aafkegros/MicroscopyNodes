@@ -11,6 +11,7 @@ from .load_generic import init_holder
 from ..handle_blender_structs import *
 from .. import min_nodes
 
+
 NR_HIST_BINS = 2**16
 
 def split_axis_to_chunks(length, split_to):
@@ -25,11 +26,9 @@ def arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir):
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
-    print(axes_order)
     for ch in volume_arrays:
         volume_arrays[ch]['local_files'] = []
         imgdata = volume_arrays[ch]['data']
-        print(type(imgdata), 'in arraytovdbfiles 1') #TODO This all assumes a z axis
         
         slices = []
         dims = []
@@ -42,10 +41,13 @@ def arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir):
                 slices.append(split_axis_to_chunks(imgdata.shape[it], np.inf))
         
         for block in itertools.product(*slices):
-            currentslice = [sl[0] for sl in block]
+            
             # block_ix may contain duplicates if one of the axes does not exist, but this is not an issue
             block_ix = list(np.array([sl[1] for sl in block])[[axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]])
-            directory, time_vdbs, time_hists = make_vdb(imgdata[*currentslice], block_ix, axes_order, remake, cache_dir, ch)
+            chunk = imgdata
+            for dim, sl in enumerate(block): # dask-equivalent of imgdata[*listofslices] 
+                chunk = np.take(chunk, indices = np.arange(sl[0].start, sl[0].stop), axis=dim)
+            directory, time_vdbs, time_hists = make_vdb(chunk, block_ix, axes_order, remake, cache_dir, ch)
             volume_arrays[ch]['local_files'].append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0][1], block[1][1], block[2][1])})
         del volume_arrays[ch]['data']
     bbox_px = np.array([slices[axes_order.find(dim)][0][0].stop if dim in axes_order else 0 for dim in 'xyz'])
@@ -72,6 +74,7 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
         identifier5d = f"{identifier3d}c{ch}t{t}"
         frame = np.take(imgdata, indices=t, axis=axes_order.find('t'))
         frame_axes_order = axes_order.replace('t',"")
+
         frame = np.moveaxis(frame, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
         
         vdbfname = dirpath / f"{identifier5d}.vdb"
@@ -80,16 +83,18 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
         time_hists.append({"name":str(histfname.name)})
         if not vdbfname.exists() or not histfname.exists() or remake :
             print('remaking')
+            if vdbfname.exists():
+                vdbfname.unlink()
+            if histfname.exists():
+                histfname.unlink()
             # frame.visualize(filename=f'/Users/oanegros/Documents/screenshots/stranspose-hlg{x_ix}_{y_ix}_{z_ix}.svg', engine='cytoscape')
+
             frame = frame.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
             arr = frame.compute()
-
             # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
             histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
             histogram[0] = 0
             np.save(histfname, histogram, allow_pickle=False)
-            print(np.count_nonzero(arr <= 1/(2**16)))
-            print(histogram)
             # np.savetxt(histfname.with_suffix('csv'), histogram[0])
 
             grid = vdb.FloatGrid()
@@ -124,7 +129,7 @@ def shader_histogram(nodes, links, in_node, loc_x, hist, trim):
     histnode.inputs.get('Factor').hide = True
     histnode.inputs.get('Value').hide = True
     histnode.outputs.get('Value').hide = True
-    # print(np.max(hist), 'maxvalhist')
+
     histnorm = hist / np.max(hist)
     if len(histnorm) > 150:
         histnorm = scipy.stats.binned_statistic(np.arange(len(histnorm)), histnorm, bins=150,statistic='sum')[0]
@@ -228,7 +233,7 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
         histtotal = np.zeros(NR_HIST_BINS)
         for chunk in volume_inputs[ch]['local_files']:
             already_loaded = list(ch_collection.all_objects)
-            print(chunk)
+
             bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
             # vol = bpy.context.view_layer.objects.active
             for vol in ch_collection.all_objects:
@@ -243,7 +248,6 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
 
                     vol.data.frame_start = 0
             for hist in chunk['histfiles']:
-                print(hist, histtotal)
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
         volume_inputs[ch]['min_val'],volume_inputs[ch]['max_val'] = get_leading_trailing_zero_float(histtotal)
