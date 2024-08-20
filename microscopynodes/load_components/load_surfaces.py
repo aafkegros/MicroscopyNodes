@@ -49,15 +49,23 @@ def load_surfaces(volume_inputs, scale, cache_coll, base_coll):
         interface.items_tree[-1].min_value = 0.0
         interface.items_tree[-1].max_value = 1.001
         interface.items_tree[-1].attribute_domain = 'POINT'
-        # interface.items_tree[-1].default_value = float(volume_inputs[ch]['otsu'])
         interface.items_tree[-1].name = f"Channel {ch} Threshold"
 
-        # set correct otsu value
+        # set threshold value
         identifier= interface.items_tree[-1].identifier
-        surf_obj.modifiers[-1][identifier] = float(volume_inputs[ch]['otsu'])
-        
+        surf_obj.modifiers[-1][identifier] = float(volume_inputs[ch]['threshold'])
+
+        normnode = nodes.new(type="ShaderNodeMapRange")
+        normnode.location = (volnode.location[0] - 200, volnode.location[1] - 100)    
+        normnode.label = "Normalize data"
+        normnode.inputs[3].default_value = volume_inputs[ch]['min_val']       
+        normnode.inputs[4].default_value = volume_inputs[ch]['max_val']    
+        links.new(inputnode.outputs.get(f"Channel {ch} Threshold"), normnode.inputs[0])  
+        normnode.hide = True
+
         node_group.interface.move(node_group.interface.items_tree[f"Channel {ch} Threshold"] , ix*2 + 2)
-        links.new(inputnode.outputs.get(f"Channel {ch} Threshold"), v2m.inputs.get('Threshold'))
+
+        links.new(normnode.outputs[0], v2m.inputs.get('Threshold'))
 
 
     surf_obj.hide_render = True

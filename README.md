@@ -17,7 +17,7 @@ The `microscopynodes` Blender addon is still under active development, but some 
 
 - up to 5D (up to tzcyx in any axis order) tifs are supported. 
 - Axes order and pixel size will be attempted to be read out automatically
-- Otsu initial volumetric emission material is applied
+- Initial volumetric emission material is applied
 - Scale bars are added to the `Geometry Nodes` container of your volumetric data
 
 

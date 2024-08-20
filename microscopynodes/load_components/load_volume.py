@@ -110,8 +110,8 @@ def get_leading_trailing_zero_float(arr):
     max_val = min(len(arr) - (np.argmax(arr[::-1] > 0)-1), len(arr)) / len(arr)
     return min_val, max_val
 
-def shader_histogram(nodes, links, in_node, loc_x, hist, trim):
-    min_val = skimage.filters.threshold_isodata(hist=hist)/len(hist)
+def shader_histogram(nodes, links, in_node, loc_x, hist, threshold):
+    min_val = threshold
     max_val = 1
 
     ramp_node = nodes.new(type="ShaderNodeValToRGB")
@@ -173,10 +173,9 @@ def volume_materials(volume_inputs, emission_setting):
         links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
         normnode.hide = True
 
-        ramp_node, hist_node2 = shader_histogram(nodes, links, normnode.outputs.get('Result'), -1000, volume_inputs[ch]['histnorm'], 0.001)
+        ramp_node, hist_node2 = shader_histogram(nodes, links, normnode.outputs.get('Result'), -1000, volume_inputs[ch]['histnorm'], volume_inputs[ch]['threshold'])
         color = get_cmap('hue-wheel', maxval=len(volume_inputs))[vol_ix]
         ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
-        # ramp_node, hist_node2, hist2 = shader_trim_histogram(nodes, links, ramp_node1.outputs.get('Color'), -300, hist1, 0.1)
 
         scale = nodes.new(type='ShaderNodeVectorMath')
         scale.location = (0,-150)
@@ -252,6 +251,7 @@ def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_s
         
         volume_inputs[ch]['min_val'],volume_inputs[ch]['max_val'] = get_leading_trailing_zero_float(histtotal)
         volume_inputs[ch]['histnorm'] = histtotal[int(volume_inputs[ch]['min_val'] * NR_HIST_BINS): int(volume_inputs[ch]['max_val'] * NR_HIST_BINS)]
+        volume_inputs[ch]['threshold'] = skimage.filters.threshold_isodata(hist=volume_inputs[ch]['histnorm'] )/len(volume_inputs[ch]['histnorm'] )
         collection_activate(vol_collection, vol_lcoll)
 
     collection_activate(*base_coll)
