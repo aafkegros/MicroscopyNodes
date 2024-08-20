@@ -17,10 +17,10 @@ class ArrayLoader():
         return 
 
     def unpack_array(self, input_file, axes_order, mask_channels_str):
-        from skimage.filters import threshold_otsu
         # dask array makes sure lazy actions actually get performed lazily
-        imgdata = da.from_array(self.load_array(input_file))
-        
+        chunks = ['auto' if dim in 'xyz' else 1 for dim in axes_order] # time and channels are always loadable as separate chunks as they go to separate vdbs
+        imgdata = da.from_array(self.load_array(input_file), chunks=chunks)
+
         if len(axes_order) != len(imgdata.shape):
             raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
@@ -51,16 +51,6 @@ class ArrayLoader():
                 # this is a bit double because i want to extend the per-channel choices later
                 ch_arrays[ch]['mask'] = True
                 ch_arrays[ch]['volume'] = False
-
-        # normalize values per channel
-        for ch in ch_arrays:
-            ch_arrays[ch]['otsu'] = 0.1
-            # volume_array = volume_arrays[ch]['data']
-            # volume_array = volume_array.astype(np.float32)
-            # volume_array -= np.min(volume_array)
-            # volume_array /= np.max(volume_array)
-            # volume_arrays[ch]['data'] = volume_array
-            # volume_arrays[ch]['otsu'] = threshold_otsu(np.amax(volume_array, axis = axes_order.find('z')))
 
         return ch_arrays, size_px
 
