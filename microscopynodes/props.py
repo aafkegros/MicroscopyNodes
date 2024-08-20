@@ -41,7 +41,7 @@ bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
 
 bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
     name = "MiN_preset_environment", 
-    description = "Set environment variables",
+    description = "Set environment variables for easy initial rendering. Will overwrite previous settings.",
     default = True
     )
 
@@ -53,7 +53,7 @@ bpy.types.Scene.MiN_Emission = bpy.props.BoolProperty(
 
 bpy.types.Scene.MiN_Surface = bpy.props.BoolProperty(
     name = "MiN_surface", 
-    description = "Load isosurface object",
+    description = "Load thresholded surface object",
     default = True
     )
 
@@ -89,7 +89,7 @@ bpy.types.Scene.MiN_cache_dir = StringProperty(
 
 bpy.types.Scene.MiN_axes_order = StringProperty(
         name="",
-        description="axes order (only z is used currently)",
+        description="axes order (out of tzcyx)",
         default="zyx",
         maxlen=6)
     
