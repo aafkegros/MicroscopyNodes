@@ -141,20 +141,25 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
     objnames = {} # register objnames as dict at start value : name
     locations = {} 
 
+    unique_vals_all = np.unique(mask)
+    if len(unique_vals_all) == 2: 
+        # if binary mask, do connected components, to save memory when meshing if a lot of objects are present
+        try: 
+            mask = mask.astype(np.uint16)
+            for timepoint, time_arr in enumerate(mask):
+                new_unique_vals = label(time_arr,structure=np.ones((3,3,3)) ,output=time_arr)
+                if new_unique_vals > len(unique_vals_all):
+                    unique_vals_all = [uni for uni in range(new_unique_vals + 1)]
+                mask[timepoint] = time_arr
+        except RuntimeError as e:
+            # this catches binary masks with > 65k objects
+            raise ValueError("This binary mask seems to be too complicated (>65k separate obj/timepoint) to load as a label mask. Consider loading it as a volume and using the 'Surfaces' visualization or applying a new Volume to Surface Blender node")        
+
     for timestep in range(0,mask.shape[0]):
         bpy.ops.object.select_all(action='DESELECT')
         if timestep == 0:
-            unique_vals = np.unique(mask)
-            if len(unique_vals) == 2: 
-                # if binary mask, do connected components, to save memory when meshing if a lot of objects are present
-                try: 
-                    mask = mask.astype(np.uint16)
-                    mask, unique_vals = label(mask, output=mask)
-                except RuntimeError as e:
-                    # this catches binary masks with > 65k objects
-                    raise ValueError("This binary mask seems to be too complicated to load as a label mask. Consider loading it as a volume and using the 'Surfaces' visualization or applying a new Volume to Surface Blender node")
             
-            for obj_id_val in unique_vals[1:]: 
+            for obj_id_val in unique_vals_all[1:]: 
                 #skip zero, register all object with new names, need to be present in first frame
                 objname=f"ch{maskchannel}_obj{obj_id_val}_" 
                 bpy.ops.mesh.primitive_cube_add()
@@ -171,7 +176,7 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
                 continue
             obj_id_val = obj_id + 1
             objarray = np.pad(mask[timestep][objslice], 1, constant_values=0)
-            print('in march')
+            # print('in march', obj_id)
             verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=1)
             
             obj = bpy.data.objects.get(objnames[obj_id_val])
