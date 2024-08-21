@@ -144,18 +144,18 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
     for timestep in range(0,mask.shape[0]):
         bpy.ops.object.select_all(action='DESELECT')
         if timestep == 0:
-            if np.count_nonzero((mask!=0) & (mask!=1))==0: 
+            unique_vals = np.unique(mask)
+            if len(unique_vals) == 2: 
                 # if binary mask, do connected components, to save memory when meshing if a lot of objects are present
                 try: 
                     mask = mask.astype(np.uint16)
-                    label(mask, output=mask)
+                    mask, unique_vals = label(mask, output=mask)
                 except RuntimeError as e:
                     # this catches binary masks with > 65k objects
                     raise ValueError("This binary mask seems to be too complicated to load as a label mask. Consider loading it as a volume and using the 'Surfaces' visualization or applying a new Volume to Surface Blender node")
-                
-            for obj_id_val in np.unique(mask)[1:]: 
+            
+            for obj_id_val in unique_vals[1:]: 
                 #skip zero, register all object with new names, need to be present in first frame
-                #TODO do first frame after the rest of loading, to avoid np.unique
                 objname=f"ch{maskchannel}_obj{obj_id_val}_" 
                 bpy.ops.mesh.primitive_cube_add()
                 obj=bpy.context.view_layer.objects.active
