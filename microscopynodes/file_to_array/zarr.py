@@ -19,6 +19,7 @@ class ZarrLevelsGroup(bpy.types.PropertyGroup):
     axes_order: bpy.props.StringProperty(name='zarr_axes_order')
     path: bpy.props.StringProperty(name='zarr_path')
     store: bpy.props.StringProperty(name='zarr_store')
+    channels : bpy.props.IntProperty()
     # The scene collectionproperty is created in __init__ of the package due to registration issues:
     # bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=ZarrLevelsGroup)
 
@@ -28,7 +29,6 @@ class ZarrLoader(ArrayLoader):
     def checkPath(self):
         if self.suffix not in str(bpy.context.scene.MiN_input_file):
             bpy.context.scene.property_unset("MiN_selected_zarr_level")
-            bpy.context.scene.MiN_zarrLevels.clear()
         return self.suffix in str(bpy.context.scene.MiN_input_file)
 
     def load_array(self, input_file):
@@ -78,7 +78,7 @@ class ZarrLoader(ArrayLoader):
 
             for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
                 level = bpy.context.scene.MiN_zarrLevels.add()
-                print(uri, context.scene.MiN_input_file)
+                # print(uri, context.scene.MiN_input_file, scale['name'])
                 level.store = context.scene.MiN_input_file
                 level.path =  scale['path']
                 level.axes_order = axes_order
@@ -96,6 +96,11 @@ class ZarrLoader(ArrayLoader):
                 zarray = ZarrArray(store=store, path=scale["path"])
                 dtype = zarray.dtype.type
                 estimated_max_size = zarray.shape[0]
+                if 'c' in axes_order:
+                    level.channels = zarray.shape[axes_order.find('c')]
+                else:
+                    level.channels = 1
+                
                 for dim in zarray.shape[1:]:
                     estimated_max_size *= dim
                 estimated_max_size = human_size(estimated_max_size *4) # vdb's are 32 bit floats == 4 byte per voxel
@@ -113,6 +118,8 @@ def change_zarr_level(self, context):
             context.scene.MiN_xy_size = level['xy_size']
             context.scene.MiN_z_size = level['z_size']
             context.scene.MiN_axes_order = level['axes_order']
+            if context.scene.MiN_channel_nr != level['channels']:
+                context.scene.MiN_channel_nr = level['channels']
     return
 
 

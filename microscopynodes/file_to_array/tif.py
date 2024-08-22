@@ -27,6 +27,13 @@ class TifLoader(ArrayLoader):
                     context.scene.MiN_z_size = dict(ifstif.imagej_metadata)['spacing']
                 except Exception as e:
                     context.scene.property_unset("MiN_z_size")
+                try:
+                    if 'channels' in dict(ifstif.imagej_metadata):
+                        context.scene.MiN_channel_nr = dict(ifstif.imagej_metadata)['channels']
+                    else: 
+                        context.scene.MiN_channel_nr = 1
+                except Exception as e:
+                    bpy.context.scene.MiN_channel_nr = 0
         except Exception as e:
             context.scene.property_unset("axes_order")
             context.scene.property_unset("xy_size")

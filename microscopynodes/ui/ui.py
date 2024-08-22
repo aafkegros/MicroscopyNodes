@@ -1,6 +1,8 @@
 import bpy
 from .. import load
-from .. import props
+from . import props
+
+from .channel_list import *
 
 
 from bpy.types import (Panel,
@@ -22,27 +24,6 @@ class TIFLoadPanel(bpy.types.Panel):
         layout = self.layout
         scn = bpy.context.scene
 
-        layout.label(text = "Import Options", icon = "MODIFIER")
-        box = layout.box()
-        grid = box.grid_flow(columns = 1)
-        
-        grid.prop(bpy.context.scene, 'MiN_remake', 
-                        text = 'Force remaking vdb files', icon_value=0, emboss=True)
-        grid.prop(bpy.context.scene, 'MiN_preset_environment', 
-                        text = 'Preset environment', icon_value=0, emboss=True)
-
-        grid.label(text="Data storage:")
-        grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
-        props.CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
-        
-        
-        split = layout.split()
-        col = split.column()
-        col.prop(bpy.context.scene, 'MiN_Surface', text= 'Surfaces')
-        
-        col = split.column(align=True)
-        col.prop(bpy.context.scene, 'MiN_Emission', text= 'Emission')
-
         col = layout.column(align=True)
         col.label(text=".tif or .zarr:")
         row = col.row(align=True)
@@ -52,28 +33,60 @@ class TIFLoadPanel(bpy.types.Panel):
         if bpy.context.scene.MiN_selected_zarr_level != "":
             col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
         
+        # Create two columns, by using a split layout.
         split = layout.split()
-        col = split.column()
-        col.label(text="xy pixel size (µm):")
-        col.prop(scn, "MiN_xy_size")
 
-
+        # First column
         col = split.column(align=True)
+        col.alignment='RIGHT'
+        col.label(text="xy pixel size (µm):")
         col.label(text="z pixel size (µm):")
-        col.prop(scn, "MiN_z_size")
-        
-        col = layout.column(align=True)
-        col.prop(scn, "MiN_axes_order", text="axes")
-        
+        col.label(text="axes:")
+        if not bpy.context.scene.MiN_enable_ui:
+            col.enabled=False
 
-        col.label(text="(optional) channels of label masks")
-        col.prop(bpy.context.scene, 'MiN_mask_channels', 
-                        placeholder = 'e.g. 0, 3, 4',  # this is for blender 4.1
-                        icon_value=0, emboss=True)
+        # Second column, aligned
+        col = split.column(align=True)
+        col.prop(scn, "MiN_xy_size", emboss=True)
+        col.prop(scn, "MiN_z_size", emboss=True)
+        col.prop(scn, "MiN_axes_order", emboss=True)
+        
+        if not bpy.context.scene.MiN_enable_ui:
+            col.enabled=False
+        
+        col = layout.column(align=False)  
 
-        col.label(text="  ")
-#        layout.label(text="Big Button:")
-        layout.operator("tiftool.load")
+        col.template_list("SCENE_UL_Channels", "", bpy.context.scene, "MiN_channelList", bpy.context.scene, "MiN_ch_index", rows=max(len(bpy.context.scene.MiN_channelList),1))
+
+        if not bpy.context.scene.MiN_enable_ui:
+            col.enabled=False
+
+        row = col.row(align=False)
+        row.prop(bpy.context.scene, 'MiN_reload_data_of', icon="OUTLINER_OB_EMPTY", text='Reload data')
+        
+        layout.separator()
+        col = layout.column(align=False)  
+        col.operator("tiftool.load")
+        if not bpy.context.scene.MiN_enable_ui:
+            col.enabled=False
+        
+        layout.separator()
+
+        box = layout.box()
+        grid = box.grid_flow(columns = 1)
+
+        grid.label(text="Data storage:", icon="FILE_FOLDER")
+        grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
+        props.CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
+
+        row = grid.split(factor=0.4)
+        row.prop(bpy.context.scene, 'MiN_remake', 
+                        text = 'Overwrite files', icon_value=0, emboss=True)
+        row.prop(bpy.context.scene, 'MiN_preset_environment', 
+                        text = 'Set environment', icon_value=0, emboss=True)
+
+
+
 
 
 
@@ -120,7 +133,7 @@ class TifLoadOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 class ZarrSelectOperator(bpy.types.Operator):
-    """ Select Zarr dataset"""
+    """Select Zarr dataset"""
     bl_idname = "microscopynodes.zarrselection"
     bl_label = "Zarr Selection"
     selected: bpy.props.StringProperty()
@@ -130,7 +143,7 @@ class ZarrSelectOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 class CacheSelectOperator(bpy.types.Operator):
-    """ Select Zarr dataset"""
+    """Select local storage location. This will host copies of all data in blender-compatible formats."""
     bl_idname = "microscopynodes.cacheselection"
     bl_label = "Cache Selection"
     selected: bpy.props.StringProperty()

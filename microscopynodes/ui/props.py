@@ -1,9 +1,11 @@
 import bpy
 from bpy.props import (StringProperty, FloatProperty,
-                        PointerProperty, IntProperty
+                        PointerProperty, IntProperty,
+                        BoolProperty
                         )
 
-from .file_to_array import change_path, change_zarr_level
+from ..file_to_array import change_path, change_zarr_level
+from .channel_list import set_channels
 from pathlib import Path
 import tempfile
 import functools
@@ -15,7 +17,7 @@ CACHE_LOCATIONS = {
     'Temporary' : {
         'icon' : 'FILE_HIDDEN',
         'cache_dir' : functools.partial(tempfile.gettempdir),
-        'ui_element': functools.partial(lambda ui_layout : ui_layout.label(text ='Deleted files may break your project', icon='SEQUENCE_COLOR_01'))
+        'ui_element': functools.partial(lambda ui_layout : ui_layout.label(text ='Deleted files may need to be reloaded', icon="ERROR"))
     },
     'Path' : {
         'icon' : 'FILE_CACHE',
@@ -41,25 +43,13 @@ bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
 
 bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
     name = "MiN_preset_environment", 
-    description = "Set environment variables for easy initial rendering. Will overwrite previous settings.",
-    default = True
-    )
-
-bpy.types.Scene.MiN_Emission = bpy.props.BoolProperty(
-    name = "MiN_Emission", 
-    description = "Volumes emit light, instead of absorbing light",
-    default = True
-    )
-
-bpy.types.Scene.MiN_Surface = bpy.props.BoolProperty(
-    name = "MiN_surface", 
-    description = "Load thresholded surface object",
+    description = "Set environment variables for easy initial rendering, useful for first load.\nWill overwrite previous settings",
     default = True
     )
 
 bpy.types.Scene.MiN_input_file = StringProperty(
         name="",
-        description="tif file",
+        description="image path, either to tif file, zarr root folder or zarr URL",
         update= change_path,
         options = {'TEXTEDIT_UPDATE'},
         default="",
@@ -90,7 +80,7 @@ bpy.types.Scene.MiN_cache_dir = StringProperty(
 bpy.types.Scene.MiN_axes_order = StringProperty(
         name="",
         description="axes order (out of tzcyx)",
-        default="zyx",
+        default="",
         maxlen=6)
     
 bpy.types.Scene.MiN_xy_size = FloatProperty(
@@ -116,3 +106,23 @@ bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
         default= ""
         )
 
+bpy.types.Scene.MiN_reload_data_of = PointerProperty(
+        name = "", 
+        description = "Reload data of Microscopy Nodes object.\nCan be used to replace deleted (temp) files, change resolution, or channel settings.\nUsage: Point to previously loaded microscopy data.\nWarning: Will replace Geometry Nodes settings",
+        type=bpy.types.Object
+        )
+
+bpy.types.Scene.MiN_ch_index = IntProperty(
+        name = "", 
+        )
+
+bpy.types.Scene.MiN_channel_nr = IntProperty(
+        name = "", 
+        default = 0,
+        update = set_channels,
+        )
+
+bpy.types.Scene.MiN_enable_ui = BoolProperty(
+        name = "", 
+        default = False,
+    )

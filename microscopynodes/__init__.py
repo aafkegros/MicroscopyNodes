@@ -35,7 +35,7 @@ all_classes = (
     file_to_array.CLASSES
 )
 
-
+# print(all_classes)
 def _test_register():
     try:
         register()
@@ -53,6 +53,7 @@ def register():
             print(op, e)
             pass
     bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=file_to_array.ZarrLevelsGroup)
+    bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
 
 
 def unregister():
