@@ -6,7 +6,6 @@ def mutex_labelmask(self, context):
         self.volume = False
         self.emission = False
         self.surface = False
-    print(self.labelmask)
 
 def mutex_volume(self, context):
     if self.volume:
@@ -21,12 +20,13 @@ def mutex_surface(self, context):
         self.labelmask = False
 
 class ChannelDescriptor(bpy.types.PropertyGroup):
-    ix : bpy.props.IntProperty() # not UI-changable or visualized
+    ix : bpy.props.IntProperty() # channel in the image array
     name : bpy.props.StringProperty(description="Channel name (editable)")
     volume : bpy.props.BoolProperty(description="Load data as volume", default=True, update=mutex_volume)
     emission : bpy.props.BoolProperty(description="Volume data emits light on load\n(off is recommended for EM)", default=True, update=mutex_emission)
-    surface : bpy.props.BoolProperty(description="Load surface object.\nAlso useful for binary masks\nHeavy for complicated geometry", default=True, update=mutex_surface)
+    surface : bpy.props.BoolProperty(description="Load surface object as visible.\nAlso useful for binary masks\nHeavy for complicated geometry", default=True, update=mutex_surface)
     labelmask : bpy.props.BoolProperty(description="Load as labelmask as separate objects.\nExpects objects in the mask per integer value", default=False, update=mutex_labelmask)
+    materials :  bpy.props.BoolProperty(description="Internal value to load materials, turned off when reloading", default=True)
     # The scene collectionproperty is created in __init__ of the package due to registration issues:
     # bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.ChannelDescriptor)
 
@@ -59,13 +59,16 @@ class SCENE_UL_Channels(UIList):
 
 def set_channels(self, context):
     bpy.context.scene.MiN_channelList.clear()
-    print('setting channels', bpy.context.scene.MiN_channel_nr)
+
     for ch in range(bpy.context.scene.MiN_channel_nr):
         channel = bpy.context.scene.MiN_channelList.add()
         channel.ix = ch
         channel.name = f"Channel {ch}"
-        # channel.volume = True
+        # set all defaults explicitly so they are created as keys
+        channel.volume = True
+        channel.emission = True
         channel.surface = True
         channel.labelmask = False
+        channel.materials = True
 
 CLASSES = [ChannelDescriptor, SCENE_UL_Channels]

@@ -8,9 +8,10 @@ def load_slice_cube(to_be_sliced, size_px, scale):
     slicecube.scale = size_px * scale /2 
 
     for obj in to_be_sliced:
-        for mat in obj.data.materials:
-            if mat.node_tree.nodes.get("Slice Cube") is None:
-                handle_blender_structs.node_handling.insert_slicing(mat.node_tree, slicecube)
+        if obj is not None:
+            for mat in obj.data.materials:
+                if mat.node_tree.nodes.get("Slice Cube") is None:
+                    handle_blender_structs.node_handling.insert_slicing(mat.node_tree, slicecube)
 
     mat = bpy.data.materials.new(f'Slice Cube')
     mat.blend_method = "HASHED"

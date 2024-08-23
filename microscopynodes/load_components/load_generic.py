@@ -23,7 +23,7 @@ def init_holder(name, loadables, shaders):
     inputnode.location = (-900, 0)
 
     for ix, (loadable, shader) in enumerate(zip(loadables, shaders)):
-        interface.new_socket(f"{loadable.name}", in_out="INPUT",socket_type='NodeSocketBool')
+        interface.new_socket(name=f"{loadable.name}", in_out="INPUT",socket_type='NodeSocketBool')
         identifier = interface.items_tree[-1].identifier
         obj.modifiers[-1][identifier] = True
         if isinstance(loadable, bpy_types.Collection):

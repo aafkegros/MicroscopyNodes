@@ -259,15 +259,17 @@ def import_abc_and_loc(maskchannel, scale, cache_dir, is_sequence):
     collection_activate(*parentcoll)
     return mask_objs, channel_collection
 
-def load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order):
+def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order):
     mask_objs = []
     mask_colls, mask_shaders = [], []
     locations = {}
     
     collection_activate(*cache_coll)
-    for ch in mask_arrays:
-        if not Path(abcfname(cache_dir, ch,0)).exists() or remake:
-            export_alembic_and_loc(mask_arrays[ch]['data'], ch, cache_dir, remake, axes_order)
+    for ch in ch_dicts:
+        if ch['labelmask'] == False:
+            continue
+        if not Path(abcfname(cache_dir, ch['ix'],0)).exists() or remake:
+            export_alembic_and_loc(ch['data'], ch, cache_dir, remake, axes_order)
         objs, coll = import_abc_and_loc(ch, scale, cache_dir,is_sequence=('t' in axes_order))
         
         mask_objs.extend(objs)

@@ -13,39 +13,44 @@ from mathutils import Matrix
 
 def load():
     # Handle all globals to be scoped after this - axes order in particular gets internally changed sometimes 
-    
     axes_order = bpy.context.scene.MiN_axes_order
     remake = bpy.context.scene.MiN_remake
     xy_size = bpy.context.scene.MiN_xy_size
     z_size = bpy.context.scene.MiN_z_size
-    mask_channels = bpy.context.scene.MiN_mask_channels
-    surfaces = bpy.context.scene.MiN_Surface
-    emission = bpy.context.scene.MiN_Emission
 
     if bpy.context.scene.MiN_cache_dir == '':
         raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
+    
     input_file = bpy.context.scene.MiN_input_file
     update_cache_dir(None, bpy.context.scene) # make sure 'With Project is at current fname'
-    cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem
+    
+    # create folder for this dataset with filename/(zarr_level/)
+    cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(input_file).stem 
     if  bpy.context.scene.MiN_selected_zarr_level != "":
         cache_dir = cache_dir / bpy.context.scene.MiN_selected_zarr_level.split(":")[0]
+    cache_dir.mkdir(parents=True, exist_ok=True)
     
     if bpy.context.scene.MiN_preset_environment:
         preset_environment()    
-        if not emission:
+        if not any(ch.emission for ch in bpy.context.scene.MiN_channelList):
             preset_em_environment()
     
     if xy_size <= 0  or z_size <= 0:
         raise ValueError("cannot do zero-size pixels")
 
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    
+    # make and get collections
     base_coll = collection_by_name('Microscopy Nodes', supercollections=[])
     collection_activate(*base_coll)
     collection_by_name('cache',supercollections=[])
     cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=True)
     
-    ch_arrays, size_px = load_array(input_file, axes_order, mask_channels)
+    # TODO change this to a callback function on change channel name instead
+    ch_names = [ch["name"] for ch in bpy.context.scene.MiN_channelList]
+    if len(set(ch_names)) < len(ch_names):
+        raise ValueError("No duplicate channel names allowed")
+
+    # loading array uses some global bpy.context.scene params
+    ch_dicts, size_px = load_array(input_file, axes_order) 
     axes_order = axes_order.replace('c', "") # channels are separated
 
     to_be_parented = []
@@ -55,23 +60,19 @@ def load():
     scale =  np.array([1,1,z_size/xy_size])*init_scale
     loc =  tuple(center_loc * size_px*scale)
 
-    if any([ch_dct['volume']==True for ch_dct in ch_arrays.values()]): 
-        volume_channels = {k:v for k, v in ch_arrays.items() if v['volume'] == True}
-        volume_inputs, bbox_px = arrays_to_vdb_files(volume_channels, axes_order, remake, cache_dir)
-        vol_obj, volume_inputs = load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission)
-        for volume_input in volume_inputs.values():
-            to_be_parented.extend([vol for vol in volume_input['collection'].all_objects])
-        to_be_parented.extend([vol_obj])
-        if surfaces:
-            surf_obj = load_surfaces(volume_inputs, scale, cache_coll, base_coll)
-            to_be_parented.extend([surf_obj])
-    
+    ch_dicts, bbox_px = arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir)
+    vol_obj, ch_dicts = load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll)
+    for ch in ch_dicts:
+        if 'collection' in ch:
+            to_be_parented.extend([vol for vol in ch['collection'].all_objects])
+    to_be_parented.extend([vol_obj])
 
-    if any([ch_dct['mask']==True for ch_dct in ch_arrays.values()]): 
-        mask_arrays = {k : v for k, v in ch_arrays.items() if v['mask'] == True}
-        mask_obj, mask_colls = load_labelmask(mask_arrays, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
-        [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
-        to_be_parented.extend([mask_obj])
+    surf_obj = load_surfaces(ch_dicts, scale, cache_coll, base_coll)
+    to_be_parented.extend([surf_obj])
+    
+    mask_obj, mask_colls = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
+    [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
+    to_be_parented.extend([mask_obj])
 
     slicecube = load_slice_cube(to_be_parented, size_px, scale)
     to_be_parented.append(slicecube)
@@ -83,7 +84,8 @@ def load():
     collection_deactivate_by_name('cache')
     axes_obj.select_set(True)
 
-    bpy.context.scene.MiN_preset_environment = False 
+    # after first load this should not be used again, to prevent overwriting user values
+    bpy.context.scene.MiN_preset_environment = False
     return
 
 

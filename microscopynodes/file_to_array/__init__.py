@@ -20,9 +20,9 @@ def change_path(self, context):
 
 
 
-def load_array(input_file, axes_order, mask_channels_str):
+def load_array(input_file, axes_order):
     for Loader in [TifLoader, ZarrLoader]:
         loader = Loader()
         if loader.checkPath():
-            return loader.unpack_array(input_file, axes_order, mask_channels_str)
+            return loader.unpack_array(input_file, axes_order)
 
