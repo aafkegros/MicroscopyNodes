@@ -7,7 +7,7 @@ import itertools
 import skimage
 import scipy
 
-from .load_generic import init_holder
+from .load_generic import init_holder, ch_present, update_holder
 from ..handle_blender_structs import *
 from .. import min_nodes
 
@@ -28,9 +28,9 @@ def arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir):
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
     bbox_px = None
     for ch in ch_dicts:
+        ch['local_files'] = []
         if ch['volume'] == False and ch['surface'] == False:
             continue
-        ch['local_files'] = []
         imgdata = ch['data']
         
         slices = []
@@ -149,7 +149,6 @@ def shader_histogram(nodes, links, in_node, loc_x, hist, threshold):
 
 
 def volume_materials(ch_dicts):
-    mats = []
     # do not check whether it exists, so a new load will force making a new mat
     for vol_ix, ch in enumerate(ch_dicts):
         mat = bpy.data.materials.new(f"{ch['name']} shader")
@@ -210,34 +209,31 @@ def volume_materials(ch_dicts):
             links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
         else:
             links.new(add.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
-        
-        mats.append(mat)
-    return mats
+        ch['material'] = mat
+    return 
 
 
-def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll):
+def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
     # consider checking whether all channels are present in vdb for remaking?
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
     volumes = []
     print(ch_dicts)
-    # necessary to support multi-file import
+
     bpy.types.Scene.files: CollectionProperty(
         type=bpy.types.OperatorFileListElement,
         options={'HIDDEN', 'SKIP_SAVE'},
     )
     
     for ch in ch_dicts:
-        if ch['volume'] == False and ch['surface'] == False:
-            continue
+        # this does not load labelmask data as len of local files is 0
         ch_collection, ch_lcoll = make_subcollection(f"{ch['name']}")
         ch['collection'] = ch_collection
         histtotal = np.zeros(NR_HIST_BINS)
         for chunk in ch['local_files']:
             already_loaded = list(ch_collection.all_objects)
-
             bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
-            # vol = bpy.context.view_layer.objects.active
+
             for vol in ch_collection.all_objects:
                 if vol not in already_loaded:   
                     pos = chunk['pos']
@@ -245,38 +241,30 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll):
                 
                     vol.scale = scale
                     vol.data.frame_offset = -1
-                    
-                    vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
-
                     vol.data.frame_start = 0
+                    
+                    vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)                    
             for hist in chunk['histfiles']:
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
+        # this defaults to working with 0s if no data was loaded
         ch['min_val'],ch['max_val'] = get_leading_trailing_zero_float(histtotal)
         ch['histnorm'] = histtotal[int(ch['min_val'] * NR_HIST_BINS): int(ch['max_val'] * NR_HIST_BINS)]
         ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )
+        
+        histcrop = ch['histnorm'][int(ch['threshold'] * len(ch['histnorm'])):]
+        ch['surf_threshold'] = skimage.filters.threshold_isodata(hist=histcrop)/len(histcrop)
+        
         collection_activate(vol_collection, vol_lcoll)
 
     collection_activate(*base_coll)
     
     vol_ch = [ch for ch in ch_dicts if ch['volume'] or ch['surface']]
-    if len(vol_ch) > 0:
-        materials = volume_materials(vol_ch) 
-        volume_colls = [ch['collection'] for ch in vol_ch]
-        vol_obj = init_holder('volume',volume_colls, materials)
+    if len(vol_ch) > 0 and vol_obj is None:
+        vol_obj = init_holder('volume')
 
-        for ix, ch in enumerate(ch_dicts):
-            for socket in vol_obj.modifiers[-1].node_group.interface.items_tree:
-                if socket.name == ch['name'] and not ch['volume']:
-                    vol_obj.modifiers[-1][socket.identifier] = False
-
-        for mat in vol_obj.data.materials:
-            # try to make sure color ramp is immediately visibile under Volume shader
-            # mat.node_tree.nodes["Slice Cube"].inputs[0].show_expanded = True
-            try:
-                mat.node_tree.nodes["Emission"].inputs[0].show_expanded = True
-            except:
-                pass
-    else:
-        vol_obj = None
+    # only generate new materials for new channels, appends them as ch_dict[ch]['material']
+    volume_materials([ch for ch in vol_ch if not ch_present(vol_obj, ch['identifier'])])
+    # obj.data.materials.append(shader)
+    update_holder(vol_obj, ch_dicts, 'volume')
     return vol_obj, ch_dicts

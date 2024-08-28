@@ -70,9 +70,9 @@ def load():
     surf_obj = load_surfaces(ch_dicts, scale, cache_coll, base_coll)
     to_be_parented.extend([surf_obj])
     
-    mask_obj, mask_colls = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
-    [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
-    to_be_parented.extend([mask_obj])
+    # mask_obj, mask_colls = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order)
+    # [to_be_parented.extend([mask for mask in mask_coll.all_objects])for mask_coll in mask_colls]
+    # to_be_parented.extend([mask_obj])
 
     slicecube = load_slice_cube(to_be_parented, size_px, scale)
     to_be_parented.append(slicecube)
