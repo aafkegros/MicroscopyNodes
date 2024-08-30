@@ -56,13 +56,13 @@ class TIFLoadPanel(bpy.types.Panel):
         
         col = layout.column(align=False)  
 
-        col.template_list("SCENE_UL_Channels", "", bpy.context.scene, "MiN_channelList", bpy.context.scene, "MiN_ch_index", rows=max(len(bpy.context.scene.MiN_channelList),1))
+        col.template_list("SCENE_UL_Channels", "", bpy.context.scene, "MiN_channelList", bpy.context.scene, "MiN_ch_index", rows=max(len(bpy.context.scene.MiN_channelList),1),sort_lock=True)
 
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
 
         row = col.row(align=False)
-        row.prop(bpy.context.scene, 'MiN_reload_data_of', icon="OUTLINER_OB_EMPTY", text='Reload data')
+        row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_EMPTY", text='Reload data')
         
         layout.separator()
         col = layout.column(align=False)  

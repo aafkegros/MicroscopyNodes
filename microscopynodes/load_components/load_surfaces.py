@@ -3,8 +3,11 @@ import bpy
 from .load_generic import *
 from ..handle_blender_structs import *
     
-def surf_material(ch_dicts):
+def surf_material(surf_obj, ch_dicts):
     # do not check whether it exists, so a new load will force making a new mat
+    mod = get_min_gn(surf_obj)
+    all_ch_present = len([node.name for node in mod.node_group.nodes if f"channel_load" in node.name])
+
     for ix, ch in enumerate(ch_dicts):
         mat = bpy.data.materials.new(f"{ch['name']} surface")
         mat.blend_method = "HASHED"
@@ -19,7 +22,10 @@ def surf_material(ch_dicts):
                 print(e)
             princ = nodes.new("ShaderNodeBsdfPrincipled")
             links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
-        nodes.get("Principled BSDF").inputs.get('Base Color').default_value = get_cmap('hue-wheel', maxval=len(ch_dicts))[ix]
+        
+        color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
+        all_ch_present += 1
+        nodes.get("Principled BSDF").inputs.get('Base Color').default_value = color
         ch['material'] = mat
     return 
 
@@ -92,9 +98,12 @@ def load_surfaces(ch_dicts, scale, cache_coll, base_coll, surf_obj=None):
     vol_ch = [ch for ch in ch_dicts if ch['volume'] or ch['surface']]
     if len(vol_ch) > 0 and surf_obj is None:
         surf_obj = init_holder('surface')
-    
+    if surf_obj is None:
+        return None
+
     new_channels = [ch for ch in vol_ch if not ch_present(surf_obj, ch['identifier'])]
-    surf_material(new_channels)
+    [ch.update({"material":None}) for ch in ch_dicts]
+    surf_material(surf_obj, new_channels)
     surf_obj = update_holder(surf_obj, ch_dicts, 'surface')
 
     for ix, ch in enumerate(new_channels):

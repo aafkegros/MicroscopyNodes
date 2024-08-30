@@ -20,8 +20,8 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty(description="Channel name (editable)")
     volume : bpy.props.BoolProperty(description="Load data as volume", default=True, update=mutex_volume)
     emission : bpy.props.BoolProperty(description="Volume data emits light on load\n(off is recommended for EM)", default=True)
-    surface : bpy.props.BoolProperty(description="Load surface object as visible.\nAlso useful for binary masks\nHeavy for complicated geometry", default=True, update=mutex_surface)
-    labelmask : bpy.props.BoolProperty(name="Load labelmask",description="Load separate meshes per integer value\nOnly necessary for masks with touching separate objects\nLess flexible than Surface loading.", default=False, update=mutex_labelmask)
+    surface : bpy.props.BoolProperty(description="Load isosurface object.\nAlso useful for binary masks", default=True, update=mutex_surface)
+    labelmask : bpy.props.BoolProperty(description="Do not use on regular images.\nLoads separate values in the mask as separate mesh objects", default=False, update=mutex_labelmask)
     surf_resolution : bpy.props.EnumProperty(
         name = "Meshing density of surfaces and masks",
         items=[
@@ -38,10 +38,11 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
 
 class SCENE_UL_Channels(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        self.use_filter_show =False #filtering is currently unsupported
         channel = item
-        # row = layout.split(factor=0.3, align=True)
+
         row = layout.row( align=True)
-        row.prop(channel, "name", text="", emboss=False)
+        row.prop(channel, "name", text="", emboss=True)
         
         volumecheckbox = "OUTLINER_OB_VOLUME" if channel.volume else "VOLUME_DATA"
         row.prop(channel, "volume", text="", emboss=True, icon=volumecheckbox)
@@ -51,8 +52,6 @@ class SCENE_UL_Channels(UIList):
 
         maskcheckbox = "OUTLINER_OB_POINTCLOUD" if channel.labelmask else "POINTCLOUD_DATA"
         row.prop(channel, "labelmask", text="", emboss=True, icon=maskcheckbox)
-
-        # row = row.split(factor=0.1, align=True)
 
         emitcheckbox = "OUTLINER_OB_LIGHT" if channel.emission else "LIGHT_DATA"
         row.prop(channel, "emission", text="", emboss=False, icon=emitcheckbox)

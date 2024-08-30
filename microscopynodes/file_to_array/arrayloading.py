@@ -30,7 +30,10 @@ class ArrayLoader():
         for channel in bpy.context.scene.MiN_channelList:
             ch_arrays.append({k:v for k,v in channel.items()}) # take over settings from UI
             ch_arrays[-1]['data'] = np.take(imgdata, indices=channel.ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
+            
             ch_arrays[-1]['identifier'] = f"ch_id{channel['ix']}" # right now, reloadable identity is only channel number
+            ch_arrays[-1]['collection'] = None
+            ch_arrays[-1]['material'] = None
         return ch_arrays, size_px
 
 

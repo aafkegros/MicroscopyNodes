@@ -13,7 +13,7 @@ def init_holder(name):
 
     node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')  
     obj.modifiers[-1].node_group = node_group
-    obj.modifiers[-1].name = f"Microscopy Nodes {name}"
+    obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
     node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
 
     inputnode = node_group.nodes.new('NodeGroupInput')
@@ -33,27 +33,20 @@ def update_holder(obj, ch_dicts, activate_key):
     for ch in ch_dicts:
         if ch_present(obj, ch['identifier']):
             update_channel(node_group, ch) # only changes name of data
-        else: 
+        elif ch['collection'] is not None: 
             append_channel_to_holder(node_group, ch)
         
-        gn_mod[get_socket(node_group, ch['identifier'])[0]] = bool(ch[activate_key])
+        socket_id = get_socket(node_group, ch['identifier'])[0]
+        print(activate_key, ' set socket' ,socket_id)
+        if socket_id is not None:
+            gn_mod[socket_id] = bool(ch[activate_key])
     return obj
 
-def get_min_gn(obj):
-    for mod in obj.modifiers:
-        if 'Microscopy Nodes' in mod.name:
-            return mod
-    return None
-
-
-def ch_present(obj, identifier):
-    return f"channel_load_{identifier}" in [node.name for node in get_min_gn(obj).node_group.nodes]
-
-def update_channel(node_group, ch_dict):
+def update_channel(node_group, ch):
     loadnode = node_group.nodes[f"channel_load_{ch['identifier']}"]
-    loadnode.label = ch_dict['name']
+    loadnode.label = ch['name']
     if loadnode.parent is not None:
-        loadnode.parent = f"{ch_dict['name']} data"
+        loadnode.parent.label = f"{ch['name']} data"
     return
 
 def append_channel_to_holder(node_group, ch_dict):
@@ -136,10 +129,24 @@ def channel_nodes(node_group, x, y, ch):
     return switch.inputs.get("Switch"), setmat.outputs[0]
 
 
-def init_container(objects, location, name):
-    container = bpy.ops.object.empty_add(type="PLAIN_AXES",location=location)
-    container = bpy.context.view_layer.objects.active
-    container.name = name 
+def get_min_gn(obj):
+    for mod in obj.modifiers:
+        if 'Microscopy Nodes' in mod.name:
+            return mod
+    return None
+
+def ch_present(obj, identifier):
+    return f"channel_load_{identifier}" in [node.name for node in get_min_gn(obj).node_group.nodes]
+
+def all_ch_present(obj):
+    return [node.name for node in get_min_gn(obj).node_group.nodes if f"channel_load" in node.name]
+
+
+def init_container(objects, location, name, container=None):
+    if container is None:
+        container = bpy.ops.object.empty_add(type="PLAIN_AXES",location=location)
+        container = bpy.context.view_layer.objects.active
+        container.name = name 
 
     for obj in objects:
         if obj is None:
@@ -147,6 +154,7 @@ def init_container(objects, location, name):
         obj.parent = container
         obj.matrix_parent_inverse = container.matrix_world.inverted()
 
-    container.location = (0,0,0)
+    if container is not None:
+        container.location = (0,0,0)
     return container
 

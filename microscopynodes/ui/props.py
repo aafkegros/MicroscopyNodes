@@ -6,6 +6,7 @@ from bpy.props import (StringProperty, FloatProperty,
 
 from ..file_to_array import change_path, change_zarr_level
 from .channel_list import set_channels
+from ..load_components.load_generic import get_min_gn
 from pathlib import Path
 import tempfile
 import functools
@@ -106,11 +107,6 @@ bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
         default= ""
         )
 
-bpy.types.Scene.MiN_reload_data_of = PointerProperty(
-        name = "", 
-        description = "Reload data of Microscopy Nodes object.\nCan be used to replace deleted (temp) files, change resolution, or channel settings.\nUsage: Point to previously loaded microscopy data.\nWarning: Will replace Geometry Nodes settings",
-        type=bpy.types.Object
-        )
 
 # necessary to make uilist work
 bpy.types.Scene.MiN_ch_index = IntProperty(
@@ -127,3 +123,17 @@ bpy.types.Scene.MiN_enable_ui = BoolProperty(
         name = "", 
         default = False,
     )
+
+def poll_empty(self, object):
+    if object.type != 'EMPTY':
+        return False
+    if any([get_min_gn(child) != None for child in object.children]):
+        return True
+    return False
+
+bpy.types.Scene.MiN_reload = PointerProperty(
+        name = "", 
+        description = "Reload data of Microscopy Nodes object.\nCan be used to replace deleted (temp) files, change resolution, or channel settings.\nUsage: Point to previously loaded microscopy data.",
+        type=bpy.types.Object,
+        poll=poll_empty,
+        )

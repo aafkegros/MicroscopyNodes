@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 
 from ..handle_blender_structs import *
-from .load_generic import init_holder
+from .load_generic import init_holder, update_holder
 
 
 def labelmask_shader(maskchannel, maxval):
@@ -259,25 +259,33 @@ def import_abc_and_loc(maskchannel, scale, cache_dir, is_sequence):
     collection_activate(*parentcoll)
     return mask_objs, channel_collection
 
-def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order):
+def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order, mask_obj=None):
     mask_objs = []
     mask_colls, mask_shaders = [], []
     locations = {}
     
+    # update_holder reads these aspects to set
+    [ch.update({"material":None, "collection":None}) for ch in ch_dicts]
+    mask_ch = [ch for ch in ch_dicts if ch['labelmask']]
+
     collection_activate(*cache_coll)
-    for ch in ch_dicts:
-        if ch['labelmask'] == False:
-            continue
+    for ch in mask_ch:
         if not Path(abcfname(cache_dir, ch['ix'],0)).exists() or remake:
-            export_alembic_and_loc(ch['data'], ch, cache_dir, remake, axes_order)
-        objs, coll = import_abc_and_loc(ch, scale, cache_dir,is_sequence=('t' in axes_order))
-        
-        mask_objs.extend(objs)
-        mask_colls.append(coll)
-        mask_shaders.append(labelmask_shader(ch,np.max(mask_arrays[ch]['data']) + 1))
+            export_alembic_and_loc(ch['data'], ch['ix'], cache_dir, remake, axes_order)
+        objs, coll = import_abc_and_loc(ch['ix'], scale, cache_dir,is_sequence=('t' in axes_order))
+
+        ch['collection'] = coll
+        ch['material'] = labelmask_shader(ch,np.max(ch['data']) + 1)
     collection_activate(*base_coll)
-    mask_obj = init_holder('masks' ,mask_colls, mask_shaders)
-    return mask_obj, mask_colls
+
+    
+    if len(mask_ch) > 0 and mask_obj is None:
+        mask_obj = init_holder('labelmasks')
+    if mask_obj is None:
+        return None
+
+    mask_obj = update_holder(mask_obj ,ch_dicts, 'labelmask')
+    return mask_obj
 
 
 

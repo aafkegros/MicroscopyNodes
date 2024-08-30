@@ -7,7 +7,7 @@ import itertools
 import skimage
 import scipy
 
-from .load_generic import init_holder, ch_present, update_holder
+from .load_generic import *
 from ..handle_blender_structs import *
 from .. import min_nodes
 
@@ -82,16 +82,15 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
         histfname = dirpath / f"{identifier5d}_hist.npy"
         time_vdbs.append({"name":str(vdbfname.name)})
         time_hists.append({"name":str(histfname.name)})
-        if not vdbfname.exists() or not histfname.exists() or remake :
-            # print('remaking')
+        if( not vdbfname.exists() or not histfname.exists()) or remake :
             if vdbfname.exists():
                 vdbfname.unlink()
             if histfname.exists():
                 histfname.unlink()
             # frame.visualize(filename=f'/Users/oanegros/Documents/screenshots/stranspose-hlg{x_ix}_{y_ix}_{z_ix}.svg', engine='cytoscape')
-
             frame = frame.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
             arr = frame.compute()
+            
             # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
             histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
             histogram[0] = 0
@@ -145,12 +144,16 @@ def shader_histogram(nodes, links, in_node, loc_x, hist, threshold):
             histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
         histmap.curves[0].points[ix].handle_type = 'VECTOR'
     return ramp_node, histnode
-        
 
+def volume_materials(obj,ch_dicts):
+    mod = get_min_gn(obj)
+    all_ch_present = len([node.name for node in get_min_gn(obj).node_group.nodes if f"channel_load" in node.name])
 
-def volume_materials(ch_dicts):
-    # do not check whether it exists, so a new load will force making a new mat
     for vol_ix, ch in enumerate(ch_dicts):
+        if ch['collection'] is None:
+            ch['material'] = None
+            continue
+
         mat = bpy.data.materials.new(f"{ch['name']} shader")
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
@@ -174,7 +177,8 @@ def volume_materials(ch_dicts):
         normnode.hide = True
 
         ramp_node, hist_node2 = shader_histogram(nodes, links, normnode.outputs.get('Result'), -1000, ch['histnorm'], ch['threshold'])
-        color = get_cmap('hue-wheel', maxval=len(ch_dicts))[vol_ix]
+        color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
+        all_ch_present += 1
         ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
 
         scale = nodes.new(type='ShaderNodeVectorMath')
@@ -224,17 +228,29 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
         type=bpy.types.OperatorFileListElement,
         options={'HIDDEN', 'SKIP_SAVE'},
     )
-    
-    for ch in ch_dicts:
-        # this does not load labelmask data as len of local files is 0
-        ch_collection, ch_lcoll = make_subcollection(f"{ch['name']}")
-        ch['collection'] = ch_collection
+
+    # (re)load vdb data channels
+    vol_ch = [ch for ch in ch_dicts if ch['volume'] or ch['surface']]
+
+    if vol_obj is not None:
+        for ch in vol_ch:
+            if ch_present(vol_obj, ch['identifier']):
+                ch['collection'] = get_min_gn(vol_obj).node_group.nodes[f"channel_load_{ch['identifier']}"].inputs[0].default_value
+                [bpy.data.objects.remove(obj) for obj in ch['collection'].objects]
+
+    for ch in vol_ch:
+        collection_activate(vol_collection, vol_lcoll)
+        if ch['collection'] is None:
+            ch_collection, ch_lcoll = make_subcollection(f"{ch['name']}")
+            ch['collection'] = ch_collection
+        else:
+            collection_activate(*get_collection(ch['collection'].name, under_active_coll=True, duplicate=False))
         histtotal = np.zeros(NR_HIST_BINS)
         for chunk in ch['local_files']:
-            already_loaded = list(ch_collection.all_objects)
+            already_loaded = list(ch['collection'].all_objects)
             bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
 
-            for vol in ch_collection.all_objects:
+            for vol in ch['collection'].all_objects:
                 if vol not in already_loaded:   
                     pos = chunk['pos']
                     strpos = f"{pos[0]}{pos[1]}{pos[2]}"
@@ -242,29 +258,37 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
                     vol.scale = scale
                     vol.data.frame_offset = -1
                     vol.data.frame_start = 0
+                    vol.data.render.clipping = 1/ (2**17)
                     
                     vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)                    
             for hist in chunk['histfiles']:
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
-        # this defaults to working with 0s if no data was loaded
-        ch['min_val'],ch['max_val'] = get_leading_trailing_zero_float(histtotal)
-        ch['histnorm'] = histtotal[int(ch['min_val'] * NR_HIST_BINS): int(ch['max_val'] * NR_HIST_BINS)]
-        ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )
+        if np.sum(histtotal)> 0:
+            ch['min_val'],ch['max_val'] = get_leading_trailing_zero_float(histtotal)
+            ch['histnorm'] = histtotal[int(ch['min_val'] * NR_HIST_BINS): int(ch['max_val'] * NR_HIST_BINS)]
+            ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )
+            
+            histcrop = ch['histnorm'][int(ch['threshold'] * len(ch['histnorm'])):]
+            ch['surf_threshold'] = ch['threshold']
+            if len(histcrop) > 0:
+                ch['surf_threshold'] = skimage.filters.threshold_isodata(hist=histcrop)/len(histcrop)
+            print([i for i in histtotal][:20])
+            print(ch['min_val'], ch['max_val'], 7/(2**16))
         
-        histcrop = ch['histnorm'][int(ch['threshold'] * len(ch['histnorm'])):]
-        ch['surf_threshold'] = skimage.filters.threshold_isodata(hist=histcrop)/len(histcrop)
-        
-        collection_activate(vol_collection, vol_lcoll)
-
     collection_activate(*base_coll)
     
-    vol_ch = [ch for ch in ch_dicts if ch['volume'] or ch['surface']]
-    if len(vol_ch) > 0 and vol_obj is None:
-        vol_obj = init_holder('volume')
+    if len(vol_ch) > 0:
+        if vol_obj is None:
+            vol_obj = init_holder('volume')
+        else:
+            return None
 
     # only generate new materials for new channels, appends them as ch_dict[ch]['material']
-    volume_materials([ch for ch in vol_ch if not ch_present(vol_obj, ch['identifier'])])
-    # obj.data.materials.append(shader)
+    
+    volume_materials(vol_obj, ch_dicts)
+    for ch in ch_dicts:
+        if ch['material'] is not None:
+            vol_obj.data.materials.append(ch['material'])
     update_holder(vol_obj, ch_dicts, 'volume')
-    return vol_obj, ch_dicts
+    return vol_obj

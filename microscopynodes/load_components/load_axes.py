@@ -6,15 +6,19 @@ from ..handle_blender_structs.collection_handling import *
 from .. import min_nodes
 
 
-def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
-    axesobj = bpy.ops.mesh.primitive_cube_add(location=location)
-    axesobj = bpy.context.view_layer.objects.active
-    axesobj.data.name = 'axes'
-    axesobj.name = 'axes'
+def load_axes(size_px, init_scale, location, xy_size, z_size, input_file, axes_obj=None):
+    if not axes_obj is None:
+        return axes_obj
+    
+    axes_obj = bpy.ops.mesh.primitive_cube_add(location=location)
+    axes_obj = bpy.context.view_layer.objects.active
+    axes_obj.data.name = 'axes'
+    axes_obj.name = 'axes'
 
     bpy.ops.object.modifier_add(type='NODES')
-    node_group = bpy.data.node_groups.new('axes of ' + str(Path(input_file).stem) , 'GeometryNodeTree')  
-    axesobj.modifiers[-1].node_group = node_group
+    node_group = bpy.data.node_groups.new(f'axes', 'GeometryNodeTree')  
+    axes_obj.modifiers[-1].name = f"[Microscopy Nodes axes]"
+    axes_obj.modifiers[-1].node_group = node_group
     nodes = node_group.nodes
     links = node_group.links
 
@@ -82,16 +86,16 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
 
-    if axesobj.data.materials:
-        axesobj.data.materials[0] = init_material_axes()
+    if axes_obj.data.materials:
+        axes_obj.data.materials[0] = init_material_axes()
     else:
-        axesobj.data.materials.append(init_material_axes())
+        axes_obj.data.materials.append(init_material_axes())
 
     for dim in range(3):
-        axesobj.lock_location[dim] = True
-        axesobj.lock_rotation[dim] = True
-        axesobj.lock_scale[dim] = True
-    return axesobj
+        axes_obj.lock_location[dim] = True
+        axes_obj.lock_rotation[dim] = True
+        axes_obj.lock_scale[dim] = True
+    return axes_obj
 
 def init_material_axes():
     mat = bpy.data.materials.get("axes")
