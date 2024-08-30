@@ -273,9 +273,7 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
             ch['surf_threshold'] = ch['threshold']
             if len(histcrop) > 0:
                 ch['surf_threshold'] = skimage.filters.threshold_isodata(hist=histcrop)/len(histcrop)
-            print([i for i in histtotal][:20])
-            print(ch['min_val'], ch['max_val'], 7/(2**16))
-        
+
     collection_activate(*base_coll)
     
     if len(vol_ch) > 0:
@@ -290,5 +288,6 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
     for ch in ch_dicts:
         if ch['material'] is not None:
             vol_obj.data.materials.append(ch['material'])
+    print('updating volume holder')
     update_holder(vol_obj, ch_dicts, 'volume')
     return vol_obj
