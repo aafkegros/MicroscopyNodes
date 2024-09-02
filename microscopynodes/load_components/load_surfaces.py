@@ -47,7 +47,7 @@ def insert_vol_to_surf(surf_obj, ch):
     node_group.links.new(v2m.outputs.get('Mesh'), edit_out.inputs[0])
     
     socket_ix = get_socket(node_group, ch['identifier'])[1]
-    threshold_socket = new_socket(node_group, ch, 'NodeSocketFloat', append=' THRESHOLD', ix=socket_ix+1)
+    threshold_socket = new_socket(node_group, ch, 'NodeSocketFloat', append='Threshold', ix=socket_ix+1)
     threshold_socket.min_value = 0.0
     threshold_socket.max_value = 1.001
     threshold_socket.attribute_domain = 'POINT'
@@ -77,10 +77,10 @@ def update_resolution(gn_mod, ch):
     else:
         v2m.resolution_mode='VOXEL_SIZE'
     
-    socket, socket_ix = get_socket(node_group, f"{ch['identifier']} Voxel Size")
+    socket, socket_ix = get_socket(node_group, f"{ch['identifier']}", append='Voxel Size')
     if socket is None:
         socket_ix = get_socket(node_group, ch['identifier'])[1]
-        socket = new_socket(node_group, ch, 'NodeSocketFloat', append=' Voxel Size', ix=socket_ix+1)
+        socket = new_socket(node_group, ch, 'NodeSocketFloat', append='Voxel Size', ix=socket_ix+1)
     
     in_node = get_safe_node_input(node_group)
     node_group.links.new(in_node.outputs.get(socket.name), v2m.inputs.get('Voxel Size'))

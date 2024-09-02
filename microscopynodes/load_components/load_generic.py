@@ -47,6 +47,11 @@ def update_channel(node_group, ch):
     loadnode.label = ch['name']
     if loadnode.parent is not None:
         loadnode.parent.label = f"{ch['name']} data"
+    
+    for ix, socket in enumerate(node_group.interface.items_tree):
+        if ch['identifier'] in socket.default_attribute_name:
+            appended = socket.default_attribute_name.split('[', 1)[1].split(']')[0].removeprefix(ch['identifier'])
+            socket.name = ch['name'] + appended
     return
 
 def append_channel_to_holder(node_group, ch_dict):
@@ -137,10 +142,6 @@ def get_min_gn(obj):
 
 def ch_present(obj, identifier):
     return f"channel_load_{identifier}" in [node.name for node in get_min_gn(obj).node_group.nodes]
-
-def all_ch_present(obj):
-    return [node.name for node in get_min_gn(obj).node_group.nodes if f"channel_load" in node.name]
-
 
 def init_container(objects, location, name, container=None):
     if container is None:

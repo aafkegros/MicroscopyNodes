@@ -91,16 +91,16 @@ def new_socket(node_group, ch_dict, type, append="", ix=None):
     name = f"{ch_dict['collection'].name}{append}"
     node_group.interface.new_socket(name=name, in_out="INPUT",socket_type=type)
     identifier = node_group.interface.items_tree[-1].identifier
-    node_group.interface.items_tree[-1].default_attribute_name = f"[{ch_dict['identifier']}{append}]"
+    node_group.interface.items_tree[-1].default_attribute_name = f"[{ch_dict['identifier']} {append}]"
     if ix is not None:
         node_group.interface.move(node_group.interface.items_tree[name], ix)
         return node_group.interface.items_tree[ix]
     return node_group.interface.items_tree[-1]
 
-def get_socket(node_group, identifier):
+def get_socket(node_group, identifier, append=""):
     # note that this gets confusing with naming, this uses the MiN identifier to find the identifier of the Socket in the object
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if socket.default_attribute_name.removeprefix("[").removesuffix("]") == identifier:
+        if socket.default_attribute_name.removeprefix("[").removesuffix("]") == f"{identifier} {append}":
             return socket.identifier, ix
     return None, None
 

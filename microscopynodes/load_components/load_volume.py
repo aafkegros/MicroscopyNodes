@@ -279,8 +279,7 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
     if len(vol_ch) > 0:
         if vol_obj is None:
             vol_obj = init_holder('volume')
-        else:
-            return None
+        
 
     # only generate new materials for new channels, appends them as ch_dict[ch]['material']
     
