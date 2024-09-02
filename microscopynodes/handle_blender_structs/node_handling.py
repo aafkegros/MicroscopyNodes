@@ -1,6 +1,6 @@
 import bpy 
 from .. import min_nodes
-
+import re
 
 def  get_nodes_last_output(group):
     # fast function for tests and non-user changed trees
@@ -87,22 +87,39 @@ def append(node_name, link = False):
     
     return bpy.data.node_groups[node_name]
 
-def new_socket(node_group, ch_dict, type, append="", ix=None):
-    name = f"{ch_dict['collection'].name}{append}"
-    node_group.interface.new_socket(name=name, in_out="INPUT",socket_type=type)
-    identifier = node_group.interface.items_tree[-1].identifier
-    node_group.interface.items_tree[-1].default_attribute_name = f"[{ch_dict['identifier']} {append}]"
-    if ix is not None:
-        node_group.interface.move(node_group.interface.items_tree[name], ix)
-        return node_group.interface.items_tree[ix]
-    return node_group.interface.items_tree[-1]
 
-def get_socket(node_group, identifier, append=""):
-    # note that this gets confusing with naming, this uses the MiN identifier to find the identifier of the Socket in the object
+MIN_SOCKET_TYPES = {
+    'SWITCH' : "",
+    'VOXEL_SIZE' : "Voxel Size",
+    'THRESHOLD' : "Threshold"
+}
+
+def new_socket(node_group, ch, type, min_type, internal_append="", ix=None):
+    node_group.interface.new_socket(name="socket name not set", in_out="INPUT",socket_type=type)
+    socket = node_group.interface.items_tree[-1]
+
+    internalname = "_".join([ch['identifier'], min_type, internal_append])
+    socket.default_attribute_name = f"[{internalname}]"
+    set_name_socket(socket, ch['name'])
+    if ix is not None:
+        node_group.interface.move(socket, ix)
+    return socket
+
+def set_name_socket(socket, ch_name):
+    for min_type in MIN_SOCKET_TYPES:
+        if min_type in socket.default_attribute_name:
+            socket.name =  " ".join([ch_name, MIN_SOCKET_TYPES[min_type]])
+    return
+
+def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if socket.default_attribute_name.removeprefix("[").removesuffix("]") == f"{identifier} {append}":
-            return socket.identifier, ix
-    return None, None
+        if re.search(string=socket.default_attribute_name, pattern=f"{ch['identifier']}.{min_type}.{internal_append}+") is not None:
+            if return_ix:
+                return node_group.interface.items_tree[ix], ix
+            return node_group.interface.items_tree[ix]
+    if return_ix:
+        return None, None
+    return None
 
 
 def insert_slicing(group, slice_obj):

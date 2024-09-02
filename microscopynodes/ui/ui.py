@@ -45,7 +45,6 @@ class TIFLoadPanel(bpy.types.Panel):
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
 
-        # Second column, aligned
         col = split.column(align=True)
         col.prop(scn, "MiN_xy_size", emboss=True)
         col.prop(scn, "MiN_z_size", emboss=True)
@@ -61,8 +60,10 @@ class TIFLoadPanel(bpy.types.Panel):
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
 
-        row = col.row(align=False)
-        row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_EMPTY", text='Reload data')
+        row = col.row(align=True)
+        row.label(text="", icon='FILE_REFRESH')
+        row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_EMPTY")
+        
         
         layout.separator()
         col = layout.column(align=False)  
@@ -84,6 +85,7 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Overwrite files', icon_value=0, emboss=True)
         row.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = 'Set environment', icon_value=0, emboss=True)
+        
 
 
 

@@ -94,19 +94,12 @@ bpy.types.Scene.MiN_z_size = FloatProperty(
         description="z physical pixel size in micrometer",
         default=1.0)
 
-# bpy.types.Scene.MiN_mask_channels = StringProperty(
-#         name="",
-#         description="channels with an integer label mask",
-#         )
-
-
 bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
         name="",
         description="Selected zarr level/dataset",
         update= change_zarr_level,
         default= ""
         )
-
 
 # necessary to make uilist work
 bpy.types.Scene.MiN_ch_index = IntProperty(
@@ -137,3 +130,4 @@ bpy.types.Scene.MiN_reload = PointerProperty(
         type=bpy.types.Object,
         poll=poll_empty,
         )
+

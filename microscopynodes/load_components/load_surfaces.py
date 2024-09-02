@@ -46,8 +46,8 @@ def insert_vol_to_surf(surf_obj, ch):
     node_group.links.new(edit_in.outputs[0], v2m.inputs.get('Volume'))
     node_group.links.new(v2m.outputs.get('Mesh'), edit_out.inputs[0])
     
-    socket_ix = get_socket(node_group, ch['identifier'])[1]
-    threshold_socket = new_socket(node_group, ch, 'NodeSocketFloat', append='Threshold', ix=socket_ix+1)
+    socket_ix = get_socket(node_group, ch, return_ix=True, min_type="SWITCH")[1]
+    threshold_socket = new_socket(node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
     threshold_socket.min_value = 0.0
     threshold_socket.max_value = 1.001
     threshold_socket.attribute_domain = 'POINT'
@@ -71,25 +71,27 @@ def update_resolution(gn_mod, ch):
     if f"VOL_TO_MESH_{ch['identifier']}" not in [node.name for node in node_group.nodes]:
         return
     v2m = node_group.nodes[f"VOL_TO_MESH_{ch['identifier']}"]
+
     if ch['surf_resolution'] == 0:
         v2m.resolution_mode='GRID'
         return
     else:
         v2m.resolution_mode='VOXEL_SIZE'
     
-    socket, socket_ix = get_socket(node_group, f"{ch['identifier']}", append='Voxel Size')
-    if socket is None:
-        socket_ix = get_socket(node_group, ch['identifier'])[1]
-        socket = new_socket(node_group, ch, 'NodeSocketFloat', append='Voxel Size', ix=socket_ix+1)
-    
+    for i in range(4):
+        socket = get_socket(node_group, ch, min_type='VOXEL_SIZE', internal_append=str(i))
+        if socket is not None:
+            if i == ch['surf_resolution']:
+                return
+            node_group.interface.remove(item=socket)
+
+    socket_ix = get_socket(node_group, ch, min_type="SWITCH",return_ix=True)[1]
+    socket = new_socket(node_group, ch, 'NodeSocketFloat', min_type='VOXEL_SIZE',internal_append=f"{ch['surf_resolution']}", ix=socket_ix+1)
+
+    default_settings = [None, 0.5, 4, 15]
     in_node = get_safe_node_input(node_group)
     node_group.links.new(in_node.outputs.get(socket.name), v2m.inputs.get('Voxel Size'))
-    if ch['surf_resolution'] == 1:
-        gn_mod[socket.identifier] = 0.5
-    elif ch['surf_resolution'] == 2:
-        gn_mod[socket.identifier] = 4
-    elif ch['surf_resolution'] == 3:
-        gn_mod[socket.identifier] = 15
+    gn_mod[socket.identifier] = default_settings[ch['surf_resolution']]
     return
 
 def load_surfaces(ch_dicts, scale, cache_coll, base_coll, surf_obj=None):

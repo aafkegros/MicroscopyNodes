@@ -148,9 +148,9 @@ def shader_histogram(nodes, links, in_node, loc_x, hist, threshold):
 def volume_materials(obj,ch_dicts):
     mod = get_min_gn(obj)
     all_ch_present = len([node.name for node in get_min_gn(obj).node_group.nodes if f"channel_load" in node.name])
-
+    print('all channels present', all_ch_present)
     for vol_ix, ch in enumerate(ch_dicts):
-        if ch['collection'] is None:
+        if ch['collection'] is None or ch_present(obj, ch['identifier']):
             ch['material'] = None
             continue
 
@@ -177,6 +177,7 @@ def volume_materials(obj,ch_dicts):
         normnode.hide = True
 
         ramp_node, hist_node2 = shader_histogram(nodes, links, normnode.outputs.get('Result'), -1000, ch['histnorm'], ch['threshold'])
+        print('all channels present in loop', all_ch_present)
         color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
         all_ch_present += 1
         ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
@@ -287,6 +288,6 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
     for ch in ch_dicts:
         if ch['material'] is not None:
             vol_obj.data.materials.append(ch['material'])
-    print('updating volume holder')
+
     update_holder(vol_obj, ch_dicts, 'volume')
     return vol_obj

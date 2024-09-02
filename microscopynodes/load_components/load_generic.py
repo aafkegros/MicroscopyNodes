@@ -1,6 +1,7 @@
 import bpy, bpy_types
 from ..handle_blender_structs import *
 
+
 def init_holder(name):
     if name == 'volume':
         bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -32,26 +33,26 @@ def update_holder(obj, ch_dicts, activate_key):
     node_group = gn_mod.node_group
     for ch in ch_dicts:
         if ch_present(obj, ch['identifier']):
-            update_channel(node_group, ch) # only changes name of data
+            update_channel(gn_mod, ch) 
         elif ch['collection'] is not None: 
             append_channel_to_holder(node_group, ch)
         
-        socket_id = get_socket(node_group, ch['identifier'])[0]
-        print(activate_key, ' set socket' ,socket_id)
-        if socket_id is not None:
-            gn_mod[socket_id] = bool(ch[activate_key])
+        socket = get_socket(node_group, ch, min_type="SWITCH")
+        if socket is not None:
+            gn_mod[socket.identifier] = bool(ch[activate_key])
     return obj
 
-def update_channel(node_group, ch):
+def update_channel(gn_mod, ch):
+    from .load_surfaces import update_resolution
+    node_group = gn_mod.node_group
     loadnode = node_group.nodes[f"channel_load_{ch['identifier']}"]
     loadnode.label = ch['name']
     if loadnode.parent is not None:
         loadnode.parent.label = f"{ch['name']} data"
     
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if ch['identifier'] in socket.default_attribute_name:
-            appended = socket.default_attribute_name.split('[', 1)[1].split(']')[0].removeprefix(ch['identifier'])
-            socket.name = ch['name'] + appended
+        set_name_socket(socket, ch['name'])
+    update_resolution(gn_mod, ch)
     return
 
 def append_channel_to_holder(node_group, ch_dict):
@@ -66,7 +67,7 @@ def append_channel_to_holder(node_group, ch_dict):
         out_node.location[0] = in_node.location[0]+1200
 
     # add switch socket
-    socket = new_socket(node_group, ch_dict, 'NodeSocketBool')
+    socket = new_socket(node_group, ch_dict, 'NodeSocketBool', min_type="SWITCH")
     node_socket = in_node.outputs.get(socket.name)
 
     # make new channel
@@ -143,19 +144,17 @@ def get_min_gn(obj):
 def ch_present(obj, identifier):
     return f"channel_load_{identifier}" in [node.name for node in get_min_gn(obj).node_group.nodes]
 
-def init_container(objects, location, name, container=None):
-    if container is None:
-        container = bpy.ops.object.empty_add(type="PLAIN_AXES",location=location)
-        container = bpy.context.view_layer.objects.active
-        container.name = name 
+def init_container(objects, name, container_obj=None):
+    
+    if container_obj is None:
+        container_obj = bpy.ops.object.empty_add(type="PLAIN_AXES")
+        container_obj = bpy.context.view_layer.objects.active
+        container_obj.name = name 
 
     for obj in objects:
-        if obj is None:
+        if obj is None or obj in container_obj.children:
             continue
-        obj.parent = container
-        obj.matrix_parent_inverse = container.matrix_world.inverted()
+        obj.parent = container_obj
 
-    if container is not None:
-        container.location = (0,0,0)
-    return container
+    return container_obj
 

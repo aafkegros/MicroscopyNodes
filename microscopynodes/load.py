@@ -37,6 +37,11 @@ def load():
 
     to_be_parented = []
 
+    # if holders['container'] is not None:
+    #     loc = holders['container'].location
+    #     loc, scale = update_axes()
+    # else:
+    #     loc, scale = 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
     init_scale = 0.02
     scale =  np.array([1,1,z_size/xy_size])*init_scale
@@ -57,7 +62,7 @@ def load():
     axes_obj = load_axes(size_px, init_scale, loc, xy_size, z_size, input_file, axes_obj=holders['axes'])
     to_be_parented.extend([slicecube, axes_obj])
 
-    container = init_container(to_be_parented ,location=loc, name=Path(input_file).stem, container=holders['container'])
+    container_obj = init_container(to_be_parented , name=Path(input_file).stem, container_obj=holders['container'])
     collection_deactivate_by_name('cache')
     axes_obj.select_set(True)
 
@@ -99,11 +104,11 @@ def check_input():
         raise ValueError("No duplicate channel names allowed")
     return
 
-def parse_reload(container):
-    holders = {'axes':None,'volume':None,'surface':None,'masks':None, 'slicecube':None, 'container':container}
-    if container is None:
+def parse_reload(container_obj):
+    holders = {'axes':None,'volume':None,'surface':None,'masks':None, 'slicecube':None, 'container':container_obj}
+    if container_obj is None:
         return holders
-    for child in container.children:
+    for child in container_obj.children:
         mod = get_min_gn(child)
         if mod is not None:
             for holdername in holders:
