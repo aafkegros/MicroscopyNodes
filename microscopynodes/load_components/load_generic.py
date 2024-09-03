@@ -162,3 +162,9 @@ def init_container(objects, loc, name, container_obj=None):
     container_obj.location = loc
     return container_obj
 
+def clear_updating_collections(obj, ch_dicts, activate_key):
+    for ch in ch_dicts:
+        if ch_present(obj, ch['identifier']) and ch[activate_key]:
+            ch['collection'] = get_min_gn(obj).node_group.nodes[f"channel_load_{ch['identifier']}"].inputs[0].default_value
+            [bpy.data.objects.remove(obj) for obj in ch['collection'].objects]
+    return

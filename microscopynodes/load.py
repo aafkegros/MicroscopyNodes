@@ -27,7 +27,7 @@ def load():
     
     cache_dir = get_cache_subdir()
     preset_env() 
-    base_coll, cache_coll = min_base_colls(fname, bpy.context.scene.MiN_reload)    
+    base_coll, cache_coll = min_base_colls(fname[:50], bpy.context.scene.MiN_reload)    
     
     holders = parse_reload(bpy.context.scene.MiN_reload)
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
@@ -61,9 +61,12 @@ def load():
     container_obj = init_container(to_be_parented ,loc=loc, name=fname, container_obj=holders['container'])
     collection_deactivate_by_name('cache')
 
-    if prev_active_obj is not None:
-        prev_active_obj.select_set(True)
-        bpy.context.view_layer.objects.active = prev_active_obj
+    try:
+        if prev_active_obj is not None:
+            prev_active_obj.select_set(True)
+            bpy.context.view_layer.objects.active = prev_active_obj
+    except:
+        pass
     # after first load this should not be used again, to prevent overwriting user values
     bpy.context.scene.MiN_preset_environment = False
     return

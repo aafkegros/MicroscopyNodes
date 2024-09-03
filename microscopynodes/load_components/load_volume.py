@@ -216,7 +216,9 @@ def update_shader(mat, ch, replace_hist=True):
     return
 
 
-def volume_materials(obj,ch_dicts):
+def volume_materials(obj, ch_dicts):
+    if obj is None:
+        return
     mod = get_min_gn(obj)
     all_ch_present = len([node.name for node in get_min_gn(obj).node_group.nodes if f"channel_load" in node.name])
 
@@ -295,20 +297,12 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
 
     # (re)load vdb data channels
     vol_ch = [ch for ch in ch_dicts if ch['volume'] or ch['surface']]
-
     if vol_obj is not None:
-        for ch in vol_ch:
-            if ch_present(vol_obj, ch['identifier']):
-                ch['collection'] = get_min_gn(vol_obj).node_group.nodes[f"channel_load_{ch['identifier']}"].inputs[0].default_value
-                [bpy.data.objects.remove(obj) for obj in ch['collection'].objects]
-
+        clear_updating_collections(vol_obj, ch_dicts, 'volume')
+    
     for ch in vol_ch:
         collection_activate(vol_collection, vol_lcoll)
-        if ch['collection'] is None:
-            ch_collection, ch_lcoll = make_subcollection(f"{ch['name']}")
-            ch['collection'] = ch_collection
-        else:
-            collection_activate(*get_collection(ch['collection'].name, under_active_coll=True, duplicate=False))
+        activate_or_make_channel_collection(ch, "volume")
         histtotal = np.zeros(NR_HIST_BINS)
         for chunk in ch['local_files']:
             already_loaded = list(ch['collection'].all_objects)
@@ -346,11 +340,11 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
         
 
     # only generate new materials for new channels, appends them as ch_dict[ch]['material']
-    
-    volume_materials(vol_obj, ch_dicts)
-    for ch in ch_dicts:
-        if ch['material'] is not None:
-            vol_obj.data.materials.append(ch['material'])
+    if vol_obj is not None:
+        volume_materials(vol_obj, ch_dicts)
+        for ch in ch_dicts:
+            if ch['material'] is not None:
+                vol_obj.data.materials.append(ch['material'])
 
-    update_holder(vol_obj, ch_dicts, 'volume')
+        update_holder(vol_obj, ch_dicts, 'volume')
     return vol_obj

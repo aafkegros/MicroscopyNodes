@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 
 from ..handle_blender_structs import *
-from .load_generic import init_holder, update_holder
+from .load_generic import init_holder, update_holder, clear_updating_collections
 
 
 def labelmask_shader(maskchannel, maxval):
@@ -117,16 +117,17 @@ def dissolve(obj, obj_id):
     m.update()
     return
 
-def abcfname(cache_dir, channel, timestep):
-    return str(Path(cache_dir) / f"mask_ch{channel}_t_{timestep:04}.abc")
-def jsonfname(cache_dir, channel):
-    return str(Path(cache_dir) / f"mask_locs_ch{channel}.json")
+def abcfname(cache_dir, channel, timestep, resolution):
+    return str(Path(cache_dir) / f"mask_ch{channel}_res_{resolution}_t_{timestep:04}.abc")
+def jsonfname(cache_dir, channel, resolution):
+    return str(Path(cache_dir) / f"mask_locs_ch{channel}_{resolution}.json")
 
-def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
+def export_alembic_and_loc(ch, cache_dir, remake, axes_order):
     from skimage.measure import marching_cubes
     from scipy.ndimage import find_objects, label
     axes_order = axes_order.replace("c","")
-    
+
+    mask = ch['data']
     mask = mask.compute()
 
     for dim in 'txyz': # essential for mask loading
@@ -161,7 +162,7 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
             
             for obj_id_val in unique_vals_all[1:]: 
                 #skip zero, register all object with new names, need to be present in first frame
-                objname=f"ch{maskchannel}_obj{obj_id_val}_" 
+                objname=f"ch{ch['ix']}_obj{obj_id_val}_" 
                 bpy.ops.mesh.primitive_cube_add()
                 obj=bpy.context.view_layer.objects.active
                 obj.name = objname
@@ -176,9 +177,15 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
                 continue
             obj_id_val = obj_id + 1
             objarray = np.pad(mask[timestep][objslice], 1, constant_values=0)
-            # print('in march', obj_id)
-            verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=1)
             
+            size = objarray.shape[0]-2 * objarray.shape[1]-2 * objarray.shape[0]-2
+
+            step_size = [1,2,4,8][ch['surf_resolution']]
+            try:
+                verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=step_size)
+            except:
+                if ch['surf_resolution'] != 0: # march throws with too small objects
+                    continue
             obj = bpy.data.objects.get(objnames[obj_id_val])
 
             mesh = obj.data
@@ -195,11 +202,10 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
         
 
         for obj in tmp_collection.all_objects: 
-            # if obj.name in objnames.values():
             obj.select_set(True)
         
 
-        fname = abcfname(cache_dir, maskchannel, timestep)
+        fname = abcfname(cache_dir, ch['ix'], timestep, ch['surf_resolution'])
 
         if Path(fname).exists() and remake:
             Path(fname).unlink() # this may fix an issue with subsequent loads
@@ -224,22 +230,22 @@ def export_alembic_and_loc(mask, maskchannel, cache_dir, remake, axes_order):
     bpy.data.collections.remove(tmp_collection)
     collection_activate(*parentcoll)
 
-    with open(jsonfname(cache_dir, maskchannel), 'w') as fp:
+    with open(jsonfname(cache_dir, ch['ix'], ch['surf_resolution']), 'w') as fp:
         json.dump(locations, fp, indent=4)
     return 
 
-def import_abc_and_loc(maskchannel, scale, cache_dir, is_sequence):
+def import_abc_and_loc(ch, scale, cache_dir, is_sequence):
     mask_objs = []
     parentcoll = get_current_collection()
     
-    channel_collection, _ = make_subcollection(f"channel {maskchannel} labelmask")
-    bpy.ops.wm.alembic_import(filepath=abcfname(cache_dir, maskchannel, 0), is_sequence=is_sequence)
+    activate_or_make_channel_collection(ch, "labelmask")
+    bpy.ops.wm.alembic_import(filepath=abcfname(cache_dir, ch['ix'], 0, ch['surf_resolution']), is_sequence=is_sequence)
     
-    with open(jsonfname(cache_dir, maskchannel), 'r') as fp:
+    with open(jsonfname(cache_dir, ch['ix'], ch['surf_resolution']), 'r') as fp:
         locations = json.load(fp)
 
     locnames_newnames = {}
-    for obj in channel_collection.all_objects: # for blender renaming
+    for obj in ch['collection'].all_objects: # for blender renaming
         oid = int(obj.name.split('_')[1].removeprefix('obj'))
         ch = int(obj.name.split('_')[0].removeprefix('ch'))
         locnames_newnames[(oid, ch)] = obj
@@ -257,24 +263,23 @@ def import_abc_and_loc(maskchannel, scale, cache_dir, is_sequence):
         obj.modifiers[-1].node_group = gn_oid_tree(oid, ch)
 
     collection_activate(*parentcoll)
-    return mask_objs, channel_collection
+    return mask_objs
 
 def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order, mask_obj=None):
-    mask_objs = []
-    mask_colls, mask_shaders = [], []
     locations = {}
     
     # update_holder reads these aspects to set
     [ch.update({"material":None, "collection":None}) for ch in ch_dicts]
     mask_ch = [ch for ch in ch_dicts if ch['labelmask']]
+    if mask_obj is not None:
+        clear_updating_collections(mask_obj, ch_dicts, 'labelmask')
 
     collection_activate(*cache_coll)
     for ch in mask_ch:
-        if not Path(abcfname(cache_dir, ch['ix'],0)).exists() or remake:
-            export_alembic_and_loc(ch['data'], ch['ix'], cache_dir, remake, axes_order)
-        objs, coll = import_abc_and_loc(ch['ix'], scale, cache_dir,is_sequence=('t' in axes_order))
+        if not Path(abcfname(cache_dir, ch['ix'], 0, ch['surf_resolution'])).exists() or remake:
+            export_alembic_and_loc(ch, cache_dir, remake, axes_order)
+        import_abc_and_loc(ch, scale, cache_dir,is_sequence=('t' in axes_order))
 
-        ch['collection'] = coll
         ch['material'] = labelmask_shader(ch,np.max(ch['data']) + 1)
     collection_activate(*base_coll)
 

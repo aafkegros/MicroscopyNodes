@@ -47,3 +47,12 @@ def collection_activate(coll, lcoll):
     lcoll.exclude = False
     coll.hide_render = False
     lcoll.hide_viewport = False
+
+def activate_or_make_channel_collection(ch, append=''):
+    if ch['collection'] is None:
+        ch_collection, ch_lcoll = make_subcollection(f"{ch['name']}_{append}")
+        ch['collection'] = ch_collection
+    else:
+        # activation needs retrieving of lcoll, to do this i assume the collection is under active
+        collection_activate(*get_collection(ch['collection'].name, under_active_coll=True, duplicate=False)) 
+    return 
