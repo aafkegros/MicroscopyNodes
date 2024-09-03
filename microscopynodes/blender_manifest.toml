@@ -18,7 +18,7 @@ tags = [
 ]
 blender_version_min = "4.2.0"
 license = [
-  "SPDX:MIT"
+  "SPDX:GPL-3.0-or-later"
 ]
 copyright =[
 	"2023-2024 Oane Gros",
@@ -55,7 +55,7 @@ wheels = [
 	"./wheels/scipy-1.14.1-cp311-cp311-macosx_12_0_arm64.whl",
 	"./wheels/tifffile-2023.4.12-py3-none-any.whl",
 	"./wheels/toolz-0.12.1-py3-none-any.whl",
-	"./wheels/yarl-1.9.4-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/yarl-1.9.7-cp311-cp311-macosx_11_0_arm64.whl",
 	"./wheels/zarr-2.17.2-py3-none-any.whl",
 	"./wheels/zipp-3.20.1-py3-none-any.whl",
 ]
