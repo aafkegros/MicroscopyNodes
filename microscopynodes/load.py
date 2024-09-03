@@ -16,6 +16,7 @@ def load():
     then loads or updates all objects. 
     """
     # --- Handle input ---
+    prev_active_obj = bpy.context.active_object
     check_input()
     
     axes_order = bpy.context.scene.MiN_axes_order
@@ -59,8 +60,10 @@ def load():
     loc = np.array(size_px) * np.array([0.5,0.5,0]) * scale * -1
     container_obj = init_container(to_be_parented ,loc=loc, name=fname, container_obj=holders['container'])
     collection_deactivate_by_name('cache')
-    axes_obj.select_set(True)
 
+    if prev_active_obj is not None:
+        prev_active_obj.select_set(True)
+        bpy.context.view_layer.objects.active = prev_active_obj
     # after first load this should not be used again, to prevent overwriting user values
     bpy.context.scene.MiN_preset_environment = False
     return

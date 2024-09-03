@@ -105,7 +105,7 @@ def new_socket(node_group, ch, type, min_type, internal_append="", ix=None):
     node_group.interface.new_socket(name="socket name not set", in_out="INPUT",socket_type=type)
     socket = node_group.interface.items_tree[-1]
 
-    internalname = "_".join([ch['identifier'], min_type, internal_append])
+    internalname = f"{ch['identifier']}_{min_type}_{internal_append}"
     socket.default_attribute_name = f"[{internalname}]"
     set_name_socket(socket, ch['name'])
     if ix is not None:
@@ -120,7 +120,7 @@ def set_name_socket(socket, ch_name):
 
 def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if re.search(string=socket.default_attribute_name, pattern=f"{ch['identifier']}.{min_type}.{internal_append}+") is not None:
+        if re.search(string=socket.default_attribute_name, pattern=f"{ch['identifier']}_{min_type}_{internal_append}+") is not None:
             if return_ix:
                 return node_group.interface.items_tree[ix], ix
             return node_group.interface.items_tree[ix]
