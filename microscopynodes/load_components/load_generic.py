@@ -1,5 +1,6 @@
 import bpy, bpy_types
 from ..handle_blender_structs import *
+import numpy as np
 
 
 def init_holder(name):
@@ -33,7 +34,7 @@ def update_holder(obj, ch_dicts, activate_key):
     node_group = gn_mod.node_group
     for ch in ch_dicts:
         if ch_present(obj, ch['identifier']):
-            update_channel(gn_mod, ch) 
+            update_channel(obj, ch, activate_key) 
         elif ch['collection'] is not None: 
             append_channel_to_holder(node_group, ch)
         
@@ -42,8 +43,10 @@ def update_holder(obj, ch_dicts, activate_key):
             gn_mod[socket.identifier] = bool(ch[activate_key])
     return obj
 
-def update_channel(gn_mod, ch):
+def update_channel(obj, ch, activate_key):
     from .load_surfaces import update_resolution
+    from .load_volume import update_shader
+    gn_mod = get_min_gn(obj)
     node_group = gn_mod.node_group
     loadnode = node_group.nodes[f"channel_load_{ch['identifier']}"]
     loadnode.label = ch['name']
@@ -52,7 +55,13 @@ def update_channel(gn_mod, ch):
     
     for ix, socket in enumerate(node_group.interface.items_tree):
         set_name_socket(socket, ch['name'])
-    update_resolution(gn_mod, ch)
+    
+    if activate_key == 'surface':
+        update_resolution(gn_mod, ch)
+    if activate_key == 'volume':
+        for mat in obj.data.materials:
+            if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
+                update_shader(mat, ch)
     return
 
 def append_channel_to_holder(node_group, ch_dict):
@@ -135,16 +144,10 @@ def channel_nodes(node_group, x, y, ch):
     return switch.inputs.get("Switch"), setmat.outputs[0]
 
 
-def get_min_gn(obj):
-    for mod in obj.modifiers:
-        if 'Microscopy Nodes' in mod.name:
-            return mod
-    return None
-
 def ch_present(obj, identifier):
     return f"channel_load_{identifier}" in [node.name for node in get_min_gn(obj).node_group.nodes]
 
-def init_container(objects, name, container_obj=None):
+def init_container(objects, loc, name, container_obj=None):
     
     if container_obj is None:
         container_obj = bpy.ops.object.empty_add(type="PLAIN_AXES")
@@ -156,5 +159,6 @@ def init_container(objects, name, container_obj=None):
             continue
         obj.parent = container_obj
 
+    container_obj.location = loc
     return container_obj
 

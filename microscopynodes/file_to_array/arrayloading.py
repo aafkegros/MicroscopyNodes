@@ -16,7 +16,7 @@ class ArrayLoader():
     def load_array(self, input_file):
         return 
 
-    def unpack_array(self, input_file, axes_order):
+    def unpack_array(self, input_file, axes_order, ch_dicts):
         # dask array makes sure lazy actions actually get performed lazily
         chunks = ['auto' if dim in 'xyz' else 1 for dim in axes_order] # time and channels are always loadable as separate chunks as they go to separate vdbs
         imgdata = da.from_array(self.load_array(input_file), chunks=chunks)
@@ -26,15 +26,9 @@ class ArrayLoader():
 
         size_px = np.array([imgdata.shape[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
 
-        ch_arrays = []
-        for channel in bpy.context.scene.MiN_channelList:
-            ch_arrays.append({k:v for k,v in channel.items()}) # take over settings from UI
-            ch_arrays[-1]['data'] = np.take(imgdata, indices=channel.ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
-            
-            ch_arrays[-1]['identifier'] = f"ch_id{channel['ix']}" # right now, reloadable identity is only channel number
-            ch_arrays[-1]['collection'] = None
-            ch_arrays[-1]['material'] = None
-        return ch_arrays, size_px
+        for ch in ch_dicts:
+            ch['data'] = np.take(imgdata, indices=ch['ix'], axis=axes_order.find('c')) if 'c' in axes_order else imgdata
+        return size_px
 
 
 

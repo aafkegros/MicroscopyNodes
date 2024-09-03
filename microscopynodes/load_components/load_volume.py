@@ -109,22 +109,13 @@ def get_leading_trailing_zero_float(arr):
     max_val = min(len(arr) - (np.argmax(arr[::-1] > 0)-1), len(arr)) / len(arr)
     return min_val, max_val
 
-def shader_histogram(nodes, links, in_node, loc_x, hist, threshold):
-    min_val = threshold
-    max_val = 1
-
-    ramp_node = nodes.new(type="ShaderNodeValToRGB")
-    ramp_node.location = (loc_x, 0)
-    ramp_node.width = 1000
-    ramp_node.color_ramp.elements[0].position = min_val
-    ramp_node.color_ramp.elements[1].position = max_val
-    links.new(in_node, ramp_node.inputs.get("Fac"))  
-
+def draw_histogram(nodes, loc, width, hist):
     histnode =nodes.new(type="ShaderNodeFloatCurve")
-    histnode.location = (loc_x, 300)
+    histnode.location = loc
     histmap = histnode.mapping
-    histnode.width = 1000
+    histnode.width = width
     histnode.label = 'Histogram (non-interactive)' 
+    histnode.name = '[Histogram]'
     histnode.inputs.get('Factor').hide = True
     histnode.inputs.get('Value').hide = True
     histnode.outputs.get('Value').hide = True
@@ -143,12 +134,92 @@ def shader_histogram(nodes, links, in_node, loc_x, hist, threshold):
             histmap.curves[0].points.new(ix/len(histnorm), val)
             histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
         histmap.curves[0].points[ix].handle_type = 'VECTOR'
-    return ramp_node, histnode
+    return histnode
+
+def update_shader(mat, ch, replace_hist=True):
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+
+    node_names = [node.name for node in nodes]
+
+    if '[Histogram]' in node_names and replace_hist:
+        histnode= nodes["[Histogram]"]
+        draw_histogram(nodes, histnode.location,histnode.width, ch['histnorm'])
+        nodes.remove(histnode)
+
+    try:
+        ch_load = nodes[f"[channel_load_{ch['identifier']}]"]
+        shader_in = nodes['[shader_in]']
+        shader_out = nodes['[shader_out]']
+    except KeyError as e:
+        print(e, " skipping update of shader")
+        return
+
+    if '[shaderframe]' not in node_names:
+        shaderframe = nodes.new('NodeFrame')
+        shaderframe.name = '[shaderframe]'
+        shaderframe.use_custom_color = True
+        shaderframe.color = (0.2,0.2,0.2)
+        shader_in.parent = shaderframe
+        shader_out.parent = shaderframe
+    else:
+        shaderframe = nodes['[shaderframe]']
+
+    ch_load.label = ch['name']
+    # removes of other type, if any of current type exist, don't update
+    setting, remove = 'absorb', 'emit'
+    if ch['emission']:
+        setting, remove = 'emit', 'absorb'
+
+    for node in nodes:
+        if remove in node.name:
+            nodes.remove(node)
+        elif setting in node.name:
+            return
+    
+    if ch['emission']:
+        emit = nodes.new(type='ShaderNodeEmission')
+        emit.name = '[emit]'
+        emit.location = (250,0)
+        links.new(shader_in.outputs[0], emit.inputs.get('Color'))
+        links.new(emit.outputs[0], shader_out.inputs[0])
+        emit.parent=shaderframe
+        return
+    
+    scale = nodes.new(type='ShaderNodeVectorMath')
+    scale.name = "scale [absorb]"
+    scale.location = (-150,-100)
+    scale.operation = "SCALE"
+    links.new(shader_in.outputs[0], scale.inputs.get("Vector"))
+    scale.inputs.get('Scale').default_value = 1
+    scale.parent=shaderframe
+    
+    adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
+    adsorb.name = 'absorb [absorb]'
+    adsorb.location = (50,-100)
+    links.new(shader_in.outputs[0], adsorb.inputs.get('Color'))
+    links.new(scale.outputs[0], adsorb.inputs.get('Density'))
+    scatter = nodes.new(type='ShaderNodeVolumeScatter')
+    scatter.name = 'scatter absorb'
+    scatter.location = (250,-200)
+    links.new(shader_in.outputs[0], scatter.inputs.get('Color'))
+    links.new(scale.outputs[0], scatter.inputs.get('Density'))
+    scatter.parent=shaderframe
+
+    add = nodes.new(type='ShaderNodeAddShader')
+    add.name = 'add [absorb]'
+    add.location = (450, -100)
+    links.new(adsorb.outputs[0], add.inputs[0])
+    links.new(scatter.outputs[0], add.inputs[1])
+    links.new(add.outputs[0], shader_out.inputs[0])
+    add.parent=shaderframe
+    return
+
 
 def volume_materials(obj,ch_dicts):
     mod = get_min_gn(obj)
     all_ch_present = len([node.name for node in get_min_gn(obj).node_group.nodes if f"channel_load" in node.name])
-    print('all channels present', all_ch_present)
+
     for vol_ix, ch in enumerate(ch_dicts):
         if ch['collection'] is None or ch_present(obj, ch['identifier']):
             ch['material'] = None
@@ -165,6 +236,7 @@ def volume_materials(obj,ch_dicts):
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1400, 0)
+        node_attr.name = f"[channel_load_{ch['identifier']}]"
         node_attr.attribute_name = f'data_channel_{ch["ix"]}'
         node_attr.label = ch['name']
 
@@ -176,44 +248,35 @@ def volume_materials(obj,ch_dicts):
         links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
         normnode.hide = True
 
-        ramp_node, hist_node2 = shader_histogram(nodes, links, normnode.outputs.get('Result'), -1000, ch['histnorm'], ch['threshold'])
-        print('all channels present in loop', all_ch_present)
+        ramp_node = nodes.new(type="ShaderNodeValToRGB")
+        ramp_node.location = (-1000, 0)
+        ramp_node.width = 1000
+        ramp_node.color_ramp.elements[0].position = ch['threshold']
+        ramp_node.color_ramp.elements[1].position = 1
+        links.new(normnode.outputs.get('Result'), ramp_node.inputs.get("Fac"))  
+
+        draw_histogram(nodes, (-1000, 300), 1000, ch['histnorm'])
+
         color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
         all_ch_present += 1
         ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
 
-        scale = nodes.new(type='ShaderNodeVectorMath')
-        scale.location = (0,-150)
-        scale.operation = "SCALE"
-        links.new(ramp_node.outputs[0], scale.inputs.get("Vector"))
-        scale.inputs.get('Scale').default_value = 1
+        shader_in = nodes.new('NodeReroute')
+        shader_in.name = f"[shader_in]"
+        shader_in.location = (-200, 0)
+        links.new(ramp_node.outputs[0], shader_in.inputs[0])
         
-        emit = nodes.new(type='ShaderNodeEmission')
-        emit.location = (250,0)
-        links.new(ramp_node.outputs[0], emit.inputs.get('Color'))
+        shader_out = nodes.new('NodeReroute')
+        shader_out.location = (600, 0)
+        shader_out.name = f"[shader_out]"
         
-        adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
-        adsorb.location = (250,-200)
-        links.new(ramp_node.outputs[0], adsorb.inputs.get('Color'))
-        links.new(scale.outputs[0], adsorb.inputs.get('Density'))
-        scatter = nodes.new(type='ShaderNodeVolumeScatter')
-        scatter.location = (250,-300)
-        links.new(ramp_node.outputs[0], scatter.inputs.get('Color'))
-        links.new(scale.outputs[0], scatter.inputs.get('Density'))
-
-        add = nodes.new(type='ShaderNodeAddShader')
-        add.location = (450, -300)
-        links.new(adsorb.outputs[0], add.inputs[0])
-        links.new(scatter.outputs[0], add.inputs[1])
+        update_shader(mat, ch, replace_hist=False)
         
         if nodes.get("Material Output") is None:
             outnode = nodes.new(type='ShaderNodeOutputMaterial')
             outnode.name = 'Material Output'
+        links.new(shader_out.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
         nodes.get("Material Output").location = (700,00)
-        if ch['emission']:
-            links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
-        else:
-            links.new(add.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
         ch['material'] = mat
     return 
 

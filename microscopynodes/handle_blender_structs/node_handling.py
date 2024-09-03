@@ -87,6 +87,13 @@ def append(node_name, link = False):
     
     return bpy.data.node_groups[node_name]
 
+def get_min_gn(obj):
+    for mod in obj.modifiers:
+        if 'Microscopy Nodes' in mod.name:
+            return mod
+    return None
+
+
 
 MIN_SOCKET_TYPES = {
     'SWITCH' : "",

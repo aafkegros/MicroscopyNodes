@@ -2,7 +2,6 @@ import bpy
 from .. import handle_blender_structs
 
 def load_slice_cube(to_be_sliced, size_px, scale, slicecube=None):
-    print('slice obj', slicecube)
     if slicecube is None:
         bpy.ops.mesh.primitive_cube_add(location=size_px*scale/2)
         slicecube = bpy.context.active_object
@@ -20,7 +19,7 @@ def load_slice_cube(to_be_sliced, size_px, scale, slicecube=None):
         slicecube.data.materials.append(mat)
 
     for obj in to_be_sliced:
-        if obj is not None:
+        if obj is not None and 'axes' not in obj.name:
             for mat in obj.data.materials:
                 if mat.node_tree.nodes.get("Slice Cube") is None:
                     handle_blender_structs.node_handling.insert_slicing(mat.node_tree, slicecube)

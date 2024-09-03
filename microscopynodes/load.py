@@ -11,42 +11,36 @@ from .ui.props import update_cache_dir
 from mathutils import Matrix
 
 def load():
-    # Handle all globals to be scoped after this file and array loading - axes order, cache_dir get internally changed in this function.
+    """
+    Main loading function of Microscopy Nodes, handles all input parameters, 
+    then loads or updates all objects. 
+    """
+    # --- Handle input ---
+    check_input()
+    
     axes_order = bpy.context.scene.MiN_axes_order
     remake = bpy.context.scene.MiN_remake
-    xy_size = bpy.context.scene.MiN_xy_size
-    z_size = bpy.context.scene.MiN_z_size
+    pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
     input_file = bpy.context.scene.MiN_input_file
+    fname = Path(input_file).stem
     
-    # using context.scene, parse and set env variable
-    check_input()
     cache_dir = get_cache_subdir()
     preset_env() 
+    base_coll, cache_coll = min_base_colls(fname, bpy.context.scene.MiN_reload)    
     
     holders = parse_reload(bpy.context.scene.MiN_reload)
-    
-    # make and get collections
-    base_coll = collection_by_name('Microscopy Nodes', supercollections=[])
-    collection_activate(*base_coll)
-    collection_by_name('cache',supercollections=[])
-    cache_coll = collection_by_name(Path(input_file).stem, supercollections=['cache'], duplicate=(bpy.context.scene.MiN_reload is None))
+    ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
 
-    # loading array uses some global bpy.context.scene params, notably channelList
-    ch_dicts, size_px = load_array(input_file, axes_order) 
+    size_px = load_array(input_file, axes_order, ch_dicts) # unpacks into ch_dicts
     axes_order = axes_order.replace('c', "") # channels are separated
 
+    # --- Load components ---
+
     to_be_parented = []
-
-    # if holders['container'] is not None:
-    #     loc = holders['container'].location
-    #     loc, scale = update_axes()
-    # else:
-    #     loc, scale = 
-    center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
-    init_scale = 0.02
-    scale =  np.array([1,1,z_size/xy_size])*init_scale
-    loc =  tuple(center_loc * size_px*scale)
-
+    
+    axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=holders['axes'])
+    to_be_parented.append(axes_obj)
+    
     ch_dicts, bbox_px = arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir)
     vol_obj = load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=holders['volume'])
     to_be_parented = update_parent(to_be_parented, vol_obj, ch_dicts)
@@ -57,12 +51,13 @@ def load():
     
     mask_obj = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order, mask_obj=holders['masks'])
     to_be_parented = update_parent(to_be_parented, mask_obj, ch_dicts)
- 
-    slicecube = load_slice_cube(to_be_parented, size_px, scale, slicecube=holders['slicecube'])
-    axes_obj = load_axes(size_px, init_scale, loc, xy_size, z_size, input_file, axes_obj=holders['axes'])
-    to_be_parented.extend([slicecube, axes_obj])
 
-    container_obj = init_container(to_be_parented , name=Path(input_file).stem, container_obj=holders['container'])
+    # slices all objects in to_be_parented but axes
+    slicecube = load_slice_cube(to_be_parented, size_px, scale, slicecube=holders['slicecube'])
+    to_be_parented.append(slicecube)
+
+    loc = np.array(size_px) * np.array([0.5,0.5,0]) * scale * -1
+    container_obj = init_container(to_be_parented ,loc=loc, name=fname, container_obj=holders['container'])
     collection_deactivate_by_name('cache')
     axes_obj.select_set(True)
 
@@ -115,3 +110,22 @@ def parse_reload(container_obj):
                 if holdername in mod.name:
                     holders[holdername] = child
     return holders
+
+def parse_channellist(channellist):
+    ch_dicts = []
+    for channel in bpy.context.scene.MiN_channelList:
+        ch_dicts.append({k:v for k,v in channel.items()}) # take over settings from UI
+        ch_dicts[-1]['identifier'] = f"ch_id{channel['ix']}" # reload-identity
+        ch_dicts[-1]['data'] = None
+        ch_dicts[-1]['collection'] = None
+        ch_dicts[-1]['material'] = None
+    return ch_dicts
+
+def min_base_colls(fname, min_reload):
+    # make or get collections
+    base_coll = collection_by_name('Microscopy Nodes', supercollections=[])
+    collection_activate(*base_coll)
+    collection_by_name('cache',supercollections=[])
+    cache_coll = collection_by_name(fname, supercollections=['cache'], duplicate=(min_reload is None))
+    collection_activate(*base_coll)
+    return base_coll, cache_coll
