@@ -30,7 +30,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
             ("MEDIUM", "Medium", "Medium density mesh","EVENT_M", 2),
             ("COARSE", "Coarse","Coarse mesh minimizes the RAM usage of surface encoding.", "EVENT_C", 3),
         ], 
-        description= "Meshing density of surfaces and masks.\nSmaller will be less RAM intensive",
+        description= "Coarser will be less RAM intensive",
         default='ACTUAL',
     )
     # The scene collectionproperty is created in __init__ of the package due to registration issues:
