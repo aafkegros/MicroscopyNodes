@@ -45,13 +45,21 @@ class TIFLoadPanel(bpy.types.Panel):
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
 
+        # split2 = split.split(factor=0.9)
+        # col = split2.column(align=True)
         col = split.column(align=True)
         col.prop(scn, "MiN_xy_size", emboss=True)
         col.prop(scn, "MiN_z_size", emboss=True)
         col.prop(scn, "MiN_axes_order", emboss=True)
-        
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
+
+        # col = split2.column(align=True)
+        # for key in ["MiN_xy_size", "MiN_z_size", "MiN_axes_order"]:
+        #     if ((not scn.is_property_set(key)) or scn[key] == 1.0) and scn.MiN_enable_ui:
+        #         col.label(text="", icon="ERROR")
+        #     else:
+        #         col.label(text="")
         
         col = layout.column(align=False)  
 
