@@ -18,7 +18,7 @@ CACHE_LOCATIONS = {
     'Temporary' : {
         'icon' : 'FILE_HIDDEN',
         'cache_dir' : functools.partial(tempfile.gettempdir),
-        'ui_element': functools.partial(lambda ui_layout : ui_layout.label(text ='Deleted files may need to be reloaded', icon="ERROR"))
+        'ui_element': functools.partial(lambda ui_layout : ui_layout.label(text =f'{bpy.context.scene.MiN_cache_dir}', icon="TEMP"))
     },
     'Path' : {
         'icon' : 'FILE_CACHE',
@@ -31,6 +31,8 @@ CACHE_LOCATIONS = {
         'ui_element' : functools.partial(lambda ui_layout: ui_layout.label(text ='Make sure the project is saved'))
     },
 }
+
+
 def update_cache_dir(self, context):
     bpy.context.scene.MiN_cache_dir = CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['cache_dir']()
     

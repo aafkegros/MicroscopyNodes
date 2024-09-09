@@ -71,7 +71,7 @@ def set_channels(self, context):
         # set all defaults explicitly so they are created as keys
         channel.volume = True
         channel.emission = True
-        channel.surface = True
+        channel.surface = False
         channel.labelmask = False
         channel.materials = True
         channel.surf_resolution = 'ACTUAL'
