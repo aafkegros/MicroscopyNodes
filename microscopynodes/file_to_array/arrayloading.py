@@ -16,6 +16,9 @@ class ArrayLoader():
     def load_array(self, input_file):
         return 
 
+    def shape(self):
+        return
+
     def unpack_array(self, input_file, axes_order, ch_dicts):
         # dask array makes sure lazy actions actually get performed lazily
         chunks = ['auto' if dim in 'xyz' else 1 for dim in axes_order] # time and channels are always loadable as separate chunks as they go to separate vdbs
@@ -26,9 +29,17 @@ class ArrayLoader():
 
         size_px = np.array([imgdata.shape[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
 
+        channels = imgdata.shape[axes_order.find('c')] if 'c' in axes_order else 1
+        ix = 0
         for ch in ch_dicts:
-            ch['data'] = np.take(imgdata, indices=ch['ix'], axis=axes_order.find('c')) if 'c' in axes_order else imgdata
+            if ch['data'] is None:
+                ch['data'] = np.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
+                ix += 1
+            if ix >= channels:
+                break
         return size_px
 
+
+        
 
 

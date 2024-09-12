@@ -14,70 +14,76 @@ from .. import min_nodes
 
 NR_HIST_BINS = 2**16
 
-def split_axis_to_chunks(length, split_to):
-    n_splits = int((length // split_to)+ 1)
+def split_axis_to_chunks(length, ch_ix):
+    # chunks to max 2048 length, with ch_ix dependent offsets
+    offset = 1
+    if length > 2048:
+        offset = 256 * ch_ix
+    length += offset
+    n_splits = int((length // 2049)+ 1)
     splits = [length/n_splits * split for split in range(n_splits + 1)]
-    splits[-1] = math.ceil(splits[-1])
+    splits[-1] = math.ceil(splits[-1]) 
     splits = [math.floor(split) for split in splits]
+    while splits[-2] > (length - offset):
+        del splits[-1]
+    splits[-1] = (length - offset)
     slices = [slice(start, end) for start, end in zip(splits[:-1], splits[1:])]
-    return list(zip(slices, list(range(n_splits))))
+    return slices
+
+def len_axis(dim, axes_order, shape):
+    if dim in axes_order:
+        return shape[axes_order.find(dim)]
+    return 1
+
+def take_index(imgdata, indices, dim, axes_order):
+    if dim in axes_order:
+        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
+    return imgdata
 
 def arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir):
     # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
     # Loops over all axes and splits based on length
     # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
-    bbox_px = None
     for ch in ch_dicts:
         ch['local_files'] = []
         if ch['volume'] == False and ch['surface'] == False:
             continue
-        imgdata = ch['data']
         
-        slices = []
-        dims = []
-
-        for it, dim in enumerate(axes_order): 
-            # xyz are chunked to max 2048, otherwise Eevee cannot handle it
-            if dim in 'xyz':
-                slices.append(split_axis_to_chunks(imgdata.shape[it], 2049))
-            else:
-                slices.append(split_axis_to_chunks(imgdata.shape[it], np.inf))
-        
+        xyz_shape = [len_axis(dim, axes_order, ch['data'].shape) for dim in 'xyz']
+        slices = [split_axis_to_chunks(dimshape, ch['ix']) for dimshape in xyz_shape]
         for block in itertools.product(*slices):
-            
-            # block_ix may contain duplicates if one of the axes does not exist, but this is not an issue
-            block_ix = list(np.array([sl[1] for sl in block])[[axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]])
-            chunk = imgdata
-            for dim, sl in enumerate(block): # dask-equivalent of imgdata[*listofslices] 
-                chunk = np.take(chunk, indices = np.arange(sl[0].start, sl[0].stop), axis=dim)
-            directory, time_vdbs, time_hists = make_vdb(chunk, block_ix, axes_order, remake, cache_dir, ch['ix'])
-            ch['local_files'].append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0][1], block[1][1], block[2][1])})
+            chunk = ch['data']
+            for dim, sl in zip('xyz', block): 
+                chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
+            directory, time_vdbs, time_hists = make_vdb(chunk, block, axes_order, remake, cache_dir, ch['ix'])
+            ch['local_files'].append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0].start, block[1].start, block[2].start)})
         del ch['data']
-        bbox_px = np.array([slices[axes_order.find(dim)][0][0].stop if dim in axes_order else 0 for dim in 'xyz'])
-    return ch_dicts, bbox_px
+    return
 
-def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
+def make_vdb(imgdata, block, axes_order, remake, cache_dir, ch):
     # non-lazy functions are allowed on only single time-frames
     import pyopenvdb as vdb
-    x_ix, y_ix, z_ix = chunk_ix
-    # these are split for Blender
+    x_ix, y_ix, z_ix = [sl.start for sl in block]
+
+    # imgdata = imgdata.compute()
     time_vdbs = [] 
     time_hists = []
-    if 't' not in axes_order: 
-        # this is not lazy, but if there is no time axis, it is already chunked to small.
-        imgdata = np.expand_dims(imgdata,axis=0)
-        axes_order = 't' + axes_order
-    
+
     identifier3d = f"x{x_ix}y{y_ix}z{z_ix}"
     dirpath = Path(cache_dir)/f"{identifier3d}"
     dirpath.mkdir(exist_ok=True,parents=True)
-    for t in range(imgdata.shape[axes_order.find('t')]):
-        identifier5d = f"{identifier3d}c{ch}t{t}"
-        frame = np.take(imgdata, indices=t, axis=axes_order.find('t'))
+    for t in range(len_axis('t', axes_order, imgdata.shape)):
+        identifier5d = f"{identifier3d}c{ch}t{t:04}"
+        frame = take_index(imgdata, t, 't', axes_order)
         frame_axes_order = axes_order.replace('t',"")
 
-        frame = np.moveaxis(frame, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
-        
+        # VDB data is XYZ
+        for dim in 'xyz':
+            if dim not in axes_order:
+                frame = np.expand_dims(frame,axis=0)
+                frame_axes_order = dim + frame_axes_order          
+
+       
         vdbfname = dirpath / f"{identifier5d}.vdb"
         histfname = dirpath / f"{identifier5d}_hist.npy"
         time_vdbs.append({"name":str(vdbfname.name)})
@@ -88,9 +94,14 @@ def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
             if histfname.exists():
                 histfname.unlink()
             # frame.visualize(filename=f'/Users/oanegros/Documents/screenshots/stranspose-hlg{x_ix}_{y_ix}_{z_ix}.svg', engine='cytoscape')
-            frame = frame.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
+            # arr = frame.compute()
             arr = frame.compute()
-            
+            arr = np.moveaxis(arr, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
+            try:
+                arr = arr.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
+            except ValueError:
+                arr = arr.astype(np.float32) /np.max(arr)
+
             # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
             histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
             histogram[0] = 0
@@ -142,7 +153,7 @@ def update_shader(mat, ch, replace_hist=True):
 
     node_names = [node.name for node in nodes]
 
-    if '[Histogram]' in node_names and replace_hist:
+    if ('[Histogram]' in node_names and replace_hist) and ch['collection'] is not None:
         histnode= nodes["[Histogram]"]
         draw_histogram(nodes, histnode.location,histnode.width, ch['histnorm'])
         nodes.remove(histnode)
@@ -224,6 +235,7 @@ def volume_materials(obj, ch_dicts):
 
     for vol_ix, ch in enumerate(ch_dicts):
         if ch['collection'] is None or ch_present(obj, ch['identifier']):
+            print('trying to skip')
             ch['material'] = None
             continue
 
@@ -283,7 +295,7 @@ def volume_materials(obj, ch_dicts):
     return 
 
 
-def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
+def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
     # consider checking whether all channels are present in vdb for remaking?
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
@@ -318,26 +330,31 @@ def load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=None):
                     vol.data.frame_start = 0
                     vol.data.render.clipping = 1/ (2**17)
                     
-                    vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)                    
+                    vol.location = tuple(np.array(chunk['pos']) *scale)                    
             for hist in chunk['histfiles']:
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
+        ch['min_val'] = 0
+        ch['max_val'] = 1
+        ch['histnorm'] = np.zeros(NR_HIST_BINS)
+        ch['threshold'] = 0.5
+        ch['surf_threshold'] = 0.5
         if np.sum(histtotal)> 0:
             ch['min_val'],ch['max_val'] = get_leading_trailing_zero_float(histtotal)
             ch['histnorm'] = histtotal[int(ch['min_val'] * NR_HIST_BINS): int(ch['max_val'] * NR_HIST_BINS)]
-            ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )
-            
+            ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )  
             histcrop = ch['histnorm'][int(ch['threshold'] * len(ch['histnorm'])):]
             ch['surf_threshold'] = ch['threshold']
             if len(histcrop) > 0:
                 ch['surf_threshold'] = skimage.filters.threshold_isodata(hist=histcrop)/len(histcrop)
+        
+
 
     collection_activate(*base_coll)
     
     if len(vol_ch) > 0:
         if vol_obj is None:
             vol_obj = init_holder('volume')
-        
 
     # only generate new materials for new channels, appends them as ch_dict[ch]['material']
     if vol_obj is not None:

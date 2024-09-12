@@ -53,8 +53,9 @@ def register():
             print(op, e)
             pass
     bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=file_to_array.ZarrLevelsGroup)
+    bpy.types.Scene.MiN_zarrLabelLevels = bpy.props.CollectionProperty(type=file_to_array.ZarrLevelsGroup)
     bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
-
+    
 
 def unregister():
     for op in all_classes:

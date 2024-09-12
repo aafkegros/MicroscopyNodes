@@ -1,11 +1,12 @@
 from .arrayloading import ArrayLoader
-
+import tifffile
+import bpy
 
 class TifLoader(ArrayLoader):
     suffix = '.tif'
 
     def load_array(self, input_file):
-        import tifffile
+        
         with tifffile.TiffFile(input_file) as ifstif:
             return ifstif.asarray()
 
@@ -13,7 +14,6 @@ class TifLoader(ArrayLoader):
         # infers metadata, resets to default if not found
         # the raise gets handled upstream, so only prints to cli, somehow.
         try: 
-            import tifffile
             with tifffile.TiffFile(context.scene.MiN_input_file) as ifstif:
                 try:
                     context.scene.MiN_axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
@@ -38,7 +38,8 @@ class TifLoader(ArrayLoader):
             context.scene.property_unset("axes_order")
             context.scene.property_unset("xy_size")
             context.scene.property_unset("z_size")
-            raise
+            raise   
         return
 
-    
+    def shape(self):
+        return tifffile.TiffFile(bpy.context.scene.MiN_input_file).series[0].shape

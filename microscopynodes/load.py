@@ -33,17 +33,19 @@ def load():
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
 
     size_px = load_array(input_file, axes_order, ch_dicts) # unpacks into ch_dicts
+    size_px = tuple([max(ax, 1) for ax in size_px])
     axes_order = axes_order.replace('c', "") # channels are separated
 
     # --- Load components ---
+    # ch_dict gets edited to correspond to loaded features and data types
 
     to_be_parented = []
     
     axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=holders['axes'])
     to_be_parented.append(axes_obj)
     
-    ch_dicts, bbox_px = arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir)
-    vol_obj = load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, vol_obj=holders['volume'])
+    arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir) 
+    vol_obj = load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=holders['volume'])
     to_be_parented = update_parent(to_be_parented, vol_obj, ch_dicts)
 
     # surfaces load volume collections

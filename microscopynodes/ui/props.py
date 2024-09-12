@@ -4,7 +4,7 @@ from bpy.props import (StringProperty, FloatProperty,
                         BoolProperty
                         )
 
-from ..file_to_array import change_path, change_zarr_level
+from ..file_to_array import change_path, change_zarr_level, change_channel_ax
 from .channel_list import set_channels
 from ..load_components.load_generic import get_min_gn
 from pathlib import Path
@@ -84,6 +84,7 @@ bpy.types.Scene.MiN_axes_order = StringProperty(
         name="",
         description="axes order (out of tzcyx)",
         default="",
+        update=change_channel_ax,
         maxlen=6)
     
 bpy.types.Scene.MiN_xy_size = FloatProperty(

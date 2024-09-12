@@ -110,6 +110,8 @@ def load_surfaces(ch_dicts, scale, cache_coll, base_coll, surf_obj=None):
 
     for ix, ch in enumerate(new_channels):
         insert_vol_to_surf(surf_obj, ch)
+        surf_obj.data.materials.append(ch['material'])
+
 
     return surf_obj
 

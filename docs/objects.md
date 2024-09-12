@@ -15,7 +15,7 @@ Volumes are the default loaded object in Microscopy Nodes. This will render the 
 Thresholding the data can be done in the per-channel Materials of the volumes object, easiest found in the `Shading` workflow, with a histogram of the data on load.
 
 ## Surfaces
-Surfaces are isosurface objects, where a Mesh is generated at a specific threshold value to render the microscopic volume as a surface. This thus only shows a thresholded version of the image. The resolution default can be set with the [surface resolution setting](./settings.md#surface-resolution), but can be easily changed (if not at `Actual`) in the Geometry Nodes of the surfaces object. 
+Surfaces are isosurface objects, where a Mesh is generated at a specific threshold value to render the microscopic volume as a surface. This thus only shows a thresholded version of the image, the threshold can be adjusted at its Geometry Nodes modifier. The resolution default can be set with the [surface resolution setting](./settings.md#surface-resolution), but can be easily changed (if not at `Actual`) in the Geometry Nodes of the surfaces object. 
 
 This is not only a useful mode for image data, but also for masks where the values of the separate objects do not matter, as it is more adaptable, lightweight and blender-integrated than the labelmasks.
 

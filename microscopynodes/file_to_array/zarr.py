@@ -8,6 +8,7 @@ from aiohttp import ClientConnectorError
 import os
 import bpy
 from pathlib import Path
+from urllib.parse import urljoin
 
 OME_ZARR_V_0_4_KWARGS = dict(dimension_separator="/", normalize_keys=False)
 OME_ZARR_V_0_1_KWARGS = dict(dimension_separator=".")
@@ -20,7 +21,11 @@ class ZarrLevelsGroup(bpy.types.PropertyGroup):
     path: bpy.props.StringProperty(name='zarr_path')
     store: bpy.props.StringProperty(name='zarr_store')
     channels : bpy.props.IntProperty()
+    arraychannels : bpy.props.IntProperty()
+
+    # |-separated lists
     ch_names : bpy.props.StringProperty()
+    shape : bpy.props.StringProperty()
     # The scene collectionproperty is created in __init__ of the package due to registration issues:
     # bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=ZarrLevelsGroup)
 
@@ -33,90 +38,162 @@ class ZarrLoader(ArrayLoader):
         return self.suffix in str(bpy.context.scene.MiN_input_file)
 
     def load_array(self, input_file):
-        
+        uncached_store = FSStore(input_file, mode="r", **OME_ZARR_V_0_4_KWARGS)
+        store = LRUStoreCache(uncached_store, max_size=5*(10**9))
+        zarray = ZarrArray(store=store)
+        print(zarray.shape, 'zarray.shpae')
+        return zarray
+    
+    def shape(self):
         for level in bpy.context.scene.MiN_zarrLevels:
             if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
-                uncached_store = FSStore(level.store, mode="r", **OME_ZARR_V_0_4_KWARGS)
-                store = LRUStoreCache(uncached_store, max_size=5*(10**9))
-                zarray = ZarrArray(store=store, path=level.path)
-                return zarray
+                return [int(dim) for dim in level.shape.split("|")]
+
+    def unpack_array(self, input_file, axes_order, ch_dicts):
+        for level in bpy.context.scene.MiN_zarrLevels:
+            if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
+                size_px = super().unpack_array(append_uri(level.store, level.path), axes_order, ch_dicts)
+                
+                if bpy.context.scene.MiN_axes_order == level.axes_order:
+                    for labellevel in get_label_channels(level)[0]:
+                        super().unpack_array(append_uri(labellevel.store, labellevel.path), axes_order, ch_dicts)
+                        print(level.xy_size, labellevel.xy_size)
+        return size_px
 
     def changePath(self, context):
         bpy.context.scene.MiN_zarrLevels.clear()
-        # infers metadata, resets to default if not found
-        # the raise gets handled upstream, so only prints to cli, somehow.
+        bpy.context.scene.MiN_zarrLabelLevels.clear()
+
         uri = context.scene.MiN_input_file
         if uri.startswith("file:"):
-            # Zarr's FSStore implementation doesn't unescape file URLs before piping them to
-            # the file system. We do it here the same way as in pathHelpers.uri_to_Path.
             # Primarily this is to deal with spaces in Windows paths (encoded as %20).
             uri = os.fsdecode(unquote_to_bytes(uri))
-        uncached_store = FSStore(uri, mode="r", **OME_ZARR_V_0_4_KWARGS)
+        
         try:
-            ome_spec = json.loads(uncached_store[".zattrs"])
-        except Exception as e:
-            # Connection problems on FSSpec side raise a ClientConnectorError wrapped in a KeyError
-            if isinstance(e.__context__, ClientConnectorError):
-                bpy.context.scene.MiN_selected_zarr_level = f"Could not connect to {e.__context__.host}:{e.__context__.port}"
-                return
-            elif isinstance(e, KeyError):
-                bpy.context.scene.MiN_selected_zarr_level = f"Could not find .zattrs at this address"
-                return
-            else: 
-                raise e
-        if ome_spec.get("multiscales", [{}])[0].get("version") == "0.1":
-            uncached_store = FSStore(self.uri, mode="r", **OME_ZARR_V_0_1_KWARGS)
-        store = LRUStoreCache(uncached_store, max_size=10**9)
-        self.levels = {}
+            label_uri = append_uri(uri, 'labels')
+            uncached_store = FSStore(label_uri, mode="r", **OME_ZARR_V_0_4_KWARGS)
+            label_names = json.loads(uncached_store[".zattrs"])['labels']
+            for label_ch in label_names:
+                parse_zattrs(append_uri(label_uri, label_ch), bpy.context.scene.MiN_zarrLabelLevels)
+        except KeyError as e:
+            print(e)
+            print('no labels found')
 
-        ch_names = None
-        if "omero" in ome_spec:
-            try:
-                ch_names = [omerosettings['label'] for omerosettings in ome_spec['omero']['channels']]
-                ch_names = "|".join(ch_names)
-            except KeyError as e:
-                print(f'could not read channel names {e}')
-        for multiscale_spec in ome_spec["multiscales"]:
-            axes_order =  _get_axes_order_from_spec(multiscale_spec)
-            datasets = multiscale_spec["datasets"]
-            dtype = None
-            gui_scale_metadata = OrderedDict()  # Becomes slot metadata -> must be serializable (no ZarrArray allowed)
-            
-            for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
-                level = bpy.context.scene.MiN_zarrLevels.add()
-                # print(uri, context.scene.MiN_input_file, scale['name'])
-                level.store = context.scene.MiN_input_file
-                level.path =  scale['path']
-                level.axes_order = axes_order
-                if ch_names is not None:
-                    level.ch_names = ch_names
-
-                if "coordinateTransformations" in scale:
-                    scaletransform = [transform for transform in scale['coordinateTransformations'] if transform['type'] == 'scale'][0]
-                    level.xy_size = scaletransform['scale'][axes_order.find('x')]
-                    if 'z' in axes_order:
-                        level.z_size = scaletransform['scale'][axes_order.find('z')]
-
-                
-                # Loading a ZarrArray at this path is necessary to obtain the scale dimensions for the GUI.
-                # As a bonus, this also validates all scale["path"] strings passed outside this class.
-                zarray = ZarrArray(store=store, path=scale["path"])
-                dtype = zarray.dtype.type
-                estimated_max_size = zarray.shape[0]
-                if 'c' in axes_order:
-                    level.channels = zarray.shape[axes_order.find('c')]
-                else:
-                    level.channels = 1
-                
-                for dim in zarray.shape[1:]:
-                    estimated_max_size *= dim
-                estimated_max_size = human_size(estimated_max_size *4) # vdb's are 32 bit floats == 4 byte per voxel
-
-                level.level_descriptor = f"{scale['path']}: {zarray.shape}, up to {estimated_max_size}"
-                if len(ome_spec["multiscales"]) > 1:
-                    level.level_descriptor = f"{multiscale_spec['name']}/{level.level_descriptor}"
-                bpy.context.scene.MiN_selected_zarr_level = level.level_descriptor
+        try:
+            parse_zattrs(uri, bpy.context.scene.MiN_zarrLevels)
+        except KeyError as e:
+            bpy.context.scene.MiN_selected_zarr_level = f"Could not parse .zattrs, see print log for detail"
+            print(e)
         return
+
+def append_uri(uri, append):
+    if Path(uri).exists():
+        return Path(uri) / append
+    if uri[-1] != '/':
+        uri += "/"
+    return urljoin(uri, append)
+
+def parse_zattrs(uri, level_list):
+    uri = str(uri)
+    uncached_store = FSStore(uri, mode="r", **OME_ZARR_V_0_4_KWARGS)
+    try:
+        ome_spec = json.loads(uncached_store[".zattrs"])
+    except Exception as e:
+        # Connection problems on FSSpec side raise a ClientConnectorError wrapped in a KeyError
+        if isinstance(e.__context__, ClientConnectorError):
+            bpy.context.scene.MiN_selected_zarr_level = f"Could not connect to {e.__context__.host}:{e.__context__.port}"
+            return
+        elif isinstance(e, KeyError):
+            bpy.context.scene.MiN_selected_zarr_level = f"Could not find .zattrs at this address"
+            raise e
+        else: 
+            raise e
+    if ome_spec.get("multiscales", [{}])[0].get("version") == "0.1":
+        uncached_store = FSStore(uri, mode="r", **OME_ZARR_V_0_1_KWARGS)
+    store = LRUStoreCache(uncached_store, max_size=10**9)
+
+    print(ome_spec)
+
+    ch_names = None
+    if "omero" in ome_spec:
+        try:
+            ch_names = [omerosettings['label'] for omerosettings in ome_spec['omero']['channels']]
+            ch_names = "|".join(ch_names)
+        except KeyError as e:
+            print(f'could not read channel names {e}')
+    for multiscale_spec in ome_spec["multiscales"]:
+        axes_order =  _get_axes_order_from_spec(multiscale_spec)
+        datasets = multiscale_spec["datasets"]
+        dtype = None
+        gui_scale_metadata = OrderedDict()  # Becomes slot metadata -> must be serializable (no ZarrArray allowed)
+        
+        for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
+            level = level_list.add()
+            # print(uri, context.scene.MiN_input_file, scale['name'])
+            level.store = uri
+            level.path =  scale['path']
+            level.axes_order = axes_order
+            
+
+            if "coordinateTransformations" in scale:
+                scaletransform = [transform for transform in scale['coordinateTransformations'] if transform['type'] == 'scale'][0]
+                level.xy_size = scaletransform['scale'][axes_order.find('x')]
+                if 'z' in axes_order:
+                    level.z_size = scaletransform['scale'][axes_order.find('z')]
+
+            # Loading a ZarrArray at this path is necessary to obtain the scale dimensions for the GUI.
+            # As a bonus, this also validates all scale["path"] strings passed outside this class.
+            zarray = ZarrArray(store=store, path=scale["path"])
+            
+            level.shape = "|".join([str(dim) for dim in zarray.shape])
+
+            totalshape_no_ch = list(zarray.shape)
+            level.ch_names = ""
+            level.channels = 1
+            if 'c' in axes_order:
+                level.channels = zarray.shape[axes_order.find('c')]
+                level.ch_names = "|".join([""] * level.channels)
+                del totalshape_no_ch[axes_order.find('c')]
+            if ch_names is not None:
+                level.ch_names = ch_names
+            level.arraychannels = level.channels
+
+
+            label_levels, label_names = [], []
+            if level_list == bpy.context.scene.MiN_zarrLevels:
+                label_levels, label_names = get_label_channels(level)
+                level.channels += len(label_names)
+                level.ch_names = "|".join([level.ch_names, *label_names])
+                
+            estimated_max_size = level.channels
+            for dim in totalshape_no_ch:
+                estimated_max_size *= dim
+            estimated_max_size = human_size(estimated_max_size *4) # vdb's are 32 bit floats == 4 byte per voxel
+
+            level.level_descriptor = f"{scale['path']}: {zarray.shape}, up to {estimated_max_size}"
+            if len(label_names) > 1:
+                level.level_descriptor = f"{scale['path']}: {zarray.shape} + {len(label_names)} masks, up to {estimated_max_size}"
+            bpy.context.scene.MiN_selected_zarr_level = level.level_descriptor
+    return
+
+def get_label_channels(level):
+    names = []
+    label_levels = []
+    ch_axis = None
+    if 'c' in level.axes_order:
+        ch_axis = level.axes_order.find('c')
+    
+    for label_level in bpy.context.scene.MiN_zarrLabelLevels:
+        name = Path(label_level.store).stem
+        if name in names:
+            continue
+        equalshape = [dim1 == dim2 for dim1, dim2 in zip(label_level.shape.split("|"), level.shape.split("|"))]
+        if 'c' in level.axes_order:
+            del equalshape[level.axes_order.find('c')]
+        if all(equalshape):
+            names.append(name)
+            label_levels.append(label_level)
+    return label_levels, names
 
 
 def change_zarr_level(self, context):
@@ -131,11 +208,15 @@ def change_zarr_level(self, context):
                 context.scene.MiN_z_size = level['z_size']
             context.scene.MiN_axes_order = level['axes_order']
 
-            if context.scene.MiN_channel_nr != level['channels']: # this updates n channels and resets names
-                context.scene.MiN_channel_nr = level['channels']
-                if 'ch_names' in level:
-                    for ch, ch_name in zip(context.scene.MiN_channelList, level['ch_names'].split("|")):
-                        ch['name'] = ch_name
+            if context.scene.MiN_channel_nr != level.channels: # this updates n channels and resets names
+                context.scene.MiN_channel_nr = level.channels
+                
+                for ix, ch in enumerate(context.scene.MiN_channelList):
+                    if level.ch_names.split("|")[ix] != "":
+                        ch['name'] = level.ch_names.split("|")[ix]
+                    if ix >= level.arraychannels:
+                        ch['volume'] = False
+                        ch['surface'] = True
 
             return
 
