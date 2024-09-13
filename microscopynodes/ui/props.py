@@ -120,6 +120,11 @@ bpy.types.Scene.MiN_enable_ui = BoolProperty(
         default = False,
     )
 
+bpy.types.Scene.MiN_load_finished = BoolProperty(
+        name = "", 
+        default = False,
+    )
+
 def poll_empty(self, object):
     if object.type != 'EMPTY':
         return False

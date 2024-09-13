@@ -1,16 +1,30 @@
 import bpy
 from .. import load
 from . import props
-
 from .channel_list import *
-
-
 from bpy.types import (Panel,
                         Operator,
                         AddonPreferences,
                         PropertyGroup,
                         )
 
+import threading
+
+
+    
+# def update_progress(self, context):
+#     for region in context.area.regions:
+#         print(region.type)
+#         if region.type == "UI":
+#             region.tag_redraw()
+#     return None
+
+
+bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
+    name = "",
+    description = "current process in load",
+    default="",
+)
 
 class TIFLoadPanel(bpy.types.Panel):
     bl_idname = "SCENE_PT_zstackpanel"
@@ -18,6 +32,8 @@ class TIFLoadPanel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "scene"
+
+
 
     def draw(self, context):
         # print('drawing tifloadpanel')
@@ -70,7 +86,8 @@ class TIFLoadPanel(bpy.types.Panel):
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
         
-        layout.separator()
+        col.prop(context.scene, 'MiN_progress_str', emboss=False)
+
 
         box = layout.box()
         grid = box.grid_flow(columns = 1)
@@ -84,7 +101,9 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Overwrite files', icon_value=0, emboss=True)
         row.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = 'Set environment', icon_value=0, emboss=True)
-        
+    
+
+
 
 
 
@@ -126,9 +145,46 @@ class TifLoadOperator(bpy.types.Operator):
     bl_idname = "tiftool.load"
     bl_label = "Load"
 
+    _timer = None
+    value = 0 
+    thread = None
+    params=None
+
+    def modal(self, context, event):
+        if event.type == 'TIMER':
+            if not self.thread.is_alive():
+                context.window_manager.event_timer_remove(self._timer)
+                load.load_blocking(self.params)
+                return {'FINISHED'}
+            [region.tag_redraw() for region in context.area.regions]
+            return {"RUNNING_MODAL"}
+        if event.type in {'RIGHTMOUSE', 'ESC'}:  # Cancel
+            # Revert all changes that have been made
+            return {'CANCELLED'}
+
+        return {"RUNNING_MODAL"}
+
+
     def execute(self, context):
-        load.load()
-        return {'FINISHED'}
+        wm = context.window_manager
+        self._timer = wm.event_timer_add(0.1, window=context.window)
+        self.params = load.load_init()
+        self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
+        wm.modal_handler_add(self)
+        self.thread.start()
+        # self.thread.join()
+        return {'RUNNING_MODAL'}
+
+    def cancel(self, context):
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
+        return
+        
+
+    # def execute(self, context):
+    #     load.load()
+    #     return {'RUNNING_MODAL'}
+
 
 class ZarrSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""

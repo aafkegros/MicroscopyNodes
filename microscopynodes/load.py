@@ -5,36 +5,52 @@ import numpy as np
 from .initial_global_settings import preset_environment, preset_em_environment
 from .handle_blender_structs import *
 from .load_components import *
-from .file_to_array import load_array
+from .file_to_array import load_array, arr_shape
 from .ui.props import update_cache_dir
 
 from mathutils import Matrix
+import time
 
-def load():
-    """
-    Main loading function of Microscopy Nodes, handles all input parameters, 
-    then loads or updates all objects. 
-    """
-    # --- Handle input ---
-    prev_active_obj = bpy.context.active_object
+def load_init():
     check_input()
     
     axes_order = bpy.context.scene.MiN_axes_order
-    remake = bpy.context.scene.MiN_remake
+    
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
-    input_file = bpy.context.scene.MiN_input_file
-    fname = Path(input_file).stem
     
     cache_dir = get_cache_subdir()
-    preset_env() 
-    base_coll, cache_coll = min_base_colls(fname[:50], bpy.context.scene.MiN_reload)    
+    base_coll, cache_coll = min_base_colls(Path(bpy.context.scene.MiN_input_file).stem[:50], bpy.context.scene.MiN_reload)    
     
-    holders = parse_reload(bpy.context.scene.MiN_reload)
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
-
-    size_px = load_array(input_file, axes_order, ch_dicts) # unpacks into ch_dicts
+    
+    size_px = np.array([arr_shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
     size_px = tuple([max(ax, 1) for ax in size_px])
+
+    return ch_dicts, (axes_order,  pixel_size, size_px), (base_coll, cache_coll, cache_dir)
+
+def load_threaded(params):
+    ch_dicts, (axes_order, pixel_size, size_px), (base_coll, cache_coll, cache_dir) = params
+
+    log('Loading file')
+    load_array(bpy.context.scene.MiN_input_file, axes_order, ch_dicts) # unpacks into ch_dicts
     axes_order = axes_order.replace('c', "") # channels are separated
+
+    arrays_to_vdb_files(ch_dicts, axes_order, bpy.context.scene.MiN_remake, cache_dir) 
+    progress = 'Loading objects to Blender'
+    if any([ch['surface'] for ch in ch_dicts]):
+        progress = 'Meshing surfaces, ' + progress.lower()
+    if any([ch['labelmask'] for ch in ch_dicts]):
+        progress = 'Making labelmasks, ' + progress.lower()
+    log(progress)
+    time.sleep(0.11) # makes sure logs are up to date
+    return params
+
+def load_blocking(params):
+    ch_dicts, (axes_order, pixel_size, size_px), (base_coll, cache_coll, cache_dir) = params
+    prev_active_obj = bpy.context.active_object
+    input_file = bpy.context.scene.MiN_input_file
+    preset_env()    
+    holders = parse_reload(bpy.context.scene.MiN_reload)
 
     # --- Load components ---
     # ch_dict gets edited to correspond to loaded features and data types
@@ -44,7 +60,6 @@ def load():
     axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=holders['axes'])
     to_be_parented.append(axes_obj)
     
-    arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir) 
     vol_obj = load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=holders['volume'])
     to_be_parented = update_parent(to_be_parented, vol_obj, ch_dicts)
 
@@ -52,7 +67,7 @@ def load():
     surf_obj = load_surfaces(ch_dicts, scale, cache_coll, base_coll, surf_obj=holders['surface'])
     to_be_parented.append(surf_obj)
     
-    mask_obj = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, axes_order, mask_obj=holders['masks'])
+    mask_obj = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, bpy.context.scene.MiN_remake, axes_order, mask_obj=holders['masks'])
     to_be_parented = update_parent(to_be_parented, mask_obj, ch_dicts)
 
     # slices all objects in to_be_parented but axes
@@ -60,7 +75,7 @@ def load():
     to_be_parented.append(slicecube)
 
     loc = np.array(size_px) * np.array([0.5,0.5,0]) * scale * -1
-    container_obj = init_container(to_be_parented ,loc=loc, name=fname, container_obj=holders['container'])
+    container_obj = init_container(to_be_parented ,loc=loc, name=Path(input_file).stem, container_obj=holders['container'])
     collection_deactivate_by_name('cache')
 
     try:
@@ -71,6 +86,8 @@ def load():
         pass
     # after first load this should not be used again, to prevent overwriting user values
     bpy.context.scene.MiN_preset_environment = False
+    bpy.context.scene.MiN_enable_ui = True
+    log('')
     return
 
 def update_parent(to_be_parented, obj, ch_dicts):

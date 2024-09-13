@@ -95,6 +95,7 @@ def make_vdb(imgdata, block, axes_order, remake, cache_dir, ch):
                 histfname.unlink()
             # frame.visualize(filename=f'/Users/oanegros/Documents/screenshots/stranspose-hlg{x_ix}_{y_ix}_{z_ix}.svg', engine='cytoscape')
             # arr = frame.compute()
+            log(f"load chunk {identifier5d}")
             arr = frame.compute()
             arr = np.moveaxis(arr, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
             try:
@@ -111,7 +112,10 @@ def make_vdb(imgdata, block, axes_order, remake, cache_dir, ch):
             grid.name = f"data_channel_{ch}"
             
             grid.copyFromArray(arr.astype(np.float32))
+
+            log(f"write vdb {identifier5d}")
             vdb.write(str(vdbfname), grids=[grid])
+            # log("")
 
     return str(dirpath), time_vdbs, time_hists
 
@@ -297,6 +301,7 @@ def volume_materials(obj, ch_dicts):
 
 def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
     # consider checking whether all channels are present in vdb for remaking?
+    log("loading volumes in Blender")
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
     volumes = []
@@ -364,4 +369,6 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
                 vol_obj.data.materials.append(ch['material'])
 
         update_holder(vol_obj, ch_dicts, 'volume')
+    log("")
+    
     return vol_obj

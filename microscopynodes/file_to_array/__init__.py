@@ -26,9 +26,11 @@ def load_array(input_file, axes_order, ch_dicts):
             return loader.unpack_array(input_file, axes_order, ch_dicts)
 
 def change_channel_ax(self, context):
+    bpy.context.scene.MiN_channel_nr = arr_shape()[bpy.context.scene.MiN_axes_order.find('c')]
+
+
+def arr_shape():
     for Loader in [TifLoader, ZarrLoader]:
         loader = Loader()
         if loader.checkPath():
-            if loader.shape() is not None:
-                bpy.context.scene.MiN_channel_nr = loader.shape()[bpy.context.scene.MiN_axes_order.find('c')]
-            return
+            return loader.shape()
