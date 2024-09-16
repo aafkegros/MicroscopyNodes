@@ -31,3 +31,4 @@ Load any tif or zarr file by inputting the path or URL in the appropriate window
 ## Video tutorials
 
 See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the microscopynodes add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
+<iframe width="640" height="350" src="https://www.youtube.com/embed/kAO2lYJ_bPI?si=VLonO7hMUGePX68g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
