@@ -243,7 +243,7 @@ def volume_materials(obj, ch_dicts):
             ch['material'] = None
             continue
 
-        mat = bpy.data.materials.new(f"{ch['name']} shader")
+        mat = bpy.data.materials.new(f"{ch['name']} volume")
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links

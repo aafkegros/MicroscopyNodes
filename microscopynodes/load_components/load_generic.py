@@ -58,9 +58,11 @@ def update_channel(obj, ch, activate_key):
     
     if activate_key == 'surface':
         update_resolution(gn_mod, ch)
-    if activate_key == 'volume':
-        for mat in obj.data.materials:
-            if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
+    
+    for mat in obj.data.materials:
+        if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
+            mat.name = f"{ch['name']} {activate_key}"
+            if activate_key == 'volume':
                 update_shader(mat, ch)
     return
 

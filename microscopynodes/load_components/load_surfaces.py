@@ -23,11 +23,12 @@ def surf_material(surf_obj, ch_dicts):
             princ = nodes.new("ShaderNodeBsdfPrincipled")
             links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
         
-
+        princ = nodes.get("Principled BSDF")
+        princ.name = f"[{ch['identifier']}] principled"
         color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
         all_ch_present += 1
-        nodes.get("Principled BSDF").inputs.get('Base Color').default_value = color
-        nodes.get("Principled BSDF").inputs.get('Alpha').default_value = 0.5
+        princ.inputs.get('Base Color').default_value = color
+        princ.inputs.get('Alpha').default_value = 0.5
         ch['material'] = mat
     return 
 

@@ -10,11 +10,13 @@ from .load_generic import init_holder, update_holder, clear_updating_collections
 
 def labelmask_shader(maskchannel, maxval):
     # do not check whether it exists, so a new load will force making a new mat
-    mat = bpy.data.materials.new(f'channel {maskchannel}')
+    mat = bpy.data.materials.new(f'{maskchannel} mask')
     mat.blend_method = "BLEND"
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
+
+    
 
     if nodes.get("Principled BSDF") is None:
         try: 
@@ -27,6 +29,9 @@ def labelmask_shader(maskchannel, maxval):
             outnode.name = 'Material Output'
         links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
     
+    princ = nodes.get("Principled BSDF")
+    princ.name = f"[{ch['identifier']}] principled"
+
     idnode =  nodes.new("ShaderNodeVertexColor")
     idnode.layer_name = 'object id'
     idnode.location = (-800, 300)
@@ -47,7 +52,7 @@ def labelmask_shader(maskchannel, maxval):
     tab10.location = (-300, 300)
     get_cmap('mpl-tab10', ramp=tab10)
     links.new(map_range.outputs[0], tab10.inputs.get('Fac'))
-    links.new(tab10.outputs[0], nodes.get("Principled BSDF").inputs.get("Base Color"))
+    links.new(tab10.outputs[0], princ.inputs.get("Base Color"))
     
     # make optional linear colormap
     map_range_lin = nodes.new(type='ShaderNodeMapRange')
