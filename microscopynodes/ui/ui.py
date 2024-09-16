@@ -148,15 +148,17 @@ class TifLoadOperator(bpy.types.Operator):
     _timer = None
     value = 0 
     thread = None
-    params=None
+    params = None
 
     def modal(self, context, event):
         if event.type == 'TIMER':
-            if not self.thread.is_alive():
+            [region.tag_redraw() for region in context.area.regions]
+            if self.thread is None:
                 context.window_manager.event_timer_remove(self._timer)
                 load.load_blocking(self.params)
                 return {'FINISHED'}
-            [region.tag_redraw() for region in context.area.regions]
+            if not self.thread.is_alive():
+                self.thread = None # update UI for one timer-round
             return {"RUNNING_MODAL"}
         if event.type in {'RIGHTMOUSE', 'ESC'}:  # Cancel
             # Revert all changes that have been made

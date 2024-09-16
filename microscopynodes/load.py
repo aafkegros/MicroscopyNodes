@@ -9,7 +9,6 @@ from .file_to_array import load_array, arr_shape
 from .ui.props import update_cache_dir
 
 from mathutils import Matrix
-import time
 
 def load_init():
     check_input()
@@ -42,7 +41,6 @@ def load_threaded(params):
     if any([ch['labelmask'] for ch in ch_dicts]):
         progress = 'Making labelmasks, ' + progress.lower()
     log(progress)
-    time.sleep(0.11) # makes sure logs are up to date
     return params
 
 def load_blocking(params):
