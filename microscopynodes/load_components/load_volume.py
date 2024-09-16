@@ -95,13 +95,13 @@ def make_vdb(imgdata, block, axes_order, remake, cache_dir, ch):
                 histfname.unlink()
             # frame.visualize(filename=f'/Users/oanegros/Documents/screenshots/stranspose-hlg{x_ix}_{y_ix}_{z_ix}.svg', engine='cytoscape')
             # arr = frame.compute()
-            log(f"load chunk {identifier5d}")
+            log(f"loading chunk {identifier5d}")
             arr = frame.compute()
             arr = np.moveaxis(arr, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
             try:
                 arr = arr.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
             except ValueError:
-                arr = arr.astype(np.float32) /np.max(arr)
+                arr = arr.astype(np.float32) / ch['max_val']
 
             # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
             histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
@@ -305,7 +305,7 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
     volumes = []
-    print(ch_dicts)
+    # print(ch_dicts)
 
     bpy.types.Scene.files: CollectionProperty(
         type=bpy.types.OperatorFileListElement,
@@ -339,21 +339,20 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
             for hist in chunk['histfiles']:
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
+        
         ch['min_val'] = 0
         ch['max_val'] = 1
         ch['histnorm'] = np.zeros(NR_HIST_BINS)
-        ch['threshold'] = 0.5
-        ch['surf_threshold'] = 0.5
+        print([(k,v) for k, v in ch.items()])
+        if 'threshold' in ch:
+            print(f'hye found threshold {ch["threshold"]}')
+        if 'threshold' not in ch: # crude way of setting metadata TODO rework to handle all omero data
+            ch['threshold'] = 0.5
         if np.sum(histtotal)> 0:
             ch['min_val'],ch['max_val'] = get_leading_trailing_zero_float(histtotal)
             ch['histnorm'] = histtotal[int(ch['min_val'] * NR_HIST_BINS): int(ch['max_val'] * NR_HIST_BINS)]
-            ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )  
-            histcrop = ch['histnorm'][int(ch['threshold'] * len(ch['histnorm'])):]
-            ch['surf_threshold'] = ch['threshold']
-            if len(histcrop) > 0:
-                ch['surf_threshold'] = skimage.filters.threshold_isodata(hist=histcrop)/len(histcrop)
-        
-
+            if ch['threshold'] == 0.5:
+                ch['threshold'] = skimage.filters.threshold_isodata(hist=ch['histnorm'] )/len(ch['histnorm'] )  
 
     collection_activate(*base_coll)
     

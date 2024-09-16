@@ -1,4 +1,6 @@
 from .arrayloading import ArrayLoader
+from ..handle_blender_structs.progress_handling import log
+import numpy as np
 from zarr.core import Array as ZarrArray
 from zarr.storage import FSStore, LRUStoreCache
 from zarr.convenience import load
@@ -20,12 +22,11 @@ class ZarrLevelsGroup(bpy.types.PropertyGroup):
     axes_order: bpy.props.StringProperty(name='zarr_axes_order')
     path: bpy.props.StringProperty(name='zarr_path')
     store: bpy.props.StringProperty(name='zarr_store')
-    channels : bpy.props.IntProperty()
-    arraychannels : bpy.props.IntProperty()
+    arraychannels : bpy.props.IntProperty() # without masks
 
     # |-separated lists
     ch_names : bpy.props.StringProperty()
-    shape : bpy.props.StringProperty()
+    shape : bpy.props.StringProperty() # without masks
     # The scene collectionproperty is created in __init__ of the package due to registration issues:
     # bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=ZarrLevelsGroup)
 
@@ -45,20 +46,23 @@ class ZarrLoader(ArrayLoader):
         return zarray
     
     def shape(self):
+        # no solution for mask channels in channel-less images for now.
         for level in bpy.context.scene.MiN_zarrLevels:
             if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
-                return [int(dim) for dim in level.shape.split("|")]
+                shape = [int(dim) for dim in level.shape.split("|")]
+                if bpy.context.scene.MiN_axes_order == level.axes_order and 'c' in level.axes_order:
+                    shape[level.axes_order.find('c')] += len(get_label_channels(level))
+                return shape
+                    
 
     def unpack_array(self, input_file, axes_order, ch_dicts):
         for level in bpy.context.scene.MiN_zarrLevels:
             if level.level_descriptor == bpy.context.scene.MiN_selected_zarr_level:
-                size_px = super().unpack_array(append_uri(level.store, level.path), axes_order, ch_dicts)
-                
+                super().unpack_array(append_uri(level.store, level.path), axes_order, ch_dicts)
                 if bpy.context.scene.MiN_axes_order == level.axes_order:
                     for labellevel in get_label_channels(level)[0]:
                         super().unpack_array(append_uri(labellevel.store, labellevel.path), axes_order, ch_dicts)
-                        print(level.xy_size, labellevel.xy_size)
-        return size_px
+
 
     def changePath(self, context):
         bpy.context.scene.MiN_zarrLevels.clear()
@@ -112,8 +116,6 @@ def parse_zattrs(uri, level_list):
         uncached_store = FSStore(uri, mode="r", **OME_ZARR_V_0_1_KWARGS)
     store = LRUStoreCache(uncached_store, max_size=10**9)
 
-    print(ome_spec)
-
     ch_names = None
     if "omero" in ome_spec:
         try:
@@ -124,12 +126,10 @@ def parse_zattrs(uri, level_list):
     for multiscale_spec in ome_spec["multiscales"]:
         axes_order =  _get_axes_order_from_spec(multiscale_spec)
         datasets = multiscale_spec["datasets"]
-        dtype = None
         gui_scale_metadata = OrderedDict()  # Becomes slot metadata -> must be serializable (no ZarrArray allowed)
         
         for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
             level = level_list.add()
-            # print(uri, context.scene.MiN_input_file, scale['name'])
             level.store = uri
             level.path =  scale['path']
             level.axes_order = axes_order
@@ -146,26 +146,28 @@ def parse_zattrs(uri, level_list):
             zarray = ZarrArray(store=store, path=scale["path"])
             
             level.shape = "|".join([str(dim) for dim in zarray.shape])
+            if np.issubdtype(zarray.dtype,np.floating):
+                log("Floating point arrays cannot be loaded lazily, will use a lot of RAM")
 
             totalshape_no_ch = list(zarray.shape)
             level.ch_names = ""
-            level.channels = 1
+            channels = 1
             if 'c' in axes_order:
-                level.channels = zarray.shape[axes_order.find('c')]
-                level.ch_names = "|".join([""] * level.channels)
+                channels = zarray.shape[axes_order.find('c')]
+                level.ch_names = "|".join([""] * channels)
                 del totalshape_no_ch[axes_order.find('c')]
             if ch_names is not None:
                 level.ch_names = ch_names
-            level.arraychannels = level.channels
+            level.arraychannels = channels
 
 
             label_levels, label_names = [], []
             if level_list == bpy.context.scene.MiN_zarrLevels:
                 label_levels, label_names = get_label_channels(level)
-                level.channels += len(label_names)
+                channels += len(label_names)
                 level.ch_names = "|".join([level.ch_names, *label_names])
                 
-            estimated_max_size = level.channels
+            estimated_max_size = channels
             for dim in totalshape_no_ch:
                 estimated_max_size *= dim
             estimated_max_size = human_size(estimated_max_size *4) # vdb's are 32 bit floats == 4 byte per voxel
@@ -206,18 +208,19 @@ def change_zarr_level(self, context):
                 context.scene.MiN_xy_size = level['xy_size']
             if 'z_size' in level:
                 context.scene.MiN_z_size = level['z_size']
-            context.scene.MiN_axes_order = level['axes_order']
-
-            if context.scene.MiN_channel_nr != level.channels: # this updates n channels and resets names
-                context.scene.MiN_channel_nr = level.channels
+            
+            channels = level.ch_names.split("|")
+            if context.scene.MiN_channel_nr != len(channels) or context.scene.MiN_axes_order != level['axes_order']: # this updates n channels and resets names
+                context.scene.MiN_axes_order = level['axes_order']
+                context.scene.MiN_channel_nr = len(channels)
                 
                 for ix, ch in enumerate(context.scene.MiN_channelList):
-                    if level.ch_names.split("|")[ix] != "":
-                        ch['name'] = level.ch_names.split("|")[ix]
+                    if channels[ix] != "":
+                        ch['name'] = channels[ix]
                     if ix >= level.arraychannels:
                         ch['volume'] = False
                         ch['surface'] = True
-
+                        ch['threshold'] = 0
             return
 
 

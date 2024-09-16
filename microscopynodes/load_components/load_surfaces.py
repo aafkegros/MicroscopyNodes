@@ -23,9 +23,11 @@ def surf_material(surf_obj, ch_dicts):
             princ = nodes.new("ShaderNodeBsdfPrincipled")
             links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
         
+
         color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
         all_ch_present += 1
         nodes.get("Principled BSDF").inputs.get('Base Color').default_value = color
+        nodes.get("Principled BSDF").inputs.get('Alpha').default_value = 0.5
         ch['material'] = mat
     return 
 
@@ -51,7 +53,7 @@ def insert_vol_to_surf(surf_obj, ch):
     threshold_socket.min_value = 0.0
     threshold_socket.max_value = 1.001
     threshold_socket.attribute_domain = 'POINT'
-    gn_mod[threshold_socket.identifier] = ch['surf_threshold']
+    gn_mod[threshold_socket.identifier] = ch['threshold']
 
     normnode = node_group.nodes.new(type="ShaderNodeMapRange")
     normnode.location =(edit_in.location[0] + 200, edit_in.location[1]-150)

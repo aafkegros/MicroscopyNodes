@@ -27,17 +27,17 @@ class ArrayLoader():
         if len(axes_order) != len(imgdata.shape):
             raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
-        size_px = np.array([imgdata.shape[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
-
         channels = imgdata.shape[axes_order.find('c')] if 'c' in axes_order else 1
         ix = 0
         for ch in ch_dicts:
             if ch['data'] is None:
                 ch['data'] = np.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
                 ix += 1
+            if np.issubdtype(ch['data'].dtype,np.floating):
+                ch['max_val'] = np.max(ch['data'])
             if ix >= channels:
                 break
-        return size_px
+        return 
 
 
         

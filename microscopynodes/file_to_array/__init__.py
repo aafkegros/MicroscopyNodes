@@ -1,11 +1,13 @@
 from .tif import TifLoader
 from . import zarr
 from .zarr import ZarrLoader, ZarrLevelsGroup, change_zarr_level
+from ..handle_blender_structs.progress_handling import log
 import bpy
 
 CLASSES = zarr.CLASSES
 
 def change_path(self, context):
+    log("")
     for Loader in [TifLoader, ZarrLoader]:
         loader = Loader()
         if loader.checkPath():
@@ -27,7 +29,6 @@ def load_array(input_file, axes_order, ch_dicts):
 
 def change_channel_ax(self, context):
     bpy.context.scene.MiN_channel_nr = arr_shape()[bpy.context.scene.MiN_axes_order.find('c')]
-
 
 def arr_shape():
     for Loader in [TifLoader, ZarrLoader]:
