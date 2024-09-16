@@ -1,5 +1,3 @@
-# FAQ
-
 Frequently asked questions. If yours is not in here, don't be afraid to open an [issue](https://github.com/oanegros/MicroscopyNodes/issues)!
 
 <details>

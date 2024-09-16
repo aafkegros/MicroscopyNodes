@@ -1,0 +1,10 @@
+site_name: Microscopy Nodes
+nav:
+  - Home: index.md
+  - Getting started: new_user.md
+  - Usage:
+    - Objects: objects.md
+    - Import settings: settings.md
+    - File types: file_types.md
+  - FAQ: faq.md
+theme: windmill

@@ -19,7 +19,7 @@ Surfaces are isosurface objects, where a Mesh is generated at a specific thresho
 
 This is not only a useful mode for image data, but also for masks where the values of the separate objects do not matter, as it is more adaptable, lightweight and blender-integrated than the labelmasks.
 
-This is essentially the same loaded [vdb data](./internals.md#vdb-files) as in the volumes, just with a [Volume to Mesh](https://docs.blender.org/manual/en/latest/modeling/geometry_nodes/volume/operations/volume_to_mesh.html#volume-to-mesh-node) Geometry Node in between. This means it is trivial to load either the volume or the mesh if the other is loaded, so if only one is activated the other will be loaded in deactivated state.
+This is essentially the same loaded [vdb data](./file_types.md#vdb-files) as in the volumes, just with a [Volume to Mesh](https://docs.blender.org/manual/en/latest/modeling/geometry_nodes/volume/operations/volume_to_mesh.html#volume-to-mesh-node) Geometry Node in between. This means it is trivial to load either the volume or the mesh if the other is loaded, so if only one is activated the other will be loaded in deactivated state.
 
 ## Masks
 Label masks - defined as masks where each object has a separate integer value - can be loaded as separate meshes when loaded as label mask in Microscopy Nodes. This will split apart each object, and turn it into a mesh and load this mesh into Blender. This means it can be slow/RAM-heavy as meshing is not alway a fast operation, and that changing [surface resolution](./settings.md#surface-resolution) will involve remeshing all objects.

@@ -1,4 +1,4 @@
-# Microscopy Nodes user settings
+# Microscopy Nodes User Settings
 
 The Microscopy Nodes panel has multiple different settings, which affect the import, resaving and reloading of data.
 
@@ -19,7 +19,7 @@ This will reload and update the visualization of the object with the data that i
 To do this it uses some specific names in the Microscopy Nodes objects. Any of these that are used are enclosed in square brackets.
 
 ## Resave Location
-The resave location is the location where all [blender-compatible files](./internals.md) will be stored, this will often be at the size of your entire dataset. Temporary is default, as we assume the first attempt at loading will be just temporary. 
+The resave location is the location where all [blender-compatible files](./file_types.md) will be stored, this will often be at the size of your entire dataset. Temporary is default, as we assume the first attempt at loading will be just temporary. 
 
 If you want the `.blend` blender project to be portable between machines, it is often best to use the `With Project` saving, as relative paths to the data are saved in the file. 
 
