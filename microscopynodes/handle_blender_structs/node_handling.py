@@ -144,7 +144,10 @@ def insert_slicing(group, slice_obj):
     slicecube.width = 250
     slicecube.location = (outnode.location[0]+ 270, outnode.location[1])
     links.new(texcoord.outputs.get('Object'),slicecube.inputs.get('Slicing Object'))
-
+    
+    slicecube.inputs[0].show_expanded = True
+    if len(lastnode.inputs) > 0: 
+        lastnode.inputs[0].show_expanded = True
 
     links.new(lastnode.outputs[0], slicecube.inputs.get("Shader"))
     links.new(slicecube.outputs.get("Shader"), output_input)

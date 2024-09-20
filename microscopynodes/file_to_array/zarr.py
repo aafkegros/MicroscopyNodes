@@ -42,7 +42,6 @@ class ZarrLoader(ArrayLoader):
         uncached_store = FSStore(input_file, mode="r", **OME_ZARR_V_0_4_KWARGS)
         store = LRUStoreCache(uncached_store, max_size=5*(10**9))
         zarray = ZarrArray(store=store)
-        print(zarray.shape, 'zarray.shpae')
         return zarray
     
     def shape(self):

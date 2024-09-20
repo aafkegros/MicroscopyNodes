@@ -54,7 +54,8 @@ def update_channel(obj, ch, activate_key):
         loadnode.parent.label = f"{ch['name']} data"
     
     for ix, socket in enumerate(node_group.interface.items_tree):
-        set_name_socket(socket, ch['name'])
+        if ch['identifier'] in socket.default_attribute_name:
+            set_name_socket(socket, ch['name'])
     
     if activate_key == 'surface':
         update_resolution(gn_mod, ch)

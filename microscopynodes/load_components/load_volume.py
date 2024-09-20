@@ -261,6 +261,7 @@ def volume_materials(obj, ch_dicts):
         node_attr.name = f"[channel_load_{ch['identifier']}]"
         node_attr.attribute_name = f'data_channel_{ch["ix"]}'
         node_attr.label = ch['name']
+        node_attr.hide =True
 
         normnode = nodes.new(type="ShaderNodeMapRange")
         normnode.location = (-1200, 0)
@@ -300,6 +301,9 @@ def volume_materials(obj, ch_dicts):
         links.new(shader_out.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
         nodes.get("Material Output").location = (700,00)
         ch['material'] = mat
+        for node in nodes:
+            if (len(node.inputs) > 0 and not node.hide) and node != ramp_node:
+                node.inputs[0].show_expanded = True
     return 
 
 

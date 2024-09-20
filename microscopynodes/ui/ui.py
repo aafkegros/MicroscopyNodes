@@ -11,29 +11,12 @@ from bpy.types import (Panel,
 import threading
 
 
-    
-# def update_progress(self, context):
-#     for region in context.area.regions:
-#         print(region.type)
-#         if region.type == "UI":
-#             region.tag_redraw()
-#     return None
-
-
-bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
-    name = "",
-    description = "current process in load",
-    default="",
-)
-
 class TIFLoadPanel(bpy.types.Panel):
     bl_idname = "SCENE_PT_zstackpanel"
     bl_label = "Microscopy Nodes"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "scene"
-
-
 
     def draw(self, context):
         # print('drawing tifloadpanel')
@@ -176,7 +159,6 @@ class TifLoadOperator(bpy.types.Operator):
         self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
         wm.modal_handler_add(self)
         self.thread.start()
-        # self.thread.join()
         return {'RUNNING_MODAL'}
 
     def cancel(self, context):
@@ -184,11 +166,6 @@ class TifLoadOperator(bpy.types.Operator):
         wm.event_timer_remove(self._timer)
         return
         
-
-    # def execute(self, context):
-    #     load.load()
-    #     return {'RUNNING_MODAL'}
-
 
 class ZarrSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""

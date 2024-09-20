@@ -8,16 +8,15 @@ from ..handle_blender_structs import *
 from .load_generic import init_holder, update_holder, clear_updating_collections
 
 
-def labelmask_shader(maskchannel, maxval):
+def labelmask_shader(ch, maxval):
     # do not check whether it exists, so a new load will force making a new mat
-    mat = bpy.data.materials.new(f'{maskchannel} mask')
+    mat = bpy.data.materials.new(f"{ch['name']} mask")
     mat.blend_method = "BLEND"
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
 
     
-
     if nodes.get("Principled BSDF") is None:
         try: 
             nodes.remove(nodes.get("Principled Volume"))
@@ -291,10 +290,13 @@ def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, ax
     
     if len(mask_ch) > 0 and mask_obj is None:
         mask_obj = init_holder('labelmasks')
-    if mask_obj is None:
-        return None
 
-    mask_obj = update_holder(mask_obj ,ch_dicts, 'labelmask')
+    if mask_obj is not None:
+        for ch in ch_dicts:
+            if ch['material'] is not None:
+                mask_obj.data.materials.append(ch['material'])
+
+        mask_obj = update_holder(mask_obj ,ch_dicts, 'labelmask')
     return mask_obj
 
 

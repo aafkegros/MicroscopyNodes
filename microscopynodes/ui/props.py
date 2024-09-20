@@ -146,4 +146,8 @@ bpy.types.Scene.MiN_reload = PointerProperty(
         poll=poll_empty,
         )
 
-
+bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
+    name = "",
+    description = "current process in load",
+    default="",
+)
