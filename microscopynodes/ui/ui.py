@@ -87,7 +87,7 @@ class TIFLoadPanel(bpy.types.Panel):
             col.enabled=False
         
         col.prop(context.scene, 'MiN_progress_str', emboss=False)
-
+        
 
         box = layout.box()
         grid = box.grid_flow(columns = 1)
@@ -101,6 +101,8 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Overwrite files', icon_value=0, emboss=True)
         row.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = 'Set environment', icon_value=0, emboss=True)
+        row.prop(bpy.context.scene, 'MiN_chunk', emboss=True, text="Chunked", icon_value=0)                   
+        
     
 
 

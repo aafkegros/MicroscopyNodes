@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import (StringProperty, FloatProperty,
                         PointerProperty, IntProperty,
-                        BoolProperty
+                        BoolProperty, EnumProperty
                         )
 
 from ..file_to_array import change_path, change_zarr_level, change_channel_ax
@@ -11,6 +11,7 @@ from pathlib import Path
 import tempfile
 import functools
 from operator import attrgetter
+import platform
 
 # --- cache dir helpers
 
@@ -125,6 +126,12 @@ bpy.types.Scene.MiN_load_finished = BoolProperty(
         default = False,
     )
 
+bpy.types.Scene.MiN_chunk = BoolProperty(
+        name = "Chunking",
+        description = 'Loads volumes in chunks of axis < 2048 px if checked.\nUnchunked large volumes WILL crash MacOS-ARM Blender outside of Cycles.\nChunked volumes can cause Cycles rendering artefacts.\nChunking may be slightly more RAM/network-efficient.',
+        default = True if platform.system() == 'Darwin' else False,
+        ) 
+
 def poll_empty(self, object):
     if object.type != 'EMPTY':
         return False
@@ -138,4 +145,5 @@ bpy.types.Scene.MiN_reload = PointerProperty(
         type=bpy.types.Object,
         poll=poll_empty,
         )
+
 

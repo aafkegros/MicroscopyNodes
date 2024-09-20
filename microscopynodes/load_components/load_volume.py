@@ -14,19 +14,20 @@ from .. import min_nodes
 
 NR_HIST_BINS = 2**16
 
-def split_axis_to_chunks(length, ch_ix):
+def split_axis_to_chunks(length, ch_ix, maxlen):
     # chunks to max 2048 length, with ch_ix dependent offsets
-    offset = 1
-    if length > 2048:
-        offset = 256 * ch_ix
-    length += offset
-    n_splits = int((length // 2049)+ 1)
+    offset = 0
+    if length > maxlen:
+        offset = (300 * ch_ix) % 2048
+    n_splits = int((length // (maxlen+1))+ 1)
     splits = [length/n_splits * split for split in range(n_splits + 1)]
     splits[-1] = math.ceil(splits[-1]) 
-    splits = [math.floor(split) for split in splits]
-    while splits[-2] > (length - offset):
+    splits = [math.floor(split) + offset for split in splits]
+    if offset > 0:
+        splits.insert(0, 0)
+    while splits[-2] > length:
         del splits[-1]
-    splits[-1] = (length - offset)
+    splits[-1] = length 
     slices = [slice(start, end) for start, end in zip(splits[:-1], splits[1:])]
     return slices
 
@@ -50,7 +51,10 @@ def arrays_to_vdb_files(ch_dicts, axes_order, remake, cache_dir):
             continue
         
         xyz_shape = [len_axis(dim, axes_order, ch['data'].shape) for dim in 'xyz']
-        slices = [split_axis_to_chunks(dimshape, ch['ix']) for dimshape in xyz_shape]
+        maxlen = np.inf
+        if bpy.context.scene.MiN_chunk:
+            maxlen = 2048
+        slices = [split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
         for block in itertools.product(*slices):
             chunk = ch['data']
             for dim, sl in zip('xyz', block): 
@@ -318,6 +322,7 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
         clear_updating_collections(vol_obj, ch_dicts, 'volume')
     
     for ch in vol_ch:
+        # offset = np.array([1e-1 * ch['ix']]*3)
         collection_activate(vol_collection, vol_lcoll)
         activate_or_make_channel_collection(ch, "volume")
         histtotal = np.zeros(NR_HIST_BINS)
@@ -335,7 +340,7 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
                     vol.data.frame_start = 0
                     vol.data.render.clipping = 1/ (2**17)
                     
-                    vol.location = tuple(np.array(chunk['pos']) *scale)                    
+                    vol.location = tuple((np.array(chunk['pos']) * scale))                    
             for hist in chunk['histfiles']:
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
@@ -343,9 +348,7 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
         ch['min_val'] = 0
         ch['max_val'] = 1
         ch['histnorm'] = np.zeros(NR_HIST_BINS)
-        print([(k,v) for k, v in ch.items()])
-        if 'threshold' in ch:
-            print(f'hye found threshold {ch["threshold"]}')
+
         if 'threshold' not in ch: # crude way of setting metadata TODO rework to handle all omero data
             ch['threshold'] = 0.5
         if np.sum(histtotal)> 0:
