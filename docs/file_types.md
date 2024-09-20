@@ -10,8 +10,21 @@ Microscopy Nodes loads tif files, and is able to read basic metadata of imagej-t
 
 ## OME-Zarr files
 OME-Zarr is a still-developing pyramidal data format with a lot of features, some of which are harder to support in Blender. Please open an issue if you really want a certain feature.
-Microscopy Nodes supports loading Zarr 0.3 and above from internet and local zarr directory (selecting a directory can sometimes be hard with the file explorer, but this works when you use the 'recent' directories), and loading different multiscales datasets. One can also reload the data of a multiscales dataset to a different resolution. 
-Scales and labels metadata is loaded in Microscopy Nodes. Translation/affine transforms and wells/fields are still unsupported.
+Microscopy Nodes supports:
+
+- OME-Zarr >= 0.3
+- channel names from `omero`
+- lazy loading (per channel/timpoint at least)
+- dataset selection
+- coordinate transform Scale
+- `labels` metadata
+
+Microscopy Nodes does not support (currently):
+
+- wells/fields
+- affine/translate coordinate transforms
+- bioformats2raw multiple loading (or others with multiple datasets, one could still select the relevant internal path)
+
 
 ----
 
