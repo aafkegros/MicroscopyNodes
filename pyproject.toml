@@ -16,6 +16,8 @@ numpy = "1.24.3"
 zarr = "*"
 dask = "*"
 imagecodecs = "*"
+aiohttp = "*"
+fsspec = "*"
 
 
 [tool.poetry.dev-dependencies]
