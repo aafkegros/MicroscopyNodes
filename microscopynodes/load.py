@@ -2,7 +2,7 @@ import bpy
 from pathlib import Path
 import numpy as np
 
-from .initial_global_settings import preset_environment, preset_em_environment
+from .initial_global_settings import preset_environment
 from .handle_blender_structs import *
 from .load_components import *
 from .file_to_array import load_array, arr_shape
@@ -18,17 +18,16 @@ def load_init():
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
     
     cache_dir = get_cache_subdir()
-    base_coll, cache_coll = min_base_colls(Path(bpy.context.scene.MiN_input_file).stem[:50], bpy.context.scene.MiN_reload)    
     
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
     
     size_px = np.array([arr_shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
     size_px = tuple([max(ax, 1) for ax in size_px])
 
-    return ch_dicts, (axes_order,  pixel_size, size_px), (base_coll, cache_coll, cache_dir)
+    return ch_dicts, (axes_order,  pixel_size, size_px), cache_dir
 
 def load_threaded(params):
-    ch_dicts, (axes_order, pixel_size, size_px), (base_coll, cache_coll, cache_dir) = params
+    ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
 
     log('Loading file')
     load_array(bpy.context.scene.MiN_input_file, axes_order, ch_dicts) # unpacks into ch_dicts
@@ -44,10 +43,13 @@ def load_threaded(params):
     return params
 
 def load_blocking(params):
-    ch_dicts, (axes_order, pixel_size, size_px), (base_coll, cache_coll, cache_dir) = params
+    ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
+    base_coll, cache_coll = min_base_colls(Path(bpy.context.scene.MiN_input_file).stem[:50], bpy.context.scene.MiN_reload)    
     prev_active_obj = bpy.context.active_object
     input_file = bpy.context.scene.MiN_input_file
-    preset_env()    
+    
+    if bpy.context.scene.MiN_preset_environment:
+        preset_env()    
     holders = parse_reload(bpy.context.scene.MiN_reload)
 
     # --- Load components ---
@@ -107,10 +109,17 @@ def get_cache_subdir():
     return cache_dir
 
 def preset_env():
-    if bpy.context.scene.MiN_preset_environment:
-        preset_environment()    
-        if not any((ch.emission and ch.volume) for ch in bpy.context.scene.MiN_channelList):
-            preset_em_environment()
+    preset_environment()    
+    bgcol = (0.2,0.2,0.2, 1)
+    emitting = [ch.emission for ch in bpy.context.scene.MiN_channelList if (ch.surface or ch.volume) or ch.labelmask]
+    if all(emitting):
+        bgcol = (0, 0, 0, 1)
+    if all([(not emit) for emit in emitting]):
+        bgcol = (1, 1, 1, 1)
+    try:
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
+    except:
+        pass
     return
 
 def check_input():

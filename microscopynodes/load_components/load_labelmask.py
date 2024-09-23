@@ -5,18 +5,17 @@ from pathlib import Path
 import json
 
 from ..handle_blender_structs import *
-from .load_generic import init_holder, update_holder, clear_updating_collections
+from .load_generic import init_holder, update_holder, clear_updating_collections, ch_present
 
 
 def labelmask_shader(ch, maxval):
     # do not check whether it exists, so a new load will force making a new mat
-    mat = bpy.data.materials.new(f"{ch['name']} mask")
+    mat = bpy.data.materials.new(f"{ch['name']} labelmasks")
     mat.blend_method = "BLEND"
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
 
-    
     if nodes.get("Principled BSDF") is None:
         try: 
             nodes.remove(nodes.get("Principled Volume"))
@@ -52,6 +51,7 @@ def labelmask_shader(ch, maxval):
     get_cmap('mpl-tab10', ramp=tab10)
     links.new(map_range.outputs[0], tab10.inputs.get('Fac'))
     links.new(tab10.outputs[0], princ.inputs.get("Base Color"))
+    links.new(tab10.outputs[0], princ.inputs[26])
     
     # make optional linear colormap
     map_range_lin = nodes.new(type='ShaderNodeMapRange')
@@ -283,8 +283,6 @@ def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, ax
         if not Path(abcfname(cache_dir, ch['ix'], 0, ch['surf_resolution'])).exists() or remake:
             export_alembic_and_loc(ch, cache_dir, remake, axes_order)
         import_abc_and_loc(ch, scale, cache_dir,is_sequence=('t' in axes_order))
-
-        ch['material'] = labelmask_shader(ch,np.max(ch['data']) + 1)
     collection_activate(*base_coll)
 
     
@@ -293,8 +291,9 @@ def load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, remake, ax
 
     if mask_obj is not None:
         for ch in ch_dicts:
-            if ch['material'] is not None:
-                mask_obj.data.materials.append(ch['material'])
+            if ch['collection'] is None or ch_present(mask_obj, ch['identifier']):
+                continue
+            ch['material'] = labelmask_shader(ch,np.max(ch['data']) + 1)
 
         mask_obj = update_holder(mask_obj ,ch_dicts, 'labelmask')
     return mask_obj

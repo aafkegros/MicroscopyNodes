@@ -86,6 +86,8 @@ def luts(maxval=32):
     }
     return luts
 
+
+# deprecated
 def channels_default(maxval):
     if maxval == 1:
         return [[1,1,1,1]]

@@ -155,7 +155,7 @@ def draw_histogram(nodes, loc, width, hist):
         histmap.curves[0].points[ix].handle_type = 'VECTOR'
     return histnode
 
-def update_shader(mat, ch, replace_hist=True):
+def update_shader_volume(mat, ch, replace_hist=True):
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
 
@@ -293,8 +293,6 @@ def volume_materials(obj, ch_dicts):
         shader_out.location = (600, 0)
         shader_out.name = f"[shader_out]"
         
-        update_shader(mat, ch, replace_hist=False)
-        
         if nodes.get("Material Output") is None:
             outnode = nodes.new(type='ShaderNodeOutputMaterial')
             outnode.name = 'Material Output'
@@ -309,7 +307,6 @@ def volume_materials(obj, ch_dicts):
 
 def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
     # consider checking whether all channels are present in vdb for remaking?
-    log("loading volumes in Blender")
     collection_activate(*cache_coll)
     vol_collection, vol_lcoll = make_subcollection('volumes')
     volumes = []
@@ -367,14 +364,8 @@ def load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=None):
         if vol_obj is None:
             vol_obj = init_holder('volume')
 
-    # only generate new materials for new channels, appends them as ch_dict[ch]['material']
     if vol_obj is not None:
         volume_materials(vol_obj, ch_dicts)
-        for ch in ch_dicts:
-            if ch['material'] is not None:
-                vol_obj.data.materials.append(ch['material'])
-
         update_holder(vol_obj, ch_dicts, 'volume')
-    log("")
     
     return vol_obj

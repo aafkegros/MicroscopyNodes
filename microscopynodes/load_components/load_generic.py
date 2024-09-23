@@ -33,10 +33,12 @@ def update_holder(obj, ch_dicts, activate_key):
     gn_mod = get_min_gn(obj)
     node_group = gn_mod.node_group
     for ch in ch_dicts:
+        if ch['collection'] is not None and not ch_present(obj, ch['identifier']): 
+            append_channel_to_holder(node_group, ch)
+            if not ch['material'] is None:
+                obj.data.materials.append(ch['material'])
         if ch_present(obj, ch['identifier']):
             update_channel(obj, ch, activate_key) 
-        elif ch['collection'] is not None: 
-            append_channel_to_holder(node_group, ch)
         
         socket = get_socket(node_group, ch, min_type="SWITCH")
         if socket is not None:
@@ -45,7 +47,7 @@ def update_holder(obj, ch_dicts, activate_key):
 
 def update_channel(obj, ch, activate_key):
     from .load_surfaces import update_resolution
-    from .load_volume import update_shader
+    from .load_volume import update_shader_volume
     gn_mod = get_min_gn(obj)
     node_group = gn_mod.node_group
     loadnode = node_group.nodes[f"channel_load_{ch['identifier']}"]
@@ -61,11 +63,27 @@ def update_channel(obj, ch, activate_key):
         update_resolution(gn_mod, ch)
     
     for mat in obj.data.materials:
+        print(mat)
         if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
             mat.name = f"{ch['name']} {activate_key}"
             if activate_key == 'volume':
-                update_shader(mat, ch)
+                update_shader_volume(mat, ch)
+            else:
+                update_shader_mesh(mat, ch)
     return
+
+def update_shader_mesh(mat, ch):
+    try:
+        princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
+        if ch['emission'] and princ.inputs[27].default_value == 0.0:
+            princ.inputs[27].default_value = 0.5
+        elif not ch['emission'] and princ.inputs[27].default_value == 0.5:
+            princ.inputs[27].default_value = 0
+    except:
+        pass
+    return
+        
+
 
 def append_channel_to_holder(node_group, ch_dict):
     # assert that layout is reasonable or make this:

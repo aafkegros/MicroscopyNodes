@@ -28,6 +28,14 @@ def surf_material(surf_obj, ch_dicts):
         color = get_cmap('default_ch')[all_ch_present % len(get_cmap('default_ch'))]
         all_ch_present += 1
         princ.inputs.get('Base Color').default_value = color
+        princ.inputs[26].default_value = color
+
+        colornode = nodes.new("ShaderNodeRGB")
+        colornode.location = (princ.location[0]-200, princ.location[1])
+        colornode.outputs[0].default_value = color
+        links.new(colornode.outputs[0], princ.inputs.get('Base Color'))
+        links.new(colornode.outputs[0], princ.inputs[26])
+
         princ.inputs.get('Alpha').default_value = 0.5
         ch['material'] = mat
     return 
@@ -113,9 +121,7 @@ def load_surfaces(ch_dicts, scale, cache_coll, base_coll, surf_obj=None):
 
     for ix, ch in enumerate(new_channels):
         insert_vol_to_surf(surf_obj, ch)
-        surf_obj.data.materials.append(ch['material'])
-
-
+        
     return surf_obj
 
 
