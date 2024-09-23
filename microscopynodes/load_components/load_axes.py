@@ -102,12 +102,21 @@ def init_axes(size_px, pixel_size, scale, location):
     scale_node.node_tree = min_nodes.scale_node_group()
     scale_node.width = 300
     scale_node.location = (200, 100)
-    scale_node.inputs.get("µm per tick").default_value = max(1, size_px[0]//10)
+    
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))
     links.new(axes_select.outputs[0], scale_node.inputs.get('Axis Selection'))
-    # links.new(crosshatch.outputs[0], scale_node.inputs.get('Tick Geometry'))
     scale_node.inputs.get("Material").default_value = init_material_axes()
+
+    # crude version of Heckbert 1990 tick number algorithm, with minimum for perspective
+    max_um = np.max(size_px * pixel_size)
+    target_nr_of_ticks = 7
+    min_ticks = 3
+    nice_nrs = np.outer(np.array([1,2,5]), np.array([10**mag for mag in range(-4, 8)])) 
+    ticks = max_um // nice_nrs
+    dists = np.abs(ticks[ticks >= min_ticks] - target_nr_of_ticks)
+    tick_um = nice_nrs[ticks >= min_ticks].flatten()[np.argmin(dists)]
+    scale_node.inputs.get("µm per tick").default_value = tick_um
     
     node_group.interface.new_socket("Geometry",in_out="OUTPUT", socket_type='NodeSocketGeometry')
     outnode = nodes.new('NodeGroupOutput')
