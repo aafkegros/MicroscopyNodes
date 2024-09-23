@@ -65,7 +65,7 @@ class TIFLoadPanel(bpy.types.Panel):
         
         layout.separator()
         col = layout.column(align=False)  
-        col.operator("tiftool.load")
+        col.operator("microscopynodes.load")
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
         
@@ -127,7 +127,7 @@ class SelectPathOperator(Operator):
 
 class TifLoadOperator(bpy.types.Operator):
     """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
-    bl_idname = "tiftool.load"
+    bl_idname ="microscopynodes.load"
     bl_label = "Load"
 
     _timer = None
@@ -165,7 +165,23 @@ class TifLoadOperator(bpy.types.Operator):
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
         return
-        
+
+
+
+class TifLoadOperator(bpy.types.Operator):
+    """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
+    bl_idname ="microscopynodes.load_background"
+    bl_label = "Load"
+
+    def execute(self, context):
+        params = load.load_init()
+        load.load_threaded(params)
+        load.load_blocking(params)
+        return {'FINISHED'}
+
+
+
+
 
 class ZarrSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""
