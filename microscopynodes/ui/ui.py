@@ -168,7 +168,7 @@ class TifLoadOperator(bpy.types.Operator):
 
 
 
-class TifLoadOperator(bpy.types.Operator):
+class TifLoadBackgroundOperator(bpy.types.Operator):
     """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
     bl_idname ="microscopynodes.load_background"
     bl_label = "Load"
@@ -223,4 +223,4 @@ class ZarrMenu(bpy.types.Menu):
             prop = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
             prop.selected = zarrlevel.level_descriptor
 
-CLASSES = [TifLoadOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu, SelectPathOperator, CacheSelectionMenu, CacheSelectOperator]
+CLASSES = [TifLoadOperator, TifLoadBackgroundOperator, TIFLoadPanel, ZarrSelectOperator, ZarrMenu, SelectPathOperator, CacheSelectionMenu, CacheSelectOperator]

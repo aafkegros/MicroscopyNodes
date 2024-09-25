@@ -17,12 +17,12 @@ nonstartchannel = [False, True]
 test_folder = Path(os.path.abspath(Path(__file__).parent / 'test_data'))
 test_folder = Path(join(dirname(realpath(__file__)), "test_data"))
 
-def old_modifier_surface_objs(volume_inputs, scale, cache_coll, base_coll):
+def old_modifier_surface_objs(ch_dicts, scale, cache_coll, base_coll):
     surf_collections = []
     # for ch_name, otsu in zip(ch_names, otsus):
     collection_activate(*cache_coll)
-    for ch_name in volume_inputs:
-        ch_coll = volume_inputs[ch_name]['collection']
+    for ch_name in ch_dicts:
+        ch_coll = ch_dicts[ch_name]['collection']
         for vol in ch_coll.all_objects:
             surf_collection, _ = make_subcollection(f'channel {ch_name} surface')
             bpy.ops.mesh.primitive_cube_add()
@@ -46,29 +46,15 @@ def old_modifier_surface_objs(volume_inputs, scale, cache_coll, base_coll):
 @pytest.mark.parametrize('nonstartchannel', [False, True])
 def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchannel):
     remove_all_objects()
-    volume_inputs = {
-        0: {'otsu': 0.36132812, 
-            'vdbs': 
-                [{'directory':str(test_folder / 'permanent_vdbs/full/x0y0z0'), 
-                    'files': [
-                        {'name': 'Channel 0_0.vdb'}, 
-                        {'name': 'Channel 0_1.vdb'}, 
-                        {'name': 'Channel 0_2.vdb'}], 
-                        'pos': (0, 0, 0)}]
-                        }, 
-        1: {'otsu': 0.16601562, 
-            'vdbs': 
-                [{'directory': str(test_folder / 'permanent_vdbs/full/x0y0z0'), 
-                    'files': [
-                        {'name': 'Channel 1_0.vdb'}, 
-                        {'name': 'Channel 1_1.vdb'}, 
-                        {'name': 'Channel 1_2.vdb'}], 
-                        'pos': (0, 0, 0)}
-                        ]
-            }
-        }
+    ch_dicts = [   
+        {'ix': 0, 'name': 'Channel 0', 'volume': 1, 'labelmask': 0, 'emission': 1, 'surface': 0, 'surf_resolution': 0, 'threshold': 0.5, 'identifier': 'ch_id0', 'collection': None, 'material': None,
+            'local_files': [{'directory':str(test_folder / 'permanent_vdbs/full/x0y0z0'), 'vdbfiles': [{'name': 'x0y0z0c0t0000.vdb'}], 'histfiles': [{'name': 'x0y0z0c0t0000_hist.npy'}], 'pos': (0, 0, 0)}]}, 
+        {'ix': 1, 'name': 'Channel 1', 'volume': 1, 'labelmask': 0, 'emission': 1, 'surface': 0, 'surf_resolution': 0, 'threshold': 0.5, 'identifier': 'ch_id1', 'collection': None, 'material': None, 
+            'local_files': [{'directory': str(test_folder / 'permanent_vdbs/full/x0y0z0'), 'vdbfiles': [{'name': 'x0y0z0c1t0000.vdb'}], 'histfiles': [{'name': 'x0y0z0c1t0000_hist.npy'}], 'pos': (0, 0, 0)}]}
+        ]
+    
     if nonstartchannel:
-        del volume_inputs[0]
+        del ch_dicts[0]
     bbox_px = [79, 80, 10]
     if chunked:
         {
@@ -95,7 +81,7 @@ def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchann
 
     emission_setting = False 
 
-    vol_obj, vol_inputs_mod = min.load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting)
+    vol_obj, vol_inputs_mod = min.load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, emission_setting)
 
     modsurf_objs = old_modifier_surface_objs(vol_inputs_mod, scale, cache_coll, base_coll)
     
@@ -108,7 +94,7 @@ def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchann
     
     if multiframe:
         remove_all_objects()
-        vol_obj, vol_inputs_mod = min.load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting)
+        vol_obj, vol_inputs_mod = min.load_volume(ch_dicts, bbox_px, scale, cache_coll, base_coll, emission_setting)
 
         bpy.context.scene.frame_set(2)
         for ch in vol_inputs_mod:
@@ -119,6 +105,6 @@ def test_load_volume_surface(snapshot, scale, multiframe, chunked, nonstartchann
         assert("Error" not in verts)
         assert(verts != verts2)
     
-    surf_obj = min.load_surfaces(volume_inputs, scale, cache_coll, base_coll)
+    surf_obj = min.load_surfaces(ch_dicts, scale, cache_coll, base_coll)
     snapshot.assert_match( str(list(surf_obj.modifiers[-1].node_group.nodes)), 'surfnodes') # simple test because volumes are hard to test effectively
 
