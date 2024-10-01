@@ -78,32 +78,27 @@ class ChannelObject():
             obj.lock_scale[dim] = True
         return obj
 
-    def update_obj(self, ch):
-        if self.min_type in ch['collections'] and not self.ch_present(ch): 
-            self.append_channel_to_holder(ch)
-            
-        if self.ch_present(ch):
-            self.update_channel(ch) 
-        
-        socket = get_socket(self.node_group, ch, min_type="SWITCH")
-        if socket is not None:
-            self.gn_mod[socket.identifier] = bool(ch[self.min_type])
-        return 
-
     def add_material(self, ch):
         mat = bpy.data.materials.new(f"{ch['name']} {self.min_type.name.lower()}")
         self.obj.data.materials.append(mat)
         return mat
 
-    def update_channel(self, ch):
+    def update_ch_data(self, ch):
+        if self.min_type in ch['collections'] and not self.ch_present(ch): 
+            self.append_channel_to_holder(ch)
+            
         loadnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
         loadnode.label = ch['name']
         if loadnode.parent is not None:
             loadnode.parent.label = f"{ch['name']} data"
-        
         clear_collection(loadnode.inputs[0].default_value)
         loadnode.inputs[0].default_value = ch['collections'][self.min_type]
-        
+        return
+
+    def update_ch_settings(self, ch):
+        if not self.ch_present(ch): 
+            return
+
         for ix, socket in enumerate(self.node_group.interface.items_tree):
             if ch['identifier'] in socket.default_attribute_name:
                 set_name_socket(socket, ch['name'])
@@ -112,6 +107,10 @@ class ChannelObject():
         for mat in self.obj.data.materials:
             if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
                 self.update_material(mat, ch)
+
+        socket = get_socket(self.node_group, ch, min_type="SWITCH")
+        if socket is not None:
+            self.gn_mod[socket.identifier] = bool(ch[self.min_type])
         return
 
     def ch_present(self, ch):

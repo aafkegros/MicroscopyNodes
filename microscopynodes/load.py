@@ -11,6 +11,7 @@ from mathutils import Matrix
 
 
 def load_init():
+    # all parameters initialized here are shared between threaded and blocking load functions
     check_input()
     axes_order = bpy.context.scene.MiN_axes_order
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
@@ -21,7 +22,25 @@ def load_init():
     size_px = tuple([max(ax, 1) for ax in size_px])
     return ch_dicts, (axes_order,  pixel_size, size_px), cache_dir
 
+def parse_channellist(channellist):
+    # initializes ch_dicts, which holds data and metadata, such as user settings, per channel
+    ch_dicts = []
+    for channel in bpy.context.scene.MiN_channelList:
+        ch_dicts.append({k:v for k,v in channel.items()}) # take over settings from UI
+        for key in min_keys: # rename ui-keys to enum for which objects to load
+            if key.name.lower() in ch_dicts[-1]:
+                ch_dicts[-1][key] = ch_dicts[-1][key.name.lower()]
+        ch_dicts[-1]['identifier'] = f"ch_id{channel['ix']}" # reload-identity
+        ch_dicts[-1]['data'] = None
+        ch_dicts[-1]['collections'] = {}
+        ch_dicts[-1]['metadata'] = {}
+        ch_dicts[-1]['local_files'] = {}
+    return ch_dicts
+
 def load_threaded(params):
+    if not bpy.context.scene.MiN_update_data:
+        return params
+
     ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
 
     log('Loading file')
@@ -45,13 +64,15 @@ def load_blocking(params):
     base_coll, cache_coll = min_base_colls(Path(bpy.context.scene.MiN_input_file).stem[:50], bpy.context.scene.MiN_reload)    
     prev_active_obj = bpy.context.active_object
     input_file = bpy.context.scene.MiN_input_file
-    
+    update_settings = bpy.context.scene.MiN_update_settings
+    update_data = bpy.context.scene.MiN_update_data
+
     if bpy.context.scene.MiN_preset_environment:
         preset_env()    
     
     # label mask exporting is hard to move outside of blocking functions, as it uses the Blender abc export
     for ch in ch_dicts:
-        if ch[min_keys.LABELMASK]:
+        if ch[min_keys.LABELMASK] and update_data:
             ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  bpy.context.scene.MiN_remake,  axes_order)
     
     # --- Load components ---
@@ -74,11 +95,13 @@ def load_blocking(params):
         ch_obj = ChannelObjectFactory(min_type, objs[min_type])
 
         for ch in ch_dicts:
-            if ch[min_type]: # import data from file
+            if ch[min_type] and update_data:
                 collection_activate(*cache_coll)
                 ch['collections'][min_type], ch['metadata'][min_type] = data_io.import_data(ch, scale)
                 collection_activate(*base_coll)
-            ch_obj.update_obj(ch)
+                ch_obj.update_ch_data(ch)
+            if update_settings:
+                ch_obj.update_ch_settings(ch)
             ch_obj.set_parent_and_slicer(container, slice_cube, ch)
 
     if bpy.context.scene.MiN_reload is None:
@@ -142,20 +165,6 @@ def parse_reload(container_obj):
                 if get_min_gn(child) is not None and key.name.lower() in get_min_gn(child).name:
                     objs[key] = child
     return objs
-
-def parse_channellist(channellist):
-    ch_dicts = []
-    for channel in bpy.context.scene.MiN_channelList:
-        ch_dicts.append({k:v for k,v in channel.items()}) # take over settings from UI
-        for key in min_keys: # rename ui-keys to enum for which objects to load
-            if key.name.lower() in ch_dicts[-1]:
-                ch_dicts[-1][key] = ch_dicts[-1][key.name.lower()]
-        ch_dicts[-1]['identifier'] = f"ch_id{channel['ix']}" # reload-identity
-        ch_dicts[-1]['data'] = None
-        ch_dicts[-1]['collections'] = {}
-        ch_dicts[-1]['metadata'] = {}
-        ch_dicts[-1]['local_files'] = {}
-    return ch_dicts
 
 def min_base_colls(fname, min_reload):
     # make or get collections

@@ -66,6 +66,7 @@ class SurfaceObject(ChannelObject):
         threshold_socket.min_value = 0.0
         threshold_socket.max_value = 1.001
         threshold_socket.attribute_domain = 'POINT'
+
         self.gn_mod[threshold_socket.identifier] =  ch['metadata'][self.min_type]['threshold']
 
         normnode = self.node_group.nodes.new(type="ShaderNodeMapRange")
@@ -76,6 +77,7 @@ class SurfaceObject(ChannelObject):
         links.new(in_node.outputs.get(threshold_socket.name), normnode.inputs[0])  
         links.new(normnode.outputs[0], v2m.inputs.get("Threshold"))  
         normnode.hide = True
+        
         return
 
     def update_gn(self, ch):

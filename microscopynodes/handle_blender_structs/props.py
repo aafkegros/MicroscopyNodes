@@ -138,6 +138,18 @@ bpy.types.Scene.MiN_load_finished = BoolProperty(
         default = False,
     )
 
+bpy.types.Scene.MiN_update_data = BoolProperty(
+        name = "",
+        description = "Reload the data from local files if they exist, or make new local files",
+        default = True,
+    )
+
+bpy.types.Scene.MiN_update_settings = BoolProperty(
+        name = "",
+        description = "Update microscopy nodes channel settings",
+        default = True,
+    )
+
 bpy.types.Scene.MiN_chunk = BoolProperty(
         name = "Chunking",
         description = 'Loads volumes in chunks of axis < 2048 px if checked.\nUnchunked large volumes WILL crash MacOS-ARM Blender outside of Cycles.\nChunked volumes can cause Cycles rendering artefacts.\nChunking may be slightly more RAM/network-efficient.',

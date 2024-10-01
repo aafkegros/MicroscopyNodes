@@ -188,10 +188,11 @@ class VolumeObject(ChannelObject):
 
         node_names = [node.name for node in nodes]
 
-        if '[Histogram]' in node_names and ch['metadata'][self.min_type] is not None:
-            histnode= nodes["[Histogram]"]
-            self.draw_histogram(nodes, histnode.location,histnode.width, ch['metadata'][self.min_type]['histogram'])
-            nodes.remove(histnode)
+        if self.min_type in ch['metadata']:
+            if '[Histogram]' in node_names and ch['metadata'][self.min_type] is not None:
+                histnode= nodes["[Histogram]"]
+                self.draw_histogram(nodes, histnode.location,histnode.width, ch['metadata'][self.min_type]['histogram'])
+                nodes.remove(histnode)
 
         try:
             ch_load = nodes[f"[channel_load_{ch['identifier']}]"]

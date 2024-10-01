@@ -61,6 +61,10 @@ class TIFLoadPanel(bpy.types.Panel):
         row = col.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
         row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_EMPTY")
+        if bpy.context.scene.MiN_reload is not None:
+            row.prop(bpy.context.scene, 'MiN_update_data', icon="FILE")
+            row.prop(bpy.context.scene, 'MiN_update_settings', icon="MATERIAL_DATA")
+        
         
         
         layout.separator()
