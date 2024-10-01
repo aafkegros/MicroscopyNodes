@@ -5,8 +5,6 @@ from pathlib import Path
 from ..handle_blender_structs import *
 from .. import min_nodes
 
-
-
 def load_axes(size_px, pixel_size, axes_obj=None):
 
     if axes_obj is not None:

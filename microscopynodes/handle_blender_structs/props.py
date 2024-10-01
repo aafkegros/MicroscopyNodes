@@ -4,14 +4,26 @@ from bpy.props import (StringProperty, FloatProperty,
                         BoolProperty, EnumProperty
                         )
 
+# update functions are defined locally
 from ..file_to_array import change_path, change_zarr_level, change_channel_ax
-from .channel_list import set_channels
-from ..load_components.load_generic import get_min_gn
+from ..ui.channel_list import set_channels
+
+
 from pathlib import Path
 import tempfile
 import functools
 from operator import attrgetter
 import platform
+from enum import Enum
+
+
+class min_keys(Enum): 
+    NONE = 0
+    AXES = 1
+    VOLUME = 2
+    SURFACE = 3
+    LABELMASK = 4
+    SLICECUBE = 5
 
 # --- cache dir helpers
 
@@ -133,6 +145,7 @@ bpy.types.Scene.MiN_chunk = BoolProperty(
         ) 
 
 def poll_empty(self, object):
+    from ..load_components.load_generic import get_min_gn
     if object.type != 'EMPTY':
         return False
     if any([get_min_gn(child) != None for child in object.children]):

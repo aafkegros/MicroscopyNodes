@@ -34,7 +34,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
         default='ACTUAL',
     )
     # -- internal --
-    threshold : bpy.props.FloatProperty()
+    threshold : bpy.props.FloatProperty(default=-1)
 
     # The scene collectionproperty is created in __init__ of the package due to registration issues:
     # bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.ChannelDescriptor)
@@ -78,6 +78,7 @@ def set_channels(self, context):
         channel.labelmask = False
         channel.materials = True
         channel.surf_resolution = 'ACTUAL'
-        channel.threshold = 0.5
+        channel.threshold=-1
+
 
 CLASSES = [ChannelDescriptor, SCENE_UL_Channels]

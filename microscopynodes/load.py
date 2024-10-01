@@ -6,24 +6,19 @@ from .initial_global_settings import preset_environment
 from .handle_blender_structs import *
 from .load_components import *
 from .file_to_array import load_array, arr_shape
-from .ui.props import update_cache_dir
 
 from mathutils import Matrix
 
+
 def load_init():
     check_input()
-    
     axes_order = bpy.context.scene.MiN_axes_order
-    
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
-    
     cache_dir = get_cache_subdir()
-    
+
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
-    
     size_px = np.array([arr_shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
     size_px = tuple([max(ax, 1) for ax in size_px])
-
     return ch_dicts, (axes_order,  pixel_size, size_px), cache_dir
 
 def load_threaded(params):
@@ -32,8 +27,11 @@ def load_threaded(params):
     log('Loading file')
     load_array(bpy.context.scene.MiN_input_file, axes_order, ch_dicts) # unpacks into ch_dicts
     axes_order = axes_order.replace('c', "") # channels are separated
+    
+    for ch in ch_dicts:
+        if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]:
+            ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir,  bpy.context.scene.MiN_remake,  axes_order)
 
-    arrays_to_vdb_files(ch_dicts, axes_order, bpy.context.scene.MiN_remake, cache_dir) 
     progress = 'Loading objects to Blender'
     if any([ch['surface'] for ch in ch_dicts]):
         progress = 'Meshing surfaces, ' + progress.lower()
@@ -50,34 +48,44 @@ def load_blocking(params):
     
     if bpy.context.scene.MiN_preset_environment:
         preset_env()    
-    holders = parse_reload(bpy.context.scene.MiN_reload)
-
+    
+    # label mask exporting is hard to move outside of blocking functions, as it uses the Blender abc export
+    for ch in ch_dicts:
+        if ch[min_keys.LABELMASK]:
+            ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  bpy.context.scene.MiN_remake,  axes_order)
+    
     # --- Load components ---
-    # ch_dict gets edited to correspond to loaded features and data types
+    container = bpy.context.scene.MiN_reload
+    objs = parse_reload(container)
+    if container is None:
+        bpy.ops.object.empty_add(type="PLAIN_AXES")
+        container = bpy.context.view_layer.objects.active
+        container.name = Path(input_file).stem[:50]
 
-    to_be_parented = []
+    axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=objs[min_keys.AXES])
+    axes_obj.parent = container
+    slice_cube = load_slice_cube(size_px, scale, slicecube=objs[min_keys.SLICECUBE])
+    slice_cube.parent = container
     
-    axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=holders['axes'])
-    to_be_parented.append(axes_obj)
+    for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
+        if not any([ch[min_type] for ch in ch_dicts]):
+            continue
+        data_io = DataIOFactory(min_type)
+        ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+
+        for ch in ch_dicts:
+            if ch[min_type]: # import data from file
+                collection_activate(*cache_coll)
+                ch['collections'][min_type], ch['metadata'][min_type] = data_io.import_data(ch, scale)
+                collection_activate(*base_coll)
+            ch_obj.update_obj(ch)
+            ch_obj.set_parent_and_slicer(container, slice_cube, ch)
+
+    if bpy.context.scene.MiN_reload is None:
+       container.location = np.array(size_px) * np.array([0.5,0.5,0]) * scale * -1
     
-    vol_obj = load_volume(ch_dicts, scale, cache_coll, base_coll, vol_obj=holders['volume'])
-    to_be_parented = update_parent(to_be_parented, vol_obj, ch_dicts)
-
-    # surfaces load volume collections
-    surf_obj = load_surfaces(ch_dicts, scale, cache_coll, base_coll, surf_obj=holders['surface'])
-    to_be_parented.append(surf_obj)
-    
-    mask_obj = load_labelmask(ch_dicts, scale, cache_coll, base_coll, cache_dir, bpy.context.scene.MiN_remake, axes_order, mask_obj=holders['masks'])
-    to_be_parented = update_parent(to_be_parented, mask_obj, ch_dicts)
-
-    # slices all objects in to_be_parented but axes
-    slicecube = load_slice_cube(to_be_parented, size_px, scale, slicecube=holders['slicecube'])
-    to_be_parented.append(slicecube)
-
-    loc = np.array(size_px) * np.array([0.5,0.5,0]) * scale * -1
-    container_obj = init_container(to_be_parented ,loc=loc, name=Path(input_file).stem, container_obj=holders['container'])
+    # set default 
     collection_deactivate_by_name('cache')
-
     try:
         if prev_active_obj is not None:
             prev_active_obj.select_set(True)
@@ -90,12 +98,6 @@ def load_blocking(params):
     log('')
     return
 
-def update_parent(to_be_parented, obj, ch_dicts):
-    for ch in ch_dicts:
-        if ch['collection'] is not None:
-            to_be_parented.extend([coll_obj for coll_obj in ch['collection'].all_objects])
-    to_be_parented.extend([obj])
-    return to_be_parented
 
 def get_cache_subdir():
     update_cache_dir(None, bpy.context.scene) # make sure 'With Project is at current fname'
@@ -132,25 +134,27 @@ def check_input():
     return
 
 def parse_reload(container_obj):
-    holders = {'axes':None,'volume':None,'surface':None,'masks':None, 'slicecube':None, 'container':container_obj}
-    if container_obj is None:
-        return holders
-    for child in container_obj.children:
-        mod = get_min_gn(child)
-        if mod is not None:
-            for holdername in holders:
-                if holdername in mod.name:
-                    holders[holdername] = child
-    return holders
+    objs = {}
+    for key in min_keys:
+        objs[key] = None
+        if container_obj is not None:
+            for child in container_obj.children:
+                if get_min_gn(child) is not None and key.name.lower() in get_min_gn(child).name:
+                    objs[key] = child
+    return objs
 
 def parse_channellist(channellist):
     ch_dicts = []
     for channel in bpy.context.scene.MiN_channelList:
         ch_dicts.append({k:v for k,v in channel.items()}) # take over settings from UI
+        for key in min_keys: # rename ui-keys to enum for which objects to load
+            if key.name.lower() in ch_dicts[-1]:
+                ch_dicts[-1][key] = ch_dicts[-1][key.name.lower()]
         ch_dicts[-1]['identifier'] = f"ch_id{channel['ix']}" # reload-identity
         ch_dicts[-1]['data'] = None
-        ch_dicts[-1]['collection'] = None
-        ch_dicts[-1]['material'] = None
+        ch_dicts[-1]['collections'] = {}
+        ch_dicts[-1]['metadata'] = {}
+        ch_dicts[-1]['local_files'] = {}
     return ch_dicts
 
 def min_base_colls(fname, min_reload):
@@ -161,3 +165,4 @@ def min_base_colls(fname, min_reload):
     cache_coll = collection_by_name(fname, supercollections=['cache'], duplicate=(min_reload is None))
     collection_activate(*base_coll)
     return base_coll, cache_coll
+

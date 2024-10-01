@@ -3,189 +3,211 @@ from ..handle_blender_structs import *
 import numpy as np
 
 
-def init_holder(name):
-    if name == 'volume':
-        bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-    else:
-        bpy.ops.mesh.primitive_cube_add()
-    obj = bpy.context.view_layer.objects.active
-    obj.name = name
+def ChannelObjectFactory(min_key, obj):
+    if min_key == min_keys.VOLUME:
+        from .load_volume import VolumeObject
+        return VolumeObject(obj)
+    elif min_key == min_keys.SURFACE:
+        from .load_surfaces import SurfaceObject
+        return SurfaceObject(obj)
+    elif min_key == min_keys.LABELMASK:
+        from .load_labelmask import LabelmaskObject
+        return LabelmaskObject(obj)
 
-    bpy.ops.object.modifier_add(type='NODES')
+def DataIOFactory(min_key):
+    if min_key == min_keys.VOLUME:
+        from .load_volume import VolumeIO
+        return VolumeIO()
+    elif min_key == min_keys.SURFACE:
+        from .load_surfaces import SurfaceIO
+        return SurfaceIO()
+    elif min_key == min_keys.LABELMASK:
+        from .load_labelmask import LabelmaskIO
+        return LabelmaskIO()
 
-    node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')  
-    obj.modifiers[-1].node_group = node_group
-    obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
-    node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
+class DataIO():
+    min_type = min_keys.NONE
 
-    inputnode = node_group.nodes.new('NodeGroupInput')
-    inputnode.location = (-900, 0)
-    outnode = node_group.nodes.new('NodeGroupOutput')
-    outnode.location = (800, -100)
+    def export_ch(self, ch, axes_order, remake, cache_dir):
+        # return paths to local files with metadata in list of dcts
+        return []
+    
+    def import_data(self, ch, scale):
+        # return collection, metadata
+        return None, None
 
-    for dim in range(3):
-        obj.lock_location[dim] = True
-        obj.lock_rotation[dim] = True
-        obj.lock_scale[dim] = True
-    return obj
 
-def update_holder(obj, ch_dicts, activate_key):
-    gn_mod = get_min_gn(obj)
-    node_group = gn_mod.node_group
-    for ch in ch_dicts:
-        if ch['collection'] is not None and not ch_present(obj, ch['identifier']): 
-            append_channel_to_holder(node_group, ch)
-            if not ch['material'] is None:
-                obj.data.materials.append(ch['material'])
-        if ch_present(obj, ch['identifier']):
-            update_channel(obj, ch, activate_key) 
+class ChannelObject():
+    min_type = min_keys.NONE
+    obj = None
+    gn_mod = None
+    node_group = None
+
+    def __init__(self, obj):
+        if obj is None:
+            obj = self.init_obj()
+        self.obj = obj
+        self.gn_mod = get_min_gn(obj)
+        self.node_group =self.gn_mod.node_group
+
+
+    def init_obj(self):
+        if self.min_type == min_keys.VOLUME: # makes the icon show up
+            bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        else:
+            bpy.ops.mesh.primitive_cube_add()
+        obj = bpy.context.view_layer.objects.active
+        name = self.min_type.name.lower()
+        obj.name = name
+
+        bpy.ops.object.modifier_add(type='NODES')
+
+        node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')  
+        obj.modifiers[-1].node_group = node_group
+        obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
+        node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
+
+        inputnode = node_group.nodes.new('NodeGroupInput')
+        inputnode.location = (-900, 0)
+        outnode = node_group.nodes.new('NodeGroupOutput')
+        outnode.location = (800, -100)
+
+        for dim in range(3):
+            obj.lock_location[dim] = True
+            obj.lock_rotation[dim] = True
+            obj.lock_scale[dim] = True
+        return obj
+
+    def update_obj(self, ch):
+        if self.min_type in ch['collections'] and not self.ch_present(ch): 
+            self.append_channel_to_holder(ch)
+            
+        if self.ch_present(ch):
+            self.update_channel(ch) 
         
-        socket = get_socket(node_group, ch, min_type="SWITCH")
+        socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
-            gn_mod[socket.identifier] = bool(ch[activate_key])
-    return obj
+            self.gn_mod[socket.identifier] = bool(ch[self.min_type])
+        return 
 
-def update_channel(obj, ch, activate_key):
-    from .load_surfaces import update_resolution
-    from .load_volume import update_shader_volume
-    gn_mod = get_min_gn(obj)
-    node_group = gn_mod.node_group
-    loadnode = node_group.nodes[f"channel_load_{ch['identifier']}"]
-    loadnode.label = ch['name']
-    if loadnode.parent is not None:
-        loadnode.parent.label = f"{ch['name']} data"
-    
-    for ix, socket in enumerate(node_group.interface.items_tree):
-        if ch['identifier'] in socket.default_attribute_name:
-            set_name_socket(socket, ch['name'])
-    
-    if activate_key == 'surface':
-        update_resolution(gn_mod, ch)
-    
-    for mat in obj.data.materials:
-        print(mat)
-        if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
-            mat.name = f"{ch['name']} {activate_key}"
-            if activate_key == 'volume':
-                update_shader_volume(mat, ch)
-            else:
-                update_shader_mesh(mat, ch)
-    return
+    def add_material(self, ch):
+        mat = bpy.data.materials.new(f"{ch['name']} {self.min_type.name.lower()}")
+        self.obj.data.materials.append(mat)
+        return mat
 
-def update_shader_mesh(mat, ch):
-    try:
-        princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
-        if ch['emission'] and princ.inputs[27].default_value == 0.0:
-            princ.inputs[27].default_value = 0.5
-        elif not ch['emission'] and princ.inputs[27].default_value == 0.5:
-            princ.inputs[27].default_value = 0
-    except:
-        pass
-    return
+    def update_channel(self, ch):
+        loadnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
+        loadnode.label = ch['name']
+        if loadnode.parent is not None:
+            loadnode.parent.label = f"{ch['name']} data"
         
+        clear_collection(loadnode.inputs[0].default_value)
+        loadnode.inputs[0].default_value = ch['collections'][self.min_type]
+        
+        for ix, socket in enumerate(self.node_group.interface.items_tree):
+            if ch['identifier'] in socket.default_attribute_name:
+                set_name_socket(socket, ch['name'])
+        
+        self.update_gn(ch)
+        for mat in self.obj.data.materials:
+            if any([ch['identifier'] in node.name for node in mat.node_tree.nodes]):
+                self.update_material(mat, ch)
+        return
 
+    def ch_present(self, ch):
+        return f"channel_load_{ch['identifier']}" in [node.name for node in self.node_group.nodes]
 
-def append_channel_to_holder(node_group, ch_dict):
-    # assert that layout is reasonable or make this:
-    joingeo, out_node, out_input = get_safe_nodes_last_output(node_group, make=True)
-    in_node = get_safe_node_input(node_group, make=True)
-    if joingeo is None or joingeo.type != "JOIN_GEOMETRY":
-        joingeo = node_group.nodes.new('GeometryNodeJoinGeometry')
-        insert_last_node(node_group, joingeo, safe=True)
+    def update_material(self, mat, ch):
+        return
     
-    if out_node.location[0] - 1200 < in_node.location[0]: # make sure there is enough space
-        out_node.location[0] = in_node.location[0]+1200
+    def update_gn(self, ch):
+        return
 
-    # add switch socket
-    socket = new_socket(node_group, ch_dict, 'NodeSocketBool', min_type="SWITCH")
-    node_socket = in_node.outputs.get(socket.name)
+    def append_channel_to_holder(self, ch):
+        # assert that layout is reasonable or make this:
+        joingeo, out_node, out_input = get_safe_nodes_last_output(self.node_group, make=True)
+        in_node = get_safe_node_input(self.node_group, make=True)
+        if joingeo is None or joingeo.type != "JOIN_GEOMETRY":
+            joingeo = self.node_group.nodes.new('GeometryNodeJoinGeometry')
+            insert_last_node(self.node_group, joingeo, safe=True)
+        
+        if out_node.location[0] - 1200 < in_node.location[0]: # make sure there is enough space
+            out_node.location[0] = in_node.location[0]+1200
 
-    # make new channel
-    min_y_loc = in_node.location[1] + 300
-    for node in node_group.nodes:
-        if node.name not in [in_node.name, out_node.name, joingeo.name]:
-            min_y_loc = min(min_y_loc, node.location[1])
-    in_ch, out_ch = channel_nodes(node_group, in_node.location[0] + 400, min_y_loc - 300, ch_dict)
+        # add switch socket
+        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
+        node_socket = in_node.outputs.get(socket.name)
 
-    node_group.links.new(node_socket, in_ch)
-    node_group.links.new(out_ch, joingeo.inputs[-1])
-    return
+        # make new channel
+        min_y_loc = in_node.location[1] + 300
+        for node in self.node_group.nodes:
+            if node.name not in [in_node.name, out_node.name, joingeo.name]:
+                min_y_loc = min(min_y_loc, node.location[1])
+        in_ch, out_ch = self.channel_nodes(in_node.location[0] + 400, min_y_loc - 300, ch)
 
-def channel_nodes(node_group, x, y, ch):
-    nodes = node_group.nodes
-    links = node_group.links
-    interface = node_group.interface
-    
-    loadnode = nodes.new('GeometryNodeCollectionInfo')
-    loadnode.location = (x , y + 100)
-    loadnode.hide = True
-    loadnode.label = ch['name']
-    loadnode.transform_space='RELATIVE'
-    loadnode.inputs[0].default_value =ch['collection']
-    
-    # reload-func:
-    loadnode.name = f"channel_load_{ch['identifier']}"
-    
-    switch = nodes.new('GeometryNodeSwitch')      
-    switch.location = (x, y + 50)  
-    switch.input_type = 'GEOMETRY'
-    links.new(loadnode.outputs.get('Instances'), switch.inputs.get("True"))
-    switch.hide = True
-    switch.label = "Include channel"
-    
-    dataframe = nodes.new('NodeFrame')
-    loadnode.parent = dataframe
-    switch.parent = dataframe
-    dataframe.label = f"{ch['name']} data"
-    dataframe.name = f"dataframe_{ch['identifier']}"
+        self.node_group.links.new(node_socket, in_ch)
+        self.node_group.links.new(out_ch, joingeo.inputs[-1])
+        return
 
-    reroutes = [switch] 
-    for x_, y_ in [(220, 40), (0, -150), (850,0), (0, 150)]:
-        x += x_
-        y += y_
-        reroutes.append(nodes.new('NodeReroute'))
-        reroutes[-1].location= (x, y)
-        links.new(reroutes[-2].outputs[0], reroutes[-1].inputs[0])
-    
-    x += 50
-    
-    editframe = nodes.new('NodeFrame')
-    reroutes[2].parent = editframe
-    reroutes[2].name = f"edit_in_{ch['identifier']}"
-    reroutes[3].parent = editframe
-    reroutes[3].name = f"edit_out_{ch['identifier']}"
-    editframe.label = f"edit geometry"
-    editframe.name = f"editframe_{ch['identifier']}"
-    
-    setmat = nodes.new('GeometryNodeSetMaterial')
-    setmat.inputs.get('Material').default_value = ch['material']
-    links.new(reroutes[-1].outputs[0], setmat.inputs.get('Geometry'))
-    setmat.location = (x, y)
-    setmat.hide= True
-    return switch.inputs.get("Switch"), setmat.outputs[0]
+    def channel_nodes(self, x, y, ch):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
+        interface = self.node_group.interface
+        
+        loadnode = nodes.new('GeometryNodeCollectionInfo')
+        loadnode.location = (x , y + 100)
+        loadnode.hide = True
+        loadnode.label = ch['name']
+        loadnode.transform_space='RELATIVE'
+
+        # reload-func:
+        loadnode.name = f"channel_load_{ch['identifier']}"
+        
+        switch = nodes.new('GeometryNodeSwitch')      
+        switch.location = (x, y + 50)  
+        switch.input_type = 'GEOMETRY'
+        links.new(loadnode.outputs.get('Instances'), switch.inputs.get("True"))
+        switch.hide = True
+        switch.label = "Include channel"
+        
+        dataframe = nodes.new('NodeFrame')
+        loadnode.parent = dataframe
+        switch.parent = dataframe
+        dataframe.label = f"{ch['name']} data"
+        dataframe.name = f"dataframe_{ch['identifier']}"
+
+        reroutes = [switch] 
+        for x_, y_ in [(220, 40), (0, -150), (850,0), (0, 150)]:
+            x += x_
+            y += y_
+            reroutes.append(nodes.new('NodeReroute'))
+            reroutes[-1].location= (x, y)
+            links.new(reroutes[-2].outputs[0], reroutes[-1].inputs[0])
+        
+        x += 50
+        
+        editframe = nodes.new('NodeFrame')
+        reroutes[2].parent = editframe
+        reroutes[2].name = f"edit_in_{ch['identifier']}"
+        reroutes[3].parent = editframe
+        reroutes[3].name = f"edit_out_{ch['identifier']}"
+        editframe.label = f"edit geometry"
+        editframe.name = f"editframe_{ch['identifier']}"
+        
+        setmat = nodes.new('GeometryNodeSetMaterial')
+        setmat.name = f"set_material_{ch['identifier']}"
+        setmat.inputs.get('Material').default_value = self.add_material(ch)
+        links.new(reroutes[-1].outputs[0], setmat.inputs.get('Geometry'))
+        setmat.location = (x, y)
+        setmat.hide= True
+        return switch.inputs.get("Switch"), setmat.outputs[0]
 
 
-def ch_present(obj, identifier):
-    return f"channel_load_{identifier}" in [node.name for node in get_min_gn(obj).node_group.nodes]
-
-def init_container(objects, loc, name, container_obj=None):
-    
-    if container_obj is None:
-        container_obj = bpy.ops.object.empty_add(type="PLAIN_AXES")
-        container_obj = bpy.context.view_layer.objects.active
-        container_obj.name = name 
-
-    for obj in objects:
-        if obj is None or obj in container_obj.children:
-            continue
-        obj.parent = container_obj
-
-    container_obj.location = loc
-    return container_obj
-
-def clear_updating_collections(obj, ch_dicts, activate_key):
-    for ch in ch_dicts:
-        if ch_present(obj, ch['identifier']) and ch[activate_key]:
-            ch['collection'] = get_min_gn(obj).node_group.nodes[f"channel_load_{ch['identifier']}"].inputs[0].default_value
-            [bpy.data.objects.remove(obj) for obj in ch['collection'].objects]
-    return
+    def set_parent_and_slicer(self, parent, slice_cube, ch):
+        self.obj.parent = parent
+        for mat in self.obj.data.materials:
+            if mat.node_tree.nodes.get("Slice Cube") is None:
+                node_handling.insert_slicing(mat.node_tree, slice_cube)
+        if self.min_type in ch['collections']:
+            for obj in ch['collections'][self.min_type].all_objects:
+                obj.parent = parent

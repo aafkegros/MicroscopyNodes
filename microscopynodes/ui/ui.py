@@ -1,6 +1,7 @@
 import bpy
 from .. import load
-from . import props
+from .. import handle_blender_structs
+from ..handle_blender_structs.props import CACHE_LOCATIONS
 from .channel_list import *
 from bpy.types import (Panel,
                         Operator,
@@ -19,7 +20,6 @@ class TIFLoadPanel(bpy.types.Panel):
     bl_context = "scene"
 
     def draw(self, context):
-        # print('drawing tifloadpanel')
         layout = self.layout
         scn = bpy.context.scene
 
@@ -77,7 +77,7 @@ class TIFLoadPanel(bpy.types.Panel):
 
         grid.label(text="Data storage:", icon="FILE_FOLDER")
         grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
-        props.CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
+        CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
 
         row = grid.split(factor=0.4)
         row.prop(bpy.context.scene, 'MiN_remake', 
@@ -115,7 +115,6 @@ class SelectPathOperator(Operator):
             bpy.context.scene.MiN_input_file = self.filepath
         elif self.directory != "":
             bpy.context.scene.MiN_input_file = self.directory
-        print(f"set min input to {self.filepath}, {self.directory}")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -181,8 +180,6 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
 
 
 
-
-
 class ZarrSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""
     bl_idname = "microscopynodes.zarrselection"
@@ -209,8 +206,8 @@ class CacheSelectionMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        for location in props.CACHE_LOCATIONS:
-            prop = layout.operator(CacheSelectOperator.bl_idname, text=location, icon=props.CACHE_LOCATIONS[location]["icon"])
+        for location in CACHE_LOCATIONS:
+            prop = layout.operator(CacheSelectOperator.bl_idname, text=location, icon=CACHE_LOCATIONS[location]["icon"])
             prop.selected = location
 
 class ZarrMenu(bpy.types.Menu):
