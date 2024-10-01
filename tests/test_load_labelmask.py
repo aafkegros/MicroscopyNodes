@@ -7,7 +7,7 @@ import microscopynodes
 from pathlib import Path
 from .utils import get_verts
 import json
-import microscopynodes.load_components as load_labelmask
+from microscopynodes.load_components import LabelmaskIO, LabelmaskObject
 import shutil
 import hashlib
 from microscopynodes.handle_blender_structs import collection_by_name

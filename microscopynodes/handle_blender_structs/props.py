@@ -164,11 +164,17 @@ def poll_empty(self, object):
         return True
     return False
 
+def clear_reload(context, scene):
+    if bpy.context.scene.MiN_reload is None:
+        bpy.context.scene.MiN_update_data = True
+        bpy.context.scene.MiN_update_settings = True
+
 bpy.types.Scene.MiN_reload = PointerProperty(
         name = "", 
         description = "Reload data of Microscopy Nodes object.\nCan be used to replace deleted (temp) files, change resolution, or channel settings.\nUsage: Point to previously loaded microscopy data.",
         type=bpy.types.Object,
         poll=poll_empty,
+        update=clear_reload
         )
 
 bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
