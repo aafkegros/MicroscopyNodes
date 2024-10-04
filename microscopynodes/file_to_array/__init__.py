@@ -19,6 +19,7 @@ def change_path(self, context):
     context.scene.property_unset("MiN_xy_size")
     context.scene.property_unset("MiN_z_size")
     context.scene.property_unset("MiN_axes_order")
+    context.scene.property_unset("MiN_reload")
 
 
 def load_array(input_file, axes_order, ch_dicts):

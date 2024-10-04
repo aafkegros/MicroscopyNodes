@@ -82,6 +82,8 @@ def load_blocking(params):
         bpy.ops.object.empty_add(type="PLAIN_AXES")
         container = bpy.context.view_layer.objects.active
         container.name = Path(input_file).stem[:50]
+        update_data = True
+        update_settings = True
 
     axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=objs[min_keys.AXES])
     axes_obj.parent = container
@@ -89,7 +91,8 @@ def load_blocking(params):
     slice_cube.parent = container
     
     for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
-        if not any([ch[min_type] for ch in ch_dicts]):
+        if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
+            # don't create object if none exists or is required
             continue
         data_io = DataIOFactory(min_type)
         ch_obj = ChannelObjectFactory(min_type, objs[min_type])
