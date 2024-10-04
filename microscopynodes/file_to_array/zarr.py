@@ -85,8 +85,12 @@ class ZarrLoader(ArrayLoader):
         try:
             parse_zattrs(uri, bpy.context.scene.MiN_zarrLevels)
         except KeyError as e:
-            bpy.context.scene.MiN_selected_zarr_level = f"Could not parse .zattrs, see print log for detail"
-            print(e)
+            if str(e) == "'multiscales'" and str(Path(uri).stem) != '0':
+                context.scene.MiN_input_file = append_uri(uri, '0')
+                self.changePath(context)
+            else:
+                bpy.context.scene.MiN_selected_zarr_level = f"Could not parse .zattrs, see print log for detail"
+                print(e)
         return
 
 def append_uri(uri, append):
