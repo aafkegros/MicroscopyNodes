@@ -108,21 +108,19 @@ class VolumeIO(DataIO):
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
                 histogram[0] = 0
                 np.save(histfname, histogram, allow_pickle=False)
-
-                make_vdb(vdbfname, arr)
+                
+                log(f"write vdb {identifier5d}")
+                self.make_vdb(vdbfname, arr)   
 
         return str(dirpath), time_vdbs, time_hists
 
-        def make_vdb(vdbfname, arr):
-            import pyopenvdb as vdb
-            grid = vdb.FloatGrid()
-            grid.name = f"data_channel_{ch_ix}"
-            
-            grid.copyFromArray(arr.astype(np.float32))
-
-            log(f"write vdb {identifier5d}")
-            vdb.write(str(vdbfname), grids=[grid])
-            return
+    def make_vdb(self, vdbfname, arr):
+        import pyopenvdb as vdb
+        grid = vdb.FloatGrid()
+        grid.name = f"data"
+        grid.copyFromArray(arr.astype(np.float32))
+        vdb.write(str(vdbfname), grids=[grid])
+        return
 
     def import_data(self, ch, scale):
         vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
@@ -282,7 +280,7 @@ class VolumeObject(ChannelObject):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1400, 0)
         node_attr.name = f"[channel_load_{ch['identifier']}]"
-        node_attr.attribute_name = f'data_channel_{ch["ix"]}'
+        node_attr.attribute_name = f'data'
         node_attr.label = ch['name']
         node_attr.hide =True
 
