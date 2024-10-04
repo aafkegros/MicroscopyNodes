@@ -41,7 +41,8 @@ def make_tif(path, arrtype):
     for ix in range(len(arr)):
         arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
     arr = arr.reshape(shape) 
-    tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
+    if not Path(path).exists():
+        tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
     return path, arr, axes.lower()
     
 
@@ -109,7 +110,7 @@ def quick_render(name):
     cam_obj1.rotation_euler = (0.7, 0, 2.3)
     scn.collection.objects.link(cam_obj1)
     bpy.context.scene.camera = cam_obj1
-
+    
     # Set the viewport resolution
     bpy.context.scene.render.resolution_x = 128
     bpy.context.scene.render.resolution_y = 128
@@ -117,6 +118,7 @@ def quick_render(name):
     bpy.context.scene.render.image_settings.file_format = "PNG"
 
     # Render the viewport and save the result
+    
     bpy.ops.render.render()
     bpy.data.images["Render Result"].save_render(output_file)
     data = np.array(iio.imread(output_file))
