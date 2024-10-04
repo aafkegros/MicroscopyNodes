@@ -50,7 +50,6 @@ loadable = [['volume'],['surface'],['labelmask'], [], ['volume', 'surface'], 'mi
 
 def prep_load(arrtype=None):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    # py.data.objects.remove(bpy.data.objects['Cube'])
 
     if arrtype is None:
         arrtype = '5D_5cube'
@@ -102,11 +101,9 @@ def quick_render(name):
 
     scn = bpy.context.scene
 
-    # create the first camera
     cam1 = bpy.data.cameras.new("Camera 1")
     cam1.lens = 40
 
-    # create the first camera object
     cam_obj1 = bpy.data.objects.new("Camera 1", cam1)
     cam_obj1.location = (.1, .1, .2)
     cam_obj1.rotation_euler = (0.7, 0, 2.3)
@@ -116,7 +113,6 @@ def quick_render(name):
     # Set the viewport resolution
     bpy.context.scene.render.resolution_x = 128
     bpy.context.scene.render.resolution_y = 128
-    bpy.ops.wm.save_mainfile(filepath=str(test_folder / 'test.blend'))
     # Set the output format
     bpy.context.scene.render.image_settings.file_format = "PNG"
 
