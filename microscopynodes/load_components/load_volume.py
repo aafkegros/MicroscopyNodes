@@ -42,7 +42,7 @@ class VolumeIO(DataIO):
             chunk = ch['data']
             for dim, sl in zip('xyz', block): 
                 chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
-            directory, time_vdbs, time_hists = self.make_vdb(chunk, block, axes_order, remake, cache_dir, ch['ix'])
+            directory, time_vdbs, time_hists = self.make_vdbs(chunk, block, axes_order, remake, cache_dir, ch)
             file_meta.append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0].start, block[1].start, block[2].start)})
         return file_meta
 
@@ -64,9 +64,8 @@ class VolumeIO(DataIO):
         return slices
 
     
-    def make_vdb(self, imgdata, block, axes_order, remake, cache_dir, ch):
+    def make_vdbs(self, imgdata, block, axes_order, remake, cache_dir, ch):
         # non-lazy functions are allowed on only single time-frames
-        import pyopenvdb as vdb
         x_ix, y_ix, z_ix = [sl.start for sl in block]
 
         # imgdata = imgdata.compute()
@@ -77,7 +76,7 @@ class VolumeIO(DataIO):
         dirpath = Path(cache_dir)/f"{identifier3d}"
         dirpath.mkdir(exist_ok=True,parents=True)
         for t in range(len_axis('t', axes_order, imgdata.shape)):
-            identifier5d = f"{identifier3d}c{ch}t{t:04}"
+            identifier5d = f"{identifier3d}c{ch['ix']}t{t:04}"
             frame = take_index(imgdata, t, 't', axes_order)
             frame_axes_order = axes_order.replace('t',"")
 
@@ -110,15 +109,20 @@ class VolumeIO(DataIO):
                 histogram[0] = 0
                 np.save(histfname, histogram, allow_pickle=False)
 
-                grid = vdb.FloatGrid()
-                grid.name = f"data_channel_{ch}"
-                
-                grid.copyFromArray(arr.astype(np.float32))
-
-                log(f"write vdb {identifier5d}")
-                vdb.write(str(vdbfname), grids=[grid])
+                make_vdb(vdbfname, arr)
 
         return str(dirpath), time_vdbs, time_hists
+
+        def make_vdb(vdbfname, arr):
+            import pyopenvdb as vdb
+            grid = vdb.FloatGrid()
+            grid.name = f"data_channel_{ch_ix}"
+            
+            grid.copyFromArray(arr.astype(np.float32))
+
+            log(f"write vdb {identifier5d}")
+            vdb.write(str(vdbfname), grids=[grid])
+            return
 
     def import_data(self, ch, scale):
         vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)

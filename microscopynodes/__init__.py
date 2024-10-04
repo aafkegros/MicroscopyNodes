@@ -65,3 +65,9 @@ def unregister():
             print(op, e)
             pass
 
+def _test_register():
+    try:
+        register()
+    except Exception:
+        unregister()
+        register()
