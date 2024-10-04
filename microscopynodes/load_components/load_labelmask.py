@@ -270,7 +270,7 @@ class LabelmaskObject(ChannelObject):
         return mat
 
 
-    def update_shader(self, mat, ch):
+    def update_material(self, mat, ch):
         try:
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
             if ch['emission'] and princ.inputs[27].default_value == 0.0:

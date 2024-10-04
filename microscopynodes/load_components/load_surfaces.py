@@ -108,14 +108,15 @@ class SurfaceObject(ChannelObject):
         return
 
 
-    def update_shader(self, mat, ch):
+    def update_material(self, mat, ch):
         try:
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
             if ch['emission'] and princ.inputs[27].default_value == 0.0:
                 princ.inputs[27].default_value = 0.5
             elif not ch['emission'] and princ.inputs[27].default_value == 0.5:
                 princ.inputs[27].default_value = 0
-        except:
+        except Exception(e):
+            print(e, 'in update surface shader')
             pass
         return
         
