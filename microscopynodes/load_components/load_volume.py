@@ -235,37 +235,39 @@ class VolumeObject(ChannelObject):
             links.new(shader_in.outputs[0], emit.inputs.get('Color'))
             links.new(emit.outputs[0], shader_out.inputs[0])
             emit.parent=shaderframe
-            return
-        
-        scale = nodes.new(type='ShaderNodeVectorMath')
-        scale.name = "scale [absorb]"
-        scale.location = (-150,-100)
-        scale.operation = "SCALE"
-        links.new(shader_in.outputs[0], scale.inputs.get("Vector"))
-        scale.inputs.get('Scale').default_value = 1
-        scale.parent=shaderframe
-        
-        adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
-        adsorb.name = 'absorb [absorb]'
-        adsorb.location = (50,-100)
-        links.new(shader_in.outputs[0], adsorb.inputs.get('Color'))
-        links.new(scale.outputs[0], adsorb.inputs.get('Density'))
-        scatter = nodes.new(type='ShaderNodeVolumeScatter')
-        scatter.name = 'scatter absorb'
-        scatter.location = (250,-200)
-        links.new(shader_in.outputs[0], scatter.inputs.get('Color'))
-        links.new(scale.outputs[0], scatter.inputs.get('Density'))
-        scatter.parent=shaderframe
+        else:
+            scale = nodes.new(type='ShaderNodeVectorMath')
+            scale.name = "scale [absorb]"
+            scale.location = (-150,-100)
+            scale.operation = "SCALE"
+            links.new(shader_in.outputs[0], scale.inputs.get("Vector"))
+            scale.inputs.get('Scale').default_value = 1
+            scale.parent=shaderframe
+            
+            adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
+            adsorb.name = 'absorb [absorb]'
+            adsorb.location = (50,-100)
+            links.new(shader_in.outputs[0], adsorb.inputs.get('Color'))
+            links.new(scale.outputs[0], adsorb.inputs.get('Density'))
+            scatter = nodes.new(type='ShaderNodeVolumeScatter')
+            scatter.name = 'scatter absorb'
+            scatter.location = (250,-200)
+            links.new(shader_in.outputs[0], scatter.inputs.get('Color'))
+            links.new(scale.outputs[0], scatter.inputs.get('Density'))
+            scatter.parent=shaderframe
 
-        add = nodes.new(type='ShaderNodeAddShader')
-        add.name = 'add [absorb]'
-        add.location = (450, -100)
-        links.new(adsorb.outputs[0], add.inputs[0])
-        links.new(scatter.outputs[0], add.inputs[1])
-        links.new(add.outputs[0], shader_out.inputs[0])
-        add.parent=shaderframe
+            add = nodes.new(type='ShaderNodeAddShader')
+            add.name = 'add [absorb]'
+            add.location = (450, -100)
+            links.new(adsorb.outputs[0], add.inputs[0])
+            links.new(scatter.outputs[0], add.inputs[1])
+            links.new(add.outputs[0], shader_out.inputs[0])
+            add.parent=shaderframe
+
+        for node in nodes:
+            if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
+                node.inputs[0].show_expanded = True
         return
-
 
     def add_material(self, ch):
         mat = super().add_material(ch)
@@ -318,7 +320,5 @@ class VolumeObject(ChannelObject):
             outnode.name = 'Material Output'
         links.new(shader_out.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
         nodes.get("Material Output").location = (700,00)
-        for node in nodes:
-            if (len(node.inputs) > 0 and not node.hide) and node != ramp_node:
-                node.inputs[0].show_expanded = True
+
         return mat
