@@ -44,7 +44,7 @@ jobs:
             pwd
             svn export https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228/python/lib/python3.10/site-packages/pyopenvdb.so@r63589
             pip install patchelf
-            patchelf --set-rpath '$ORIGIN/bpy/lib' pyopenvdb.so
+            patchelf --set-rpath '$ORIGIN/lib' pyopenvdb.so
 
       - name: Run Tests
         run: pytest --verbose 
