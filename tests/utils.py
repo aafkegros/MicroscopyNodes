@@ -33,7 +33,7 @@ def make_tif(path, arrtype):
         arr = np.ones((5,10), dtype=np.uint16)
         axes = "YX"
     if arrtype == '5D_nonrect':
-        shape = [i for i in range(1,6)]
+        shape = [i for i in range(2,7)]
         arr = np.ones(tuple(shape), dtype=np.uint16)
     
     shape = arr.shape
@@ -41,12 +41,11 @@ def make_tif(path, arrtype):
     for ix in range(len(arr)):
         arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
     arr = arr.reshape(shape) 
-    if not Path(path).exists():
-        tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
+    # if not Path(path).exists():
+    tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
     return path, arr, axes.lower()
     
 
-loadable = [['volume'],['surface'],['labelmask'], [], ['volume', 'surface'], 'mixed']
 
 
 def prep_load(arrtype=None):
@@ -77,7 +76,15 @@ def do_load():
 
 
 def check_channels(ch_dicts, test_render=True):
+    img1 = None
     objs = microscopynodes.load.parse_reload(bpy.data.objects[str(Path(bpy.context.scene.MiN_input_file).stem)])
+    if test_render:
+        img1 = quick_render('1')
+        objs[min_keys.AXES].hide_render = True
+        img2 = quick_render('2')
+        objs[min_keys.AXES].hide_render = False
+        assert(not np.array_equal(img1, img2))
+
     for ch in ch_dicts:
         for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
             if ch[min_type]:
@@ -85,18 +92,17 @@ def check_channels(ch_dicts, test_render=True):
                     raise ValueError(f"{min_type} not in objs, while setting is {ch[min_type]}")
                 ch_obj = ChannelObjectFactory(min_type, objs[min_type])
                 assert(ch_obj.ch_present(ch))
-
                 if test_render:
-                    img1 = quick_render('1')
                     socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
+                    img1 = quick_render('1')
                     ch_obj.gn_mod[socket.identifier] = False
                     img2 = quick_render('2')
                     ch_obj.gn_mod[socket.identifier] = True
                     assert(not np.array_equal(img1, img2))
+                    
 
-
-                
 def quick_render(name):
+    bpy.context.scene.cycles.samples = 16
     # Set the output file path
     output_file = str(test_folder / f'tmp{name}.png')
 

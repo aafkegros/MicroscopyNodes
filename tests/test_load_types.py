@@ -1,6 +1,8 @@
 from .utils import *
 import pytest
 
+loadable = [['volume'],['surface'],['labelmask'], [], ['volume', 'surface'], 'mixed']
+
 @pytest.mark.parametrize('load_as', loadable)
 @pytest.mark.parametrize('arrtype', ['5D_5cube', '2D_5x10', '5D_nonrect'])
 def test_loading_types(arrtype, load_as):
