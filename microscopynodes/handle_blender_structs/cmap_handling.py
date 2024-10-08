@@ -73,8 +73,21 @@ def luts(maxval=32):
         'cmap': channels_default(maxval),
         'linear' : False
     }
+    luts['default_ch'] = {
+        'cmap':(
+            (1.0, 1.0, 1.0, 1),
+            (0/255, 157/255, 224/255, 1),
+            (224/255, 0/255, 37/255, 1),
+            (224/255, 214/255, 0/255, 1),
+            (117/255, 0/255, 224/255, 1),
+            (0/255, 224/255, 87/255, 1),
+        ),
+        'linear' : False
+    }
     return luts
 
+
+# deprecated
 def channels_default(maxval):
     if maxval == 1:
         return [[1,1,1,1]]

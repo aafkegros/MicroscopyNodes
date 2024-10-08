@@ -9,10 +9,15 @@ include = [
 
 [tool.poetry.dependencies]
 python = "~=3.11.6"
-# bpy = ">=4.2.0"
+bpy = ">=4.2.0"
 tifffile = "==2023.4.12"
 scikit-image = "==0.22.0"
 numpy = "1.24.3"
+zarr = "*"
+dask = "*"
+imagecodecs = "*"
+aiohttp = "*"
+fsspec = "*"
 
 
 [tool.poetry.dev-dependencies]

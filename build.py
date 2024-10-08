@@ -12,6 +12,8 @@ toml_path = "microscopynodes/blender_manifest.toml"
 whl_path = "./microscopynodes/wheels"
 blender_path ="/Applications/Blender3.app/Contents/MacOS/Blender"
 
+permanent_whls = ["./microscopynodes/wheels/asciitree-0.3.4.dev1-py3-none-any.whl"]
+
 @dataclass
 class Platform:
     pypi_suffix: str
@@ -29,10 +31,29 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 
 required_packages = [
-    "tifffile==2023.4.12",
-    "scikit-image==0.22.0",
-]
+    # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm, or the fast find_objects
+    "scikit-image==0.22.0", 
+    
+    "dask==2024.8.0",
 
+    # tif loading
+    "tifffile==2023.4.12",
+    "imagecodecs==2024.6.1", # allows LZW compressed tif loading
+
+    # dependencies of zarr:
+    "fasteners==0.19",
+    "numcodecs==0.13.0",
+    "fsspec==2024.6.0",
+    "aiohttp==3.10.3",
+    # asciitree is permanently added
+
+    # development
+    # "ipycytoscape" # for visualizing dask trees
+]
+nodeps_packages = [ 
+    # zarr relies on one package without .whl (asciitree)
+    "zarr==2.17.2"
+]
 
 build_platforms = [
     windows_x64,
@@ -49,7 +70,9 @@ def run_python(args: str):
 
 def remove_whls():
     for whl_file in glob.glob(os.path.join(whl_path, "*.whl")):
-        os.remove(whl_file)
+        if whl_file not in permanent_whls:
+            os.remove(whl_file)
+    # exit()
 
 
 def download_whls(
@@ -65,10 +88,13 @@ def download_whls(
         remove_whls()
 
     for platform in platforms:
+        print(required_packages, nodeps_packages, f"-m pip download {' '.join(required_packages)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}")
         run_python(
             f"-m pip download {' '.join(required_packages)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}"
         )
-
+        run_python(
+            f"-m pip download {' '.join(nodeps_packages)} --dest ./microscopynodes/wheels --python-version={python_version} --platform={platform.pypi_suffix} --no-deps"
+        )
 
 def update_toml_whls(platforms):
     # Define the path for wheel files
@@ -92,7 +118,8 @@ def update_toml_whls(platforms):
 
     # Remove the unwanted wheel files from the filesystem
     for whl in to_remove:
-        os.remove(whl)
+        if whl not in permanent_whls:
+            os.remove(whl)
 
     # Load the TOML file
     with open(toml_path, "r") as file:

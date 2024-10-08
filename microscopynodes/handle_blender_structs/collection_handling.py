@@ -26,8 +26,8 @@ def collection_by_name(name, supercollections=[], duplicate=False):
 def get_current_collection():
     return bpy.context.collection, bpy.context.view_layer.active_layer_collection
 
-def make_subcollection(name):
-    coll, lcoll = get_collection(name, supercollections=[], duplicate=False, under_active_coll=True)
+def make_subcollection(name, duplicate=False):
+    coll, lcoll = get_collection(name, supercollections=[], duplicate=duplicate, under_active_coll=True)
     collection_activate(coll, lcoll)
     return coll, lcoll
 
@@ -36,9 +36,6 @@ def collection_deactivate_by_name(name, supercollections=[]):
     lcoll.exclude = True
     coll.hide_render = True
     lcoll.hide_viewport = True
-    # for obj in coll.all_objects:
-    #     obj.hide_render = True
-    #     obj.hide_viewport = True
     return coll, lcoll
 
 
@@ -47,3 +44,17 @@ def collection_activate(coll, lcoll):
     lcoll.exclude = False
     coll.hide_render = False
     lcoll.hide_viewport = False
+
+def clear_collection(coll):
+    if coll is not None:
+        [bpy.data.objects.remove(obj) for obj in coll.objects]
+        bpy.data.collections.remove(coll)
+
+# def activate_or_make_channel_collection(ch, append=''):
+#     if ch['collection'] is None:
+#         ch_collection, ch_lcoll = make_subcollection(f"{ch['name']}_{append}")
+#         ch['collection'] = ch_collection
+#     else:
+#         # activation needs retrieving of lcoll, to do this i assume the collection is under active
+#         collection_activate(*get_collection(ch['collection'].name, under_active_coll=True, duplicate=False)) 
+#     return 

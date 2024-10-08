@@ -1,0 +1,1 @@
+{"path":"5D_5cube.zarr/s0","axes":[{"type":"space","name":"x","unit":"pixel"},{"type":"space","name":"y","unit":"pixel"},{"type":"channel","name":"c","unit":""},{"type":"space","name":"z","unit":"pixel"},{"type":"time","name":"t","unit":"sec"}],"coordinateTransformations":[{"scale":[1.0,1.0,1.0,1.0,1.0],"type":"scale"},{"translation":[0.0,0.0,0.0,0.0,0.0],"type":"translation"}]}

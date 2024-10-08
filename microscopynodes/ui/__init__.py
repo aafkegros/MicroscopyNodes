@@ -1,3 +1,6 @@
 from . import ui
-print(ui.CLASSES)
-CLASSES = ui.CLASSES
+from . import channel_list
+from . import panel
+
+CLASSES = ui.CLASSES + channel_list.CLASSES + panel.CLASSES
+

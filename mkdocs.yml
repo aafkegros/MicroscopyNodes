@@ -1,0 +1,22 @@
+site_name: Microscopy Nodes
+repo_url: https://github.com/oanegros/MicroscopyNodes
+nav:
+  - Home: index.md
+  - Getting started: new_user.md
+  - Usage:
+    - Objects: objects.md
+    - Import settings: settings.md
+    - File types: file_types.md
+    - Headless operation: background.md
+  - FAQ: faq.md
+theme:
+  name: material
+  font:
+    text: Rubik
+  logo: figures/logo.svg
+  favicon: figures/favicon.svg
+  features:
+    - navigation.tabs
+  
+extra_css:
+  - stylesheets/extra_css.css

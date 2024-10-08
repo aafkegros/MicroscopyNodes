@@ -2,41 +2,71 @@ import bpy
 import numpy as np
 from pathlib import Path
 
-from ..handle_blender_structs.collection_handling import *
+from ..handle_blender_structs import *
 from .. import min_nodes
 
+def load_axes(size_px, pixel_size, axes_obj=None):
 
-def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
-    axesobj = bpy.ops.mesh.primitive_cube_add(location=location)
-    axesobj = bpy.context.view_layer.objects.active
-    axesobj.data.name = 'axes'
-    axesobj.name = 'axes'
+    if axes_obj is not None:
+        mod = get_min_gn(axes_obj)
+        nodes = mod.node_group.nodes
+        try:
+            old_size_px = nodes['[Microscopy Nodes size_px]'].vector
+            old_scale = nodes['[Microscopy Nodes scale]'].vector
+            scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
+        except KeyError as e:
+            print(e)
+            scale = default_scale(pixel_size)
+        
+        update_axes(nodes, size_px, pixel_size, scale)
+        return axes_obj, scale
+
+    center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
+    scale = default_scale(pixel_size)
+    center =  tuple(center_loc * size_px*scale )
+    axes_obj = init_axes(size_px, pixel_size, scale, center)
+    return axes_obj,  scale
+
+def default_scale(pixel_size):
+    init_scale = 0.02
+    scale =  np.array([1,1,pixel_size[-1]/pixel_size[0]])*init_scale
+    return scale
+
+def update_axes(nodes, size_px, pixel_size, scale):
+    for k, v in zip(["size_px","pixel_size", "scale"], [size_px, pixel_size, scale]):
+        nodes[f"[Microscopy Nodes {k}]"].vector = v
+    return
+
+def init_axes(size_px, pixel_size, scale, location):
+    axes_obj = bpy.ops.mesh.primitive_cube_add(location=location)
+    axes_obj = bpy.context.view_layer.objects.active
+    axes_obj.data.name = 'axes'
+    axes_obj.name = 'axes'
 
     bpy.ops.object.modifier_add(type='NODES')
-    node_group = bpy.data.node_groups.new('axes of ' + str(Path(input_file).stem) , 'GeometryNodeTree')  
-    axesobj.modifiers[-1].node_group = node_group
+    node_group = bpy.data.node_groups.new(f'axes', 'GeometryNodeTree')  
+    axes_obj.modifiers[-1].name = f"[Microscopy Nodes axes]"
+    axes_obj.modifiers[-1].node_group = node_group
     nodes = node_group.nodes
     links = node_group.links
 
     axnode = nodes.new('FunctionNodeInputVector')
-    axnode.name = "n pixels"
+    axnode.name = '[Microscopy Nodes size_px]'
     axnode.label = "n pixels"
     axnode.location = (-400, 200)
     for axix in range(len(size_px)):
         axnode.vector[axix] = size_px[axix]
     
     initscale_node = nodes.new('FunctionNodeInputVector')
-    initscale_node.name = 'init_scale'
+    initscale_node.name = '[Microscopy Nodes scale]'
     initscale_node.label = "Scale transform on load"
     initscale_node.location = (-400, 0)
-    initscale_node.vector = np.array([1,1,z_size/xy_size])*init_scale
+    initscale_node.vector = scale
 
     scale_node = nodes.new('FunctionNodeInputVector')
-    scale_node.name = 'input_scale'
     scale_node.label = 'scale (µm/px)'
-    scale_node.vector[0] = xy_size
-    scale_node.vector[1] = xy_size
-    scale_node.vector[2] = z_size
+    scale_node.name = '[Microscopy Nodes pixel_size]'
+    scale_node.vector = pixel_size
     scale_node.location = (-400, -200)
 
     axnode_um = nodes.new('ShaderNodeVectorMath')
@@ -70,28 +100,37 @@ def load_axes(size_px, init_scale, location, xy_size, z_size, input_file):
     scale_node.node_tree = min_nodes.scale_node_group()
     scale_node.width = 300
     scale_node.location = (200, 100)
-    scale_node.inputs.get("µm per tick").default_value = max(1, size_px[0]//10)
+    
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))
     links.new(axes_select.outputs[0], scale_node.inputs.get('Axis Selection'))
-    # links.new(crosshatch.outputs[0], scale_node.inputs.get('Tick Geometry'))
     scale_node.inputs.get("Material").default_value = init_material_axes()
+
+    # crude version of Heckbert 1990 tick number algorithm, with minimum for perspective
+    max_um = np.max(size_px * pixel_size)
+    target_nr_of_ticks = 7
+    min_ticks = 3
+    nice_nrs = np.outer(np.array([1,2,5]), np.array([10**mag for mag in range(-4, 8)])) 
+    ticks = max_um // nice_nrs
+    dists = np.abs(ticks[ticks >= min_ticks] - target_nr_of_ticks)
+    tick_um = nice_nrs[ticks >= min_ticks].flatten()[np.argmin(dists)]
+    scale_node.inputs.get("µm per tick").default_value = tick_um
     
     node_group.interface.new_socket("Geometry",in_out="OUTPUT", socket_type='NodeSocketGeometry')
     outnode = nodes.new('NodeGroupOutput')
     outnode.location = (800,0)
     links.new(scale_node.outputs[0], outnode.inputs[0])
 
-    if axesobj.data.materials:
-        axesobj.data.materials[0] = init_material_axes()
+    if axes_obj.data.materials:
+        axes_obj.data.materials[0] = init_material_axes()
     else:
-        axesobj.data.materials.append(init_material_axes())
+        axes_obj.data.materials.append(init_material_axes())
 
     for dim in range(3):
-        axesobj.lock_location[dim] = True
-        axesobj.lock_rotation[dim] = True
-        axesobj.lock_scale[dim] = True
-    return axesobj
+        axes_obj.lock_location[dim] = True
+        axes_obj.lock_rotation[dim] = True
+        axes_obj.lock_scale[dim] = True
+    return axes_obj
 
 def init_material_axes():
     mat = bpy.data.materials.get("axes")

@@ -2,64 +2,274 @@ import bpy
 from mathutils import Color
 from pathlib import Path
 import numpy as np
+import math
+import itertools
+import skimage
+import scipy
 
-from .load_generic import init_holder
+from .load_generic import *
 from ..handle_blender_structs import *
 from .. import min_nodes
 
+NR_HIST_BINS = 2**16
+def len_axis(dim, axes_order, shape):
+        if dim in axes_order:
+            return shape[axes_order.find(dim)]
+        return 1
 
-def arrays_to_vdb_files(volume_arrays, axes_order, remake, cache_dir):
-    # 2048 is maximum grid size for Eevee rendering, so grids are split for multiple
-    # Loops over all axes and splits based on length
-    # reassembles in negative coordinates, parents all to a parent at (half_x, half_y, bottom) that is then translated to (0,0,0)
+def take_index(imgdata, indices, dim, axes_order):
+    if dim in axes_order:
+        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
+    return imgdata
 
-    for ch in volume_arrays:
-        volume_arrays[ch]['vdbs'] = []
-        imgdata = volume_arrays[ch]['data']
-        n_splits = [(imgdata.shape[dim] // 2049)+ 1 for dim in [axes_order.find('x'),axes_order.find('y'),axes_order.find('z')]]
-        a_chunks = np.array_split(imgdata, n_splits[0], axis=axes_order.find('x'))
-        for a_ix, a_chunk in enumerate(a_chunks):
-            b_chunks = np.array_split(a_chunk, n_splits[1], axis=axes_order.find('y'))
-            for b_ix, b_chunk in enumerate(b_chunks):
-                c_chunks = np.array_split(b_chunk, n_splits[2], axis=axes_order.find('z'))
-                for c_ix, c_chunk in enumerate(reversed(c_chunks)):
-                    directory, time_vdbs = make_vdb(c_chunk, (a_ix, b_ix, c_ix), axes_order, remake, cache_dir, ch)
-                    volume_arrays[ch]['vdbs'].append({"directory" : directory, "files": time_vdbs, 'pos':(a_ix,b_ix,c_ix)})
-        del volume_arrays[ch]['data']
-    bbox_px = np.array([imgdata.shape[axes_order.find('x')], imgdata.shape[axes_order.find('y')], imgdata.shape[axes_order.find('z')]])//np.array(n_splits)
+def get_leading_trailing_zero_float(arr):
+        min_val = max(np.argmax(arr > 0)-1, 0) / len(arr)
+        max_val = min(len(arr) - (np.argmax(arr[::-1] > 0)-1), len(arr)) / len(arr)
+        return min_val, max_val
+
+class VolumeIO(DataIO):
+    min_type = min_keys.VOLUME
+
+    def export_ch(self, ch, cache_dir, remake, axes_order):
+        file_meta = []
+
+        xyz_shape = [len_axis(dim, axes_order, ch['data'].shape) for dim in 'xyz']
+        maxlen = np.inf
+        if bpy.context.scene.MiN_chunk:
+            maxlen = 2048
+        slices = [self.split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
+        for block in itertools.product(*slices):
+            chunk = ch['data']
+            for dim, sl in zip('xyz', block): 
+                chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
+            directory, time_vdbs, time_hists = self.make_vdbs(chunk, block, axes_order, remake, cache_dir, ch)
+            file_meta.append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0].start, block[1].start, block[2].start)})
+        return file_meta
+
+    def split_axis_to_chunks(self, length, ch_ix, maxlen):
+        # chunks to max 2048 length, with ch_ix dependent offsets
+        offset = 0
+        if length > maxlen:
+            offset = (300 * ch_ix) % 2048
+        n_splits = int((length // (maxlen+1))+ 1)
+        splits = [length/n_splits * split for split in range(n_splits + 1)]
+        splits[-1] = math.ceil(splits[-1]) 
+        splits = [math.floor(split) + offset for split in splits]
+        if offset > 0:
+            splits.insert(0, 0)
+        while splits[-2] > length:
+            del splits[-1]
+        splits[-1] = length 
+        slices = [slice(start, end) for start, end in zip(splits[:-1], splits[1:])]
+        return slices
+
     
-    return volume_arrays, bbox_px
+    def make_vdbs(self, imgdata, block, axes_order, remake, cache_dir, ch):
+        # non-lazy functions are allowed on only single time-frames
+        x_ix, y_ix, z_ix = [sl.start for sl in block]
 
-def make_vdb(imgdata, chunk_ix, axes_order, remake, cache_dir, ch):
-    import pyopenvdb as vdb
-    x_ix, y_ix, z_ix = chunk_ix
-    timefiles = []
+        # imgdata = imgdata.compute()
+        time_vdbs = [] 
+        time_hists = []
 
-    if axes_order != 'txyz':
-        print(imgdata.shape, axes_order)
-        imgdata = np.moveaxis(imgdata, [axes_order.find('t'),axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3]).copy()
+        identifier3d = f"x{x_ix}y{y_ix}z{z_ix}"
+        dirpath = Path(cache_dir)/f"{identifier3d}"
+        dirpath.mkdir(exist_ok=True,parents=True)
+        for t in range(len_axis('t', axes_order, imgdata.shape)):
+            identifier5d = f"{identifier3d}c{ch['ix']}t{t:04}"
+            frame = take_index(imgdata, t, 't', axes_order)
+            frame_axes_order = axes_order.replace('t',"")
 
-    identifier = "x"+str(x_ix)+"y"+str(y_ix)+"z"+str(z_ix)
-    (Path(cache_dir)/f"{identifier}").mkdir(exist_ok=True,parents=True)
-    for t, frame in enumerate(imgdata):
-        fname = (Path(cache_dir)/f"{identifier}"/f"{x_ix}_{y_ix}_{z_ix}_Channel {ch}_{t}.vdb")
-        timefiles.append({"name":str(fname.name)})
-        if not fname.exists() or remake:
-            grid = vdb.FloatGrid()
-            grid.name = f"data_channel_{ch}"
-            grid.copyFromArray(frame)
-            vdb.write(str(fname), grids=[grid])
+            # VDB data is XYZ
+            for dim in 'xyz':
+                if dim not in axes_order:
+                    frame = np.expand_dims(frame,axis=0)
+                    frame_axes_order = dim + frame_axes_order          
 
-    directory = str(Path(cache_dir)/f"{identifier}")
-    return directory, timefiles
+            vdbfname = dirpath / f"{identifier5d}.vdb"
+            histfname = dirpath / f"{identifier5d}_hist.npy"
+            time_vdbs.append({"name":str(vdbfname.name)})
+            time_hists.append({"name":str(histfname.name)})
+            if( not vdbfname.exists() or not histfname.exists()) or remake :
+                if vdbfname.exists():
+                    vdbfname.unlink()
+                if histfname.exists():
+                    histfname.unlink()
+
+                log(f"loading chunk {identifier5d}")
+                arr = frame.compute()
+                arr = np.moveaxis(arr, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
+                try:
+                    arr = arr.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
+                except ValueError:
+                    arr = arr.astype(np.float32) / ch['max_val']
+
+                # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
+                histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
+                histogram[0] = 0
+                np.save(histfname, histogram, allow_pickle=False)
+                
+                log(f"write vdb {identifier5d}")
+                self.make_vdb(vdbfname, arr)   
+
+        return str(dirpath), time_vdbs, time_hists
+
+    def make_vdb(self, vdbfname, arr):
+        import pyopenvdb as vdb
+        grid = vdb.FloatGrid()
+        grid.name = f"data"
+        grid.copyFromArray(arr.astype(np.float32))
+        vdb.write(str(vdbfname), grids=[grid])
+        return
+
+    def import_data(self, ch, scale):
+        vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
+        metadata = {}
+        collection_activate(vol_collection, vol_lcoll)
+        histtotal = np.zeros(NR_HIST_BINS)
+        for chunk in ch['local_files'][self.min_type]:
+            bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
+            vol = bpy.context.active_object
+            pos = chunk['pos']
+            strpos = f"{pos[0]}{pos[1]}{pos[2]}"
+        
+            vol.scale = scale
+            vol.data.frame_offset = -1
+            vol.data.frame_start = 0
+            vol.data.render.clipping = 1/ (2**17)
+            
+            vol.location = tuple((np.array(chunk['pos']) * scale))  
+        
+            for hist in chunk['histfiles']:
+                histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
+        
+        # defaults
+        metadata['range'] = (0, 1)
+        metadata['histogram'] = np.zeros(NR_HIST_BINS)
+        if np.sum(histtotal)> 0:
+            metadata['range'] = get_leading_trailing_zero_float(histtotal)
+            metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
+            metadata['threshold'] = skimage.filters.threshold_isodata(hist=metadata['histogram'] )/len(metadata['histogram'] )  
+        if ch['threshold'] != -1:
+            metadata['threshold'] = ch['threshold']
+        return vol_collection, metadata
 
 
+class VolumeObject(ChannelObject):
+    min_type = min_keys.VOLUME
+    
+    def draw_histogram(self, nodes, loc, width, hist):
+        histnode =nodes.new(type="ShaderNodeFloatCurve")
+        histnode.location = loc
+        histmap = histnode.mapping
+        histnode.width = width
+        histnode.label = 'Histogram (non-interactive)' 
+        histnode.name = '[Histogram]'
+        histnode.inputs.get('Factor').hide = True
+        histnode.inputs.get('Value').hide = True
+        histnode.outputs.get('Value').hide = True
 
-def volume_materials(volume_inputs, emission_setting):
-    mats = []
-    # do not check whether it exists, so a new load will force making a new mat
-    for ix, ch in enumerate(volume_inputs):
-        mat = bpy.data.materials.new(f'channel {ch}')
+        histnorm = hist / np.max(hist)
+        if len(histnorm) > 150:
+            histnorm = scipy.stats.binned_statistic(np.arange(len(histnorm)), histnorm, bins=150,statistic='sum')[0]
+            histnorm /= np.max(histnorm) 
+        for ix, val in enumerate(histnorm):
+            if ix == 0:
+                histmap.curves[0].points[-1].location = ix/len(histnorm), val
+                histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
+            if ix==len(histnorm)-1:
+                histmap.curves[0].points[-1].location = ix/len(histnorm), val
+            else:
+                histmap.curves[0].points.new(ix/len(histnorm), val)
+                histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
+            histmap.curves[0].points[ix].handle_type = 'VECTOR'
+        return histnode
+
+    def update_material(self, mat, ch):
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+
+        node_names = [node.name for node in nodes]
+
+        if self.min_type in ch['metadata']:
+            if '[Histogram]' in node_names and ch['metadata'][self.min_type] is not None:
+                histnode= nodes["[Histogram]"]
+                self.draw_histogram(nodes, histnode.location,histnode.width, ch['metadata'][self.min_type]['histogram'])
+                nodes.remove(histnode)
+
+        try:
+            ch_load = nodes[f"[channel_load_{ch['identifier']}]"]
+            shader_in = nodes['[shader_in]']
+            shader_out = nodes['[shader_out]']
+        except KeyError as e:
+            print(e, " skipping update of shader")
+            return
+
+        if '[shaderframe]' not in node_names:
+            shaderframe = nodes.new('NodeFrame')
+            shaderframe.name = '[shaderframe]'
+            shaderframe.use_custom_color = True
+            shaderframe.color = (0.2,0.2,0.2)
+            shader_in.parent = shaderframe
+            shader_out.parent = shaderframe
+        else:
+            shaderframe = nodes['[shaderframe]']
+
+        ch_load.label = ch['name']
+        # removes of other type, if any of current type exist, don't update
+        setting, remove = 'absorb', 'emit'
+        if ch['emission']:
+            setting, remove = 'emit', 'absorb'
+
+        for node in nodes:
+            if remove in node.name:
+                nodes.remove(node)
+            elif setting in node.name:
+                return
+        
+        if ch['emission']:
+            emit = nodes.new(type='ShaderNodeEmission')
+            emit.name = '[emit]'
+            emit.location = (250,0)
+            links.new(shader_in.outputs[0], emit.inputs.get('Color'))
+            links.new(emit.outputs[0], shader_out.inputs[0])
+            emit.parent=shaderframe
+        else:
+            scale = nodes.new(type='ShaderNodeVectorMath')
+            scale.name = "scale [absorb]"
+            scale.location = (-150,-100)
+            scale.operation = "SCALE"
+            links.new(shader_in.outputs[0], scale.inputs.get("Vector"))
+            scale.inputs.get('Scale').default_value = 1
+            scale.parent=shaderframe
+            
+            adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
+            adsorb.name = 'absorb [absorb]'
+            adsorb.location = (50,-100)
+            links.new(shader_in.outputs[0], adsorb.inputs.get('Color'))
+            links.new(scale.outputs[0], adsorb.inputs.get('Density'))
+            scatter = nodes.new(type='ShaderNodeVolumeScatter')
+            scatter.name = 'scatter absorb'
+            scatter.location = (250,-200)
+            links.new(shader_in.outputs[0], scatter.inputs.get('Color'))
+            links.new(scale.outputs[0], scatter.inputs.get('Density'))
+            scatter.parent=shaderframe
+
+            add = nodes.new(type='ShaderNodeAddShader')
+            add.name = 'add [absorb]'
+            add.location = (450, -100)
+            links.new(adsorb.outputs[0], add.inputs[0])
+            links.new(scatter.outputs[0], add.inputs[1])
+            links.new(add.outputs[0], shader_out.inputs[0])
+            add.parent=shaderframe
+
+        for node in nodes:
+            if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
+                node.inputs[0].show_expanded = True
+        return
+
+    def add_material(self, ch):
+        mat = super().add_material(ch)
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
@@ -69,101 +279,45 @@ def volume_materials(volume_inputs, emission_setting):
             nodes.remove(nodes.get("Principled Volume"))
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
-        node_attr.location = (-500, 0)
-        node_attr.attribute_name = f'data_channel_{ch}'
+        node_attr.location = (-1400, 0)
+        node_attr.name = f"[channel_load_{ch['identifier']}]"
+        node_attr.attribute_name = f'data'
+        node_attr.label = ch['name']
+        node_attr.hide =True
+
+        normnode = nodes.new(type="ShaderNodeMapRange")
+        normnode.location = (-1200, 0)
+        normnode.label = "Normalize data"
+        normnode.inputs[1].default_value = ch['metadata'][self.min_type]['range'][0]       
+        normnode.inputs[2].default_value = ch['metadata'][self.min_type]['range'][1]    
+        links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
+        normnode.hide = True
 
         ramp_node = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node.location = (-300, 0)
-        ramp_node.color_ramp.elements[0].position = volume_inputs[ch]['otsu']
-        color = get_cmap('hue-wheel', maxval=len(volume_inputs))[ix]
+        ramp_node.location = (-1000, 0)
+        ramp_node.width = 1000
+        ramp_node.color_ramp.elements[0].position = ch['metadata'][self.min_type]['threshold']
+        ramp_node.color_ramp.elements[1].position = 1
+        links.new(normnode.outputs.get('Result'), ramp_node.inputs.get("Fac"))  
+
+        self.draw_histogram(nodes, (-1000, 300), 1000, ch['metadata'][self.min_type]['histogram'])
+
+        color = get_cmap('default_ch')[ch['ix'] % len(get_cmap('default_ch'))]
         ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
-        links.new(node_attr.outputs.get("Fac"), ramp_node.inputs.get("Fac"))  
 
-        scale = nodes.new(type='ShaderNodeVectorMath')
-        scale.location = (0,-150)
-        scale.operation = "SCALE"
-        links.new(ramp_node.outputs[0], scale.inputs.get("Vector"))
-        scale.inputs.get('Scale').default_value = 1
+        shader_in = nodes.new('NodeReroute')
+        shader_in.name = f"[shader_in]"
+        shader_in.location = (-200, 0)
+        links.new(ramp_node.outputs[0], shader_in.inputs[0])
         
-        emit = nodes.new(type='ShaderNodeEmission')
-        emit.location = (250,0)
-        links.new(ramp_node.outputs[0], emit.inputs.get('Color'))
-        
-        adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
-        adsorb.location = (250,-200)
-        links.new(ramp_node.outputs[0], adsorb.inputs.get('Color'))
-        links.new(scale.outputs[0], adsorb.inputs.get('Density'))
-        scatter = nodes.new(type='ShaderNodeVolumeScatter')
-        scatter.location = (250,-300)
-        links.new(ramp_node.outputs[0], scatter.inputs.get('Color'))
-        links.new(scale.outputs[0], scatter.inputs.get('Density'))
-
-        add = nodes.new(type='ShaderNodeAddShader')
-        add.location = (450, -300)
-        links.new(adsorb.outputs[0], add.inputs[0])
-        links.new(scatter.outputs[0], add.inputs[1])
+        shader_out = nodes.new('NodeReroute')
+        shader_out.location = (600, 0)
+        shader_out.name = f"[shader_out]"
         
         if nodes.get("Material Output") is None:
             outnode = nodes.new(type='ShaderNodeOutputMaterial')
             outnode.name = 'Material Output'
+        links.new(shader_out.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
         nodes.get("Material Output").location = (700,00)
-        if emission_setting:
-            links.new(emit.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
-        else:
-            links.new(add.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
-        
-        mats.append(mat)
-    return mats
 
-
-def load_volume(volume_inputs, bbox_px, scale, cache_coll, base_coll, emission_setting):
-    # consider checking whether all channels are present in vdb for remaking?
-    collection_activate(*cache_coll)
-    vol_collection, vol_lcoll = make_subcollection('volumes')
-    volumes = []
-    print(volume_inputs)
-    # necessary to support multi-file import
-    bpy.types.Scene.files: CollectionProperty(
-        type=bpy.types.OperatorFileListElement,
-        options={'HIDDEN', 'SKIP_SAVE'},
-    )
-    
-    for ch in volume_inputs:
-        ch_collection, ch_lcoll = make_subcollection(f'channel {ch}')
-        volume_inputs[ch]['collection'] = ch_collection
-        for chunk in volume_inputs[ch]['vdbs']:
-            already_loaded = list(ch_collection.all_objects)
-            bpy.ops.object.volume_import(filepath=chunk['files'][0]['name'],directory=chunk['directory'], files=chunk['files'], align='WORLD', location=(0, 0, 0))
-            # vol = bpy.context.view_layer.objects.active
-
-            for vol in ch_collection.all_objects:
-                if vol not in already_loaded:   
-                    pos = chunk['pos']
-                    strpos = f"{pos[0]}{pos[1]}{pos[2]}"
-                
-                    vol.scale = scale
-                    vol.data.frame_offset = -1
-                
-                    
-                    vol.location = tuple(np.array(chunk['pos']) * bbox_px *scale)
-
-                    vol.data.frame_start = 0
-                print(vol.location)
-
-        
-        collection_activate(vol_collection, vol_lcoll)
-
-
-    collection_activate(*base_coll)
-    
-    materials = volume_materials(volume_inputs, emission_setting) 
-    volume_colls = [volume_inputs[ch]['collection'] for ch in volume_inputs]
-    vol_obj = init_holder('volume',volume_colls, materials)
-    for mat in vol_obj.data.materials:
-        # make sure color ramp is immediately visibile under Volume shader
-        # mat.node_tree.nodes["Slice Cube"].inputs[0].show_expanded = True
-        try:
-            mat.node_tree.nodes["Emission"].inputs[0].show_expanded = True
-        except:
-            pass
-    return vol_obj, volume_inputs
+        return mat

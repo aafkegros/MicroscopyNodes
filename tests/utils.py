@@ -1,103 +1,137 @@
+import os
+os.environ["MIN_TEST"] = "1"
 import bpy
+
+from microscopynodes.handle_blender_structs import *
+from microscopynodes.file_to_array import *
+from microscopynodes.load_components import *
+import microscopynodes
+
 import numpy as np
-import bmesh
-"""
-ADAPTED FROM MOLECULARNODES BY BRADY JOHNSTON
-"""
+import pytest
+import tifffile
+import platform
+import imageio.v3 as iio
+from pathlib import Path
 
-def apply_mods(obj):
-    """
-    Applies the modifiers on the modifier stack
+
+test_folder = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data"))
+microscopynodes._test_register()
+print('imported utils')
+
+def len_axis(dim, axes_order, shape):
+        if dim in axes_order:
+            return shape[axes_order.find(dim)]
+        return 1
+
+def take_index(imgdata, indices, dim, axes_order):
+    if dim in axes_order:
+        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
+    return imgdata
+
+def make_tif(path, arrtype):
+    axes = "TZCYX"
+    if arrtype == '5D_5cube':
+        arr = np.ones((5,5,5,5,5), dtype=np.uint16)
+    if arrtype == '2D_5x10':
+        arr = np.ones((5,10), dtype=np.uint16)
+        axes = "YX"
+    if arrtype == '5D_nonrect':
+        shape = [i for i in range(2,7)]
+        arr = np.ones(tuple(shape), dtype=np.uint16)
     
-    This will realise the computations inside of any Geometry Nodes modifiers, ensuring
-    that the result of the node trees can be compared by looking at the resulting 
-    vertices of the object.
-    """
-    bpy.context.view_layer.objects.active = obj
-    for modifier in obj.modifiers:
-        bpy.ops.object.modifier_apply(modifier = modifier.name)
+    shape = arr.shape
+    arr = arr.flatten()
+    for ix in range(len(arr)):
+        arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
+    arr = arr.reshape(shape) 
+    # if not Path(path).exists():
+    tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
+    return path, arr, axes.lower()
     
 
 
 
-def get_verts(objs, float_decimals=2, n_verts=100, apply_modifiers=True, seed=42):
-    """
-    Randomly samples a specified number of vertices from a list of objects.
+def prep_load(arrtype=None):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
 
-    Parameters
-    ----------
-    objs :[ object]
-        List of objects from which to sample vertices.
-    float_decimals : int, optional
-        Number of decimal places to round the vertex coordinates, defaults to 4.
-    n_verts : int, optional
-        Number of vertices to sample, defaults to 100.
-    apply_modifiers : bool, optional
-        Whether to apply all modifiers on the object before sampling vertices, defaults to True.
-    seed : int, optional
-        Seed for the random number generator, defaults to 42.
-
-    Returns
-    -------
-    str
-        String representation of the randomly selected vertices.
-
-    Notes
-    -----
-    This function randomly samples a specified number of vertices from the given object.
-    By default, it applies all modifiers on the object before sampling vertices. The
-    random seed can be set externally for reproducibility.
-
-    If the number of vertices to sample (`n_verts`) exceeds the number of vertices
-    available in the object, all available vertices will be sampled.
-
-    The vertex coordinates are rounded to the specified number of decimal places
-    (`float_decimals`) before being included in the output string.
-
-    Examples
-    --------
-    >>> get_verts([objs], float_decimals=3, n_verts=50, apply_modifiers=True, seed=42)
-    '1.234,2.345,3.456\n4.567,5.678,6.789\n...'
-    """
-
-    import random
-
-    random.seed(seed)
-
-    vert_list = []
-    for obj in objs:
-        if apply_modifiers:
-            try:
-                apply_mods(obj)
-            except RuntimeError as ex:
-                print("error in applying modifier", ex)
-                return str(ex)
-        vert_list.extend([(v.co.x, v.co.y, v.co.z) for v in obj.data.vertices])
-
-    if n_verts > len(vert_list):
-        n_verts = len(vert_list)
-
-    random_verts = random.sample(vert_list, n_verts)
-
-    verts_string = ""
-    for i, vert in enumerate(random_verts):
-        if i < n_verts:
-            rounded = [np.round(x, float_decimals) for x in vert]
-            verts_string += "{},{},{}\n".format(rounded[0], rounded[1], rounded[2])
+    if arrtype is None:
+        arrtype = '5D_5cube'
     
-    return verts_string
+    path = test_folder / f'{arrtype}.tif'
+    path, arr, axes_order = make_tif(path, arrtype)
+
+    # bpy.context.scene.MiN_selected_cache_option = "Path"
+    # bpy.context.scene.MiN_explicit_cache_dir = str(test_folder)
+    bpy.context.scene.MiN_cache_dir = str(test_folder)
+    
+    bpy.context.scene.MiN_input_file = str(path)
+    # assert(arr_shape() == arr.shape)
+    assert(len(bpy.context.scene.MiN_channelList) == len_axis('c', axes_order, arr.shape))
+    return
+
+def do_load():
+    params = microscopynodes.load.load_init()
+    # if platform.system() == 'Linux':
+        # bpy.context.scene.MiN_remake = True
+    params = microscopynodes.load.load_threaded(params)
+    microscopynodes.load.load_blocking(params)
+    return params[0]
 
 
-def remove_all_objects():
-    for object in bpy.data.objects:
-        try:
-            
-            bpy.data.objects.remove(object)
+def check_channels(ch_dicts, test_render=True):
+    img1 = None
+    objs = microscopynodes.load.parse_reload(bpy.data.objects[str(Path(bpy.context.scene.MiN_input_file).stem)])
+    if test_render:
+        img1 = quick_render('1')
+        objs[min_keys.AXES].hide_render = True
+        img2 = quick_render('2')
+        objs[min_keys.AXES].hide_render = False
+        assert(not np.array_equal(img1, img2))
 
-        except KeyError as e:
-            print(e)
-            pass
-    # remove frame change
-    bpy.context.scene.frame_set(0)
+    for ch in ch_dicts:
+        for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
+            if ch[min_type]:
+                if objs[min_type] is None:
+                    raise ValueError(f"{min_type} not in objs, while setting is {ch[min_type]}")
+                ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+                assert(ch_obj.ch_present(ch))
+                if test_render:
+                    socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
+                    img1 = quick_render('1')
+                    ch_obj.gn_mod[socket.identifier] = False
+                    img2 = quick_render('2')
+                    ch_obj.gn_mod[socket.identifier] = True
+                    assert(not np.array_equal(img1, img2))
+                    
 
+def quick_render(name):
+    bpy.context.scene.cycles.samples = 16
+    # Set the output file path
+    output_file = str(test_folder / f'tmp{name}.png')
+
+    scn = bpy.context.scene
+
+    cam1 = bpy.data.cameras.new("Camera 1")
+    cam1.lens = 40
+
+    cam_obj1 = bpy.data.objects.new("Camera 1", cam1)
+    cam_obj1.location = (.1, .1, .2)
+    cam_obj1.rotation_euler = (0.7, 0, 2.3)
+    scn.collection.objects.link(cam_obj1)
+    bpy.context.scene.camera = cam_obj1
+    
+    # Set the viewport resolution
+    bpy.context.scene.render.resolution_x = 128
+    bpy.context.scene.render.resolution_y = 128
+    # Set the output format
+    bpy.context.scene.render.image_settings.file_format = "PNG"
+
+    # Render the viewport and save the result
+    
+    bpy.ops.render.render()
+    bpy.data.images["Render Result"].save_render(output_file)
+    data = np.array(iio.imread(output_file))
+    os.remove(output_file)
+    return data
 
