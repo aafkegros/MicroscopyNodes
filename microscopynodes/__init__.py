@@ -27,8 +27,10 @@
 
 import bpy
 
-from . import ui
 from . import file_to_array
+from . import ui
+
+
 
 all_classes = (
     ui.CLASSES +
@@ -42,10 +44,10 @@ def _test_register():
     except Exception:
         unregister()
         register()
+        pass
 
 
 def register():
-    # register all of the import operators
     for op in all_classes:
         try:
             bpy.utils.register_class(op)
@@ -55,7 +57,7 @@ def register():
     bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=file_to_array.ZarrLevelsGroup)
     bpy.types.Scene.MiN_zarrLabelLevels = bpy.props.CollectionProperty(type=file_to_array.ZarrLevelsGroup)
     bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
-    
+    return
 
 def unregister():
     for op in all_classes:
@@ -65,9 +67,3 @@ def unregister():
             print(op, e)
             pass
 
-def _test_register():
-    try:
-        register()
-    except Exception:
-        unregister()
-        register()

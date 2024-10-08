@@ -1,19 +1,23 @@
+import os
+os.environ["MIN_TEST"] = "1"
+import bpy
+
 from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
 from microscopynodes.load_components import *
 import microscopynodes
 
-import bpy
 import numpy as np
-import os
 import pytest
 import tifffile
 import platform
 import imageio.v3 as iio
+from pathlib import Path
 
 
 test_folder = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data"))
 microscopynodes._test_register()
+print('imported utils')
 
 def len_axis(dim, axes_order, shape):
         if dim in axes_order:
@@ -57,8 +61,8 @@ def prep_load(arrtype=None):
     path = test_folder / f'{arrtype}.tif'
     path, arr, axes_order = make_tif(path, arrtype)
 
-    bpy.context.scene.MiN_selected_cache_option = "Path"
-    bpy.context.scene.MiN_explicit_cache_dir = str(test_folder)
+    # bpy.context.scene.MiN_selected_cache_option = "Path"
+    # bpy.context.scene.MiN_explicit_cache_dir = str(test_folder)
     bpy.context.scene.MiN_cache_dir = str(test_folder)
     
     bpy.context.scene.MiN_input_file = str(path)
@@ -130,3 +134,4 @@ def quick_render(name):
     data = np.array(iio.imread(output_file))
     os.remove(output_file)
     return data
+

@@ -4,6 +4,7 @@ import numpy as np
 
 from .initial_global_settings import preset_environment
 from .handle_blender_structs import *
+from .handle_blender_structs import dependent_props
 from .load_components import *
 from .file_to_array import load_array, arr_shape
 
@@ -20,6 +21,10 @@ def load_init():
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
     size_px = np.array([arr_shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
     size_px = tuple([max(ax, 1) for ax in size_px])
+
+    if bpy.context.scene.MiN_reload is None:
+        bpy.context.scene.MiN_update_data = True
+        bpy.context.scene.MiN_update_settings = True
     return ch_dicts, (axes_order,  pixel_size, size_px), cache_dir
 
 def parse_channellist(channellist):
@@ -49,7 +54,8 @@ def load_threaded(params):
     
     for ch in ch_dicts:
         if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]:
-            ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir,  bpy.context.scene.MiN_remake,  axes_order)
+            ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir, bpy.context.scene.MiN_remake,  axes_order)
+
 
     progress = 'Loading objects to Blender'
     if any([ch['surface'] for ch in ch_dicts]):
@@ -67,6 +73,14 @@ def load_blocking(params):
     update_settings = bpy.context.scene.MiN_update_settings
     update_data = bpy.context.scene.MiN_update_data
 
+     # --- Load components ---
+    container = bpy.context.scene.MiN_reload
+    objs = parse_reload(container)
+    if container is None:
+        bpy.ops.object.empty_add(type="PLAIN_AXES")
+        container = bpy.context.view_layer.objects.active
+        container.name = Path(input_file).stem[:50]
+
     if bpy.context.scene.MiN_preset_environment:
         preset_env()    
     
@@ -75,16 +89,6 @@ def load_blocking(params):
         if ch[min_keys.LABELMASK] and update_data:
             ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  bpy.context.scene.MiN_remake,  axes_order)
     
-    # --- Load components ---
-    container = bpy.context.scene.MiN_reload
-    objs = parse_reload(container)
-    if container is None:
-        bpy.ops.object.empty_add(type="PLAIN_AXES")
-        container = bpy.context.view_layer.objects.active
-        container.name = Path(input_file).stem[:50]
-        update_data = True
-        update_settings = True
-
     axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=objs[min_keys.AXES])
     axes_obj.parent = container
     slice_cube = load_slice_cube(size_px, scale, slicecube=objs[min_keys.SLICECUBE])
@@ -126,9 +130,12 @@ def load_blocking(params):
 
 
 def get_cache_subdir():
-    update_cache_dir(None, bpy.context.scene) # make sure 'With Project is at current fname'
+     # make sure 'With Project is at current fname'
     if bpy.context.scene.MiN_cache_dir == '':
-        raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
+        # from .handle_blender_structs.dependent_props import update_cache_dir
+        # update_cache_dir(None, bpy.context.scene)
+        if bpy.context.scene.MiN_cache_dir == '':
+            raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
     # create folder for this dataset with filename/(zarr_level/)
     cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(bpy.context.scene.MiN_input_file).stem 
     if  bpy.context.scene.MiN_selected_zarr_level != "":

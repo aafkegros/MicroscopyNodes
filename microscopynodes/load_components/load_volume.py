@@ -129,16 +129,17 @@ class VolumeIO(DataIO):
         histtotal = np.zeros(NR_HIST_BINS)
         for chunk in ch['local_files'][self.min_type]:
             bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
-            for vol in vol_collection.all_objects: 
-                pos = chunk['pos']
-                strpos = f"{pos[0]}{pos[1]}{pos[2]}"
+            vol = bpy.context.active_object
+            pos = chunk['pos']
+            strpos = f"{pos[0]}{pos[1]}{pos[2]}"
+        
+            vol.scale = scale
+            vol.data.frame_offset = -1
+            vol.data.frame_start = 0
+            vol.data.render.clipping = 1/ (2**17)
             
-                vol.scale = scale
-                vol.data.frame_offset = -1
-                vol.data.frame_start = 0
-                vol.data.render.clipping = 1/ (2**17)
-                
-                vol.location = tuple((np.array(chunk['pos']) * scale))                    
+            vol.location = tuple((np.array(chunk['pos']) * scale))  
+        
             for hist in chunk['histfiles']:
                 histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         

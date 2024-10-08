@@ -1,32 +1,25 @@
 import bpy
 from bpy.types import UIList
-
-def mutex_labelmask(self, context):
-    if self.labelmask:
-        self.volume = False
-        self.surface = False
-    context.scene.MiN_ch_index = self.ix
-
-def mutex_volume(self, context):
-    if self.volume:
-        self.labelmask = False
-    context.scene.MiN_ch_index = self.ix
-
-def mutex_surface(self, context):
-    if self.surface:
-        self.labelmask = False
-    context.scene.MiN_ch_index = self.ix
+import os
 
 def update_ix(self, context):
     context.scene.MiN_ch_index = self.ix
 
+
 class ChannelDescriptor(bpy.types.PropertyGroup):
     ix : bpy.props.IntProperty() # channel in the image array
-    name : bpy.props.StringProperty(description="Channel name (editable)", update = update_ix)
-    volume : bpy.props.BoolProperty(description="Load data as volume", default=True, update=mutex_volume)
-    emission : bpy.props.BoolProperty(description="Volume data emits light on load\n(off is recommended for EM)", default=True, update=update_ix)
-    surface : bpy.props.BoolProperty(description="Load isosurface object.\nAlso useful for binary masks", default=True, update=mutex_surface)
-    labelmask : bpy.props.BoolProperty(description="Do not use on regular images.\nLoads separate values in the mask as separate mesh objects", default=False, update=mutex_labelmask)
+
+    update_func = update_ix
+    print(os.environ.get('MIN_TEST', False))
+    print("MIN_TEST" in os.environ)
+    if os.environ.get('MIN_TEST', False):
+        update_func = None
+
+    name : bpy.props.StringProperty(description="Channel name (editable)", update = update_func )
+    volume : bpy.props.BoolProperty(description="Load data as volume", default=True, update=update_func )
+    emission : bpy.props.BoolProperty(description="Volume data emits light on load\n(off is recommended for EM)", default=True, update=update_func )
+    surface : bpy.props.BoolProperty(description="Load isosurface object.\nAlso useful for binary masks", default=True, update=update_func )
+    labelmask : bpy.props.BoolProperty(description="Do not use on regular images.\nLoads separate values in the mask as separate mesh objects", default=False, update=update_func )
     surf_resolution : bpy.props.EnumProperty(
         name = "Meshing density of surfaces and masks",
         items=[
@@ -37,7 +30,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
         ], 
         description= "Coarser will be less RAM intensive",
         default='ACTUAL',
-        update = update_ix,
+        update = update_func 
     )
     # -- internal --
     threshold : bpy.props.FloatProperty(default=-1)
