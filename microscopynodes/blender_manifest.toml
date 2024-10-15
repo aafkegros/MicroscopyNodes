@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 
 id = "microscopynodes"
-version = "2.0.0"
+version = "2.0.1"
 name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Oane Gros <oane.gros@embl.de>"
 type = "add-on"
 
 # Optional link to documentation, support, source files, etc
-website = "https://github.com/oanegros/MicroscopyNodes"
+website = "https://oanegros.github.io/MicroscopyNodes/"
 
 platforms = [
 	"windows-x64",
@@ -75,6 +75,10 @@ wheels = [
 	"./wheels/pillow-10.4.0-cp311-cp311-macosx_11_0_arm64.whl",
 	"./wheels/pillow-10.4.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
 	"./wheels/pillow-10.4.0-cp311-cp311-win_amd64.whl",
+	"./wheels/propcache-0.2.0-cp311-cp311-macosx_10_9_x86_64.whl",
+	"./wheels/propcache-0.2.0-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/propcache-0.2.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/propcache-0.2.0-cp311-cp311-win_amd64.whl",
 	"./wheels/scikit_image-0.22.0-cp311-cp311-macosx_10_9_x86_64.whl",
 	"./wheels/scikit_image-0.22.0-cp311-cp311-macosx_12_0_arm64.whl",
 	"./wheels/scikit_image-0.22.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
@@ -84,11 +88,11 @@ wheels = [
 	"./wheels/scipy-1.14.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
 	"./wheels/scipy-1.14.1-cp311-cp311-win_amd64.whl",
 	"./wheels/tifffile-2023.4.12-py3-none-any.whl",
-	"./wheels/toolz-0.12.1-py3-none-any.whl",
-	"./wheels/yarl-1.13.1-cp311-cp311-macosx_10_9_x86_64.whl",
-	"./wheels/yarl-1.13.1-cp311-cp311-macosx_11_0_arm64.whl",
-	"./wheels/yarl-1.13.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-	"./wheels/yarl-1.13.1-cp311-cp311-win_amd64.whl",
+	"./wheels/toolz-1.0.0-py3-none-any.whl",
+	"./wheels/yarl-1.14.0-cp311-cp311-macosx_10_9_x86_64.whl",
+	"./wheels/yarl-1.14.0-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/yarl-1.14.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/yarl-1.14.0-cp311-cp311-win_amd64.whl",
 	"./wheels/zarr-2.17.2-py3-none-any.whl",
 	"./wheels/zipp-3.20.2-py3-none-any.whl",
 ]
