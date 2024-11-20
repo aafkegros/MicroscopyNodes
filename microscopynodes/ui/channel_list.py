@@ -10,8 +10,6 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
     ix : bpy.props.IntProperty() # channel in the image array
 
     update_func = update_ix
-    print(os.environ.get('MIN_TEST', False))
-    print("MIN_TEST" in os.environ)
     if os.environ.get('MIN_TEST', False):
         update_func = None
 
