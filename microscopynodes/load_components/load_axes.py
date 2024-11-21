@@ -85,6 +85,17 @@ def init_axes(size_px, pixel_size, scale, location):
     links.new(axnode.outputs[0], axnode_bm.inputs[0])
     links.new(initscale_node.outputs[0], axnode_bm.inputs[1])
 
+    info = nodes.new('GeometryNodeObjectInfo')
+    info.inputs[0].default_value = axes_obj
+    info.location = (-600, -100)
+
+    mult_obj_scale = nodes.new('ShaderNodeVectorMath')
+    mult_obj_scale.operation = "MULTIPLY"
+    mult_obj_scale.location = (-400, 0)
+    links.new(info.outputs.get("Scale"), mult_obj_scale.inputs[0])
+    links.new(scale_node.outputs[0], mult_obj_scale.inputs[1])
+    links.new( mult_obj_scale.outputs[0], axnode_um.inputs[1])
+
     crosshatch = nodes.new('GeometryNodeGroup')
     crosshatch.node_tree = min_nodes.crosshatch_node_group()
     crosshatch.location = (-50, -140)
@@ -126,10 +137,6 @@ def init_axes(size_px, pixel_size, scale, location):
     else:
         axes_obj.data.materials.append(init_material_axes())
 
-    for dim in range(3):
-        axes_obj.lock_location[dim] = True
-        axes_obj.lock_rotation[dim] = True
-        axes_obj.lock_scale[dim] = True
     return axes_obj
 
 def init_material_axes():
