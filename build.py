@@ -36,15 +36,19 @@ required_packages = [
     
     "dask==2024.8.0",
 
+    "importlib-metadata", # this seemed to no longer be standard included since Blender 4.3?
+
     # tif loading
     "tifffile==2023.4.12",
     "imagecodecs==2024.6.1", # allows LZW compressed tif loading
 
+    # "zarr==3.0.0b2"
     # dependencies of zarr:
     "fasteners==0.19",
     "numcodecs==0.13.0",
     "fsspec==2024.6.0",
     "aiohttp==3.10.3",
+    
     # asciitree is permanently added
 
     # development
@@ -52,6 +56,7 @@ required_packages = [
 ]
 nodeps_packages = [ 
     # zarr relies on one package without .whl (asciitree)
+    # "zarr==3.0.0b2"
     "zarr==2.17.2"
 ]
 
