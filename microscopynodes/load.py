@@ -89,7 +89,7 @@ def load_blocking(params):
         if ch[min_keys.LABELMASK] and update_data:
             ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  bpy.context.scene.MiN_remake,  axes_order)
     
-    axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=objs[min_keys.AXES])
+    axes_obj, scale = load_axes(size_px, pixel_size, axes_obj=objs[min_keys.AXES], container=container)
     axes_obj.parent = container
     slice_cube = load_slice_cube(size_px, scale, slicecube=objs[min_keys.SLICECUBE])
     slice_cube.parent = container
