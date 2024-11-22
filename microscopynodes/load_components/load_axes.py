@@ -5,7 +5,7 @@ from pathlib import Path
 from ..handle_blender_structs import *
 from .. import min_nodes
 
-def load_axes(size_px, pixel_size, axes_obj=None):
+def load_axes(size_px, pixel_size, axes_obj=None, container=None):
 
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
@@ -24,7 +24,7 @@ def load_axes(size_px, pixel_size, axes_obj=None):
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
     scale = default_scale(pixel_size)
     center =  tuple(center_loc * size_px*scale )
-    axes_obj = init_axes(size_px, pixel_size, scale, center)
+    axes_obj = init_axes(size_px, pixel_size, scale, center, container)
     return axes_obj,  scale
 
 def default_scale(pixel_size):
@@ -37,7 +37,7 @@ def update_axes(nodes, size_px, pixel_size, scale):
         nodes[f"[Microscopy Nodes {k}]"].vector = v
     return
 
-def init_axes(size_px, pixel_size, scale, location):
+def init_axes(size_px, pixel_size, scale, location, container):
     axes_obj = bpy.ops.mesh.primitive_cube_add(location=location)
     axes_obj = bpy.context.view_layer.objects.active
     axes_obj.data.name = 'axes'
@@ -85,14 +85,24 @@ def init_axes(size_px, pixel_size, scale, location):
     links.new(axnode.outputs[0], axnode_bm.inputs[0])
     links.new(initscale_node.outputs[0], axnode_bm.inputs[1])
 
-    info = nodes.new('GeometryNodeObjectInfo')
-    info.inputs[0].default_value = axes_obj
-    info.location = (-600, -100)
+    selfinfo = nodes.new('GeometryNodeObjectInfo')
+    selfinfo.inputs[0].default_value = axes_obj
+    selfinfo.location = (-600, -100)
+
+    containerinfo = nodes.new('GeometryNodeObjectInfo')
+    containerinfo.inputs[0].default_value = container
+    containerinfo.location = (-650, 200)
+
+    div_obj_scale = nodes.new('ShaderNodeVectorMath')
+    div_obj_scale.operation = "DIVIDE"
+    div_obj_scale.location = (-500, 0)
+    links.new(selfinfo.outputs.get("Scale"), div_obj_scale.inputs[0])
+    links.new(containerinfo.outputs.get("Scale"), div_obj_scale.inputs[1])
 
     mult_obj_scale = nodes.new('ShaderNodeVectorMath')
     mult_obj_scale.operation = "MULTIPLY"
     mult_obj_scale.location = (-400, 0)
-    links.new(info.outputs.get("Scale"), mult_obj_scale.inputs[0])
+    links.new(div_obj_scale.outputs[0], mult_obj_scale.inputs[0])
     links.new(scale_node.outputs[0], mult_obj_scale.inputs[1])
     links.new( mult_obj_scale.outputs[0], axnode_um.inputs[1])
 
