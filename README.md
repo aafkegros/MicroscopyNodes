@@ -2,7 +2,6 @@
 This is a project building bioimage support for the open source software blender. This currently exists as the Blender add-on `microscopynodes`, previously named `tif2blender`. This is able to easily load tif files as volumetric objects in Blender. 
 
 Please make some pretty figures with this add-on! 
-If you post using this addon on social media please either tag me (@GrosOane on twitter) or use hashtag `#microscopynodes`.
 
 You can download and install the add-on on the [Blender extensions platform](https://extensions.blender.org/add-ons/microscopynodes/) or by searching for Microscopy Nodes in the Extensions in your Blender preferences. For installing with earlier Blender versions than 4.2, follow the [legacy install instructions]( https://oanegros.github.io/MicroscopyNodes/outdated).
 
@@ -24,7 +23,26 @@ The `microscopynodes` Blender addon supports:
 - Load per-index label masks
 - Lazy loading of giant files (no data is loaded in RAM outside what's rendered)
 
+## Citing this addon
+
+If you publish with this add-on, please cite [the preprint](https://www.biorxiv.org/content/10.1101/2025.01.09.632153v1):
+```
+@article {Gros2025.01.09.632153,
+	author = {Gros, Oane and Bhickta, Chandni and Lokaj, Granita and Schwab, Yannick and K{\"o}hler, Simone and Banterle, Niccol{\`o}},
+	title = {Microscopy Nodes: versatile 3D microscopy visualization with Blender},
+	elocation-id = {2025.01.09.632153},
+	year = {2025},
+	doi = {10.1101/2025.01.09.632153},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2025/01/14/2025.01.09.632153},
+	eprint = {https://www.biorxiv.org/content/early/2025/01/14/2025.01.09.632153.full.pdf},
+	journal = {bioRxiv}
+} 
+```
+
 ## Using `microscopynodes`
+
+Please checkout the further documentation on the [website](https://oanegros.github.io/MicroscopyNodes/) or the youtube tutorials. 
 
 Load any tif or zarr file by inputting the path or URL in the appropriate window in the `Microscopy Nodes` panel. This will read out metadata and prompt you to define how you want to load the data.
 
