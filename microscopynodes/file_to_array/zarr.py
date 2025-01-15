@@ -3,7 +3,6 @@ from ..handle_blender_structs.progress_handling import log
 import numpy as np
 from zarr.core import Array as ZarrArray
 from zarr.storage import FSStore, LRUStoreCache
-from zarr.convenience import load
 from collections import OrderedDict
 import json
 from aiohttp import ClientConnectorError

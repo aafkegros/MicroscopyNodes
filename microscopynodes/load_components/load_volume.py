@@ -110,15 +110,17 @@ class VolumeIO(DataIO):
                 np.save(histfname, histogram, allow_pickle=False)
                 
                 log(f"write vdb {identifier5d}")
-                self.make_vdb(vdbfname, arr)   
+                self.make_vdb(vdbfname, arr, f"c{ch['ix']}")   
 
         return str(dirpath), time_vdbs, time_hists
 
-    def make_vdb(self, vdbfname, arr):
+    def make_vdb(self, vdbfname, arr, gridname):
         import pyopenvdb as vdb
         grid = vdb.FloatGrid()
-        grid.name = f"data"
+        grid.name = f"{gridname} data"
         grid.copyFromArray(arr.astype(np.float32))
+        # For future OME-Zarr transforms - something like this:
+        # grid.transform = vdb.createLinearTransform(np.array([[ 2. ,  0. ,  0. , 8.5],[ 0. ,  2. ,  0. ,  8.5],[ 0. ,  0. ,  2. ,  10.5],[ 0. ,  0. ,  0. ,  1. ]]).T)
         vdb.write(str(vdbfname), grids=[grid])
         return
 
@@ -281,7 +283,7 @@ class VolumeObject(ChannelObject):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1400, 0)
         node_attr.name = f"[channel_load_{ch['identifier']}]"
-        node_attr.attribute_name = f'data'
+        node_attr.attribute_name = f"c{ch['ix']} data"
         node_attr.label = ch['name']
         node_attr.hide =True
 
