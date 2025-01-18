@@ -101,6 +101,8 @@ MIN_SOCKET_TYPES = {
     'THRESHOLD' : "Threshold"
 }
 
+# Specific for channel objects, so should move this code there at some point
+
 def new_socket(node_group, ch, type, min_type, internal_append="", ix=None):
     node_group.interface.new_socket(name="socket name not set", in_out="INPUT",socket_type=type)
     socket = node_group.interface.items_tree[-1]

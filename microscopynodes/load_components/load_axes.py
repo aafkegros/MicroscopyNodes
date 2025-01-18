@@ -50,6 +50,9 @@ def init_axes(size_px, pixel_size, scale, location, container):
     nodes = node_group.nodes
     links = node_group.links
 
+    inputnode = node_group.nodes.new('NodeGroupInput')
+    inputnode.location = (-400, -200)
+
     axnode = nodes.new('FunctionNodeInputVector')
     axnode.name = '[Microscopy Nodes size_px]'
     axnode.label = "n pixels"
@@ -67,7 +70,7 @@ def init_axes(size_px, pixel_size, scale, location, container):
     scale_node.label = 'scale (µm/px)'
     scale_node.name = '[Microscopy Nodes pixel_size]'
     scale_node.vector = pixel_size
-    scale_node.location = (-400, -200)
+    scale_node.location = (-800, -200)
 
     axnode_um = nodes.new('ShaderNodeVectorMath')
     axnode_um.operation = "MULTIPLY"
@@ -87,21 +90,21 @@ def init_axes(size_px, pixel_size, scale, location, container):
 
     selfinfo = nodes.new('GeometryNodeObjectInfo')
     selfinfo.inputs[0].default_value = axes_obj
-    selfinfo.location = (-600, -100)
+    selfinfo.location = (-1050, -100)
 
     containerinfo = nodes.new('GeometryNodeObjectInfo')
     containerinfo.inputs[0].default_value = container
-    containerinfo.location = (-650, 200)
+    containerinfo.location = (-1050, 200)
 
     div_obj_scale = nodes.new('ShaderNodeVectorMath')
     div_obj_scale.operation = "DIVIDE"
-    div_obj_scale.location = (-500, 0)
+    div_obj_scale.location = (-800, 0)
     links.new(selfinfo.outputs.get("Scale"), div_obj_scale.inputs[0])
     links.new(containerinfo.outputs.get("Scale"), div_obj_scale.inputs[1])
 
     mult_obj_scale = nodes.new('ShaderNodeVectorMath')
     mult_obj_scale.operation = "MULTIPLY"
-    mult_obj_scale.location = (-400, 0)
+    mult_obj_scale.location = (-600, 0)
     links.new(div_obj_scale.outputs[0], mult_obj_scale.inputs[0])
     links.new(scale_node.outputs[0], mult_obj_scale.inputs[1])
     links.new( mult_obj_scale.outputs[0], axnode_um.inputs[1])
@@ -121,11 +124,18 @@ def init_axes(size_px, pixel_size, scale, location, container):
     scale_node.node_tree = min_nodes.scale_node_group()
     scale_node.width = 300
     scale_node.location = (200, 100)
+
+    node_group.interface.new_socket(name='µm per tick', in_out="INPUT",socket_type='NodeSocketFloat')
+    node_group.interface.new_socket(name='Grid', in_out="INPUT",socket_type='NodeSocketBool')
+    links.new(inputnode.outputs[0], scale_node.inputs.get('µm per tick'))
+    links.new(inputnode.outputs[1], scale_node.inputs.get('Grid'))
     
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))
     links.new(axes_select.outputs[0], scale_node.inputs.get('Axis Selection'))
-    scale_node.inputs.get("Material").default_value = init_material_axes()
+
+    axes_mat = init_material_axes()
+    scale_node.inputs.get("Material").default_value = axes_mat
 
     # crude version of Heckbert 1990 tick number algorithm, with minimum for perspective
     max_um = np.max(size_px * pixel_size)
@@ -136,6 +146,14 @@ def init_axes(size_px, pixel_size, scale, location, container):
     dists = np.abs(ticks[ticks >= min_ticks] - target_nr_of_ticks)
     tick_um = nice_nrs[ticks >= min_ticks].flatten()[np.argmin(dists)]
     scale_node.inputs.get("µm per tick").default_value = tick_um
+    # set input values
+    axes_obj.modifiers[-1][node_group.interface.items_tree[0].identifier] = tick_um
+    axes_obj.modifiers[-1][node_group.interface.items_tree[1].identifier] = True
+
+    for ax_input in axes_select.inputs:
+        node_group.interface.new_socket(name=ax_input.name, in_out="INPUT",socket_type='NodeSocketBool')
+        links.new(inputnode.outputs.get(ax_input.name), ax_input)
+        axes_obj.modifiers[-1][node_group.interface.items_tree[-1].identifier] = True
     
     node_group.interface.new_socket("Geometry",in_out="OUTPUT", socket_type='NodeSocketGeometry')
     outnode = nodes.new('NodeGroupOutput')
@@ -143,16 +161,13 @@ def init_axes(size_px, pixel_size, scale, location, container):
     links.new(scale_node.outputs[0], outnode.inputs[0])
 
     if axes_obj.data.materials:
-        axes_obj.data.materials[0] = init_material_axes()
+        axes_obj.data.materials[0] = axes_mat
     else:
-        axes_obj.data.materials.append(init_material_axes())
+        axes_obj.data.materials.append(axes_mat)
 
     return axes_obj
 
 def init_material_axes():
-    mat = bpy.data.materials.get("axes")
-    if mat:
-        return mat
     mat = bpy.data.materials.new('axes')
     mat.blend_method = "BLEND"
     mat.use_nodes = True
@@ -204,8 +219,7 @@ def init_material_axes():
     and_op.inputs[1].default_value = 2.0
     and_op.inputs[2].default_value = 0.01
     
-    colorattr =  nodes.new("ShaderNodeAttribute")
-    colorattr.attribute_name = 'color_scale_bar'
+    colorattr =  nodes.new("ShaderNodeRGB")
     colorattr.location = (200, 150)
     
     trbsdf = nodes.new("ShaderNodeBsdfTransparent")
@@ -214,6 +228,7 @@ def init_material_axes():
     mix = nodes.new("ShaderNodeMixShader")
     mix.location = (450, 0)
     links.new(colorattr.outputs[0], mix.inputs[1])
+    mix.inputs[1].show_expanded = True
     links.new(trbsdf.outputs[0], mix.inputs[2])
     links.new(and_op.outputs[0], mix.inputs[0])
 

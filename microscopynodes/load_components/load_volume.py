@@ -95,7 +95,6 @@ class VolumeIO(DataIO):
                     vdbfname.unlink()
                 if histfname.exists():
                     histfname.unlink()
-
                 log(f"loading chunk {identifier5d}")
                 arr = frame.compute()
                 arr = np.moveaxis(arr, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
@@ -108,17 +107,18 @@ class VolumeIO(DataIO):
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
                 histogram[0] = 0
                 np.save(histfname, histogram, allow_pickle=False)
-                
                 log(f"write vdb {identifier5d}")
-                self.make_vdb(vdbfname, arr)   
+                self.make_vdb(vdbfname, arr, f"c{ch['ix']}")   
 
         return str(dirpath), time_vdbs, time_hists
 
-    def make_vdb(self, vdbfname, arr):
+    def make_vdb(self, vdbfname, arr, gridname):
         import pyopenvdb as vdb
         grid = vdb.FloatGrid()
-        grid.name = f"data"
+        grid.name = f"{gridname} data"
         grid.copyFromArray(arr.astype(np.float32))
+        # For future OME-Zarr transforms - something like this:
+        # grid.transform = vdb.createLinearTransform(np.array([[ 2. ,  0. ,  0. , 8.5],[ 0. ,  2. ,  0. ,  8.5],[ 0. ,  0. ,  2. ,  10.5],[ 0. ,  0. ,  0. ,  1. ]]).T)
         vdb.write(str(vdbfname), grids=[grid])
         return
 
@@ -146,6 +146,7 @@ class VolumeIO(DataIO):
         # defaults
         metadata['range'] = (0, 1)
         metadata['histogram'] = np.zeros(NR_HIST_BINS)
+        metadata['datapointer'] = vol.data
         if np.sum(histtotal)> 0:
             metadata['range'] = get_leading_trailing_zero_float(histtotal)
             metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
@@ -281,7 +282,11 @@ class VolumeObject(ChannelObject):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1400, 0)
         node_attr.name = f"[channel_load_{ch['identifier']}]"
-        node_attr.attribute_name = f'data'
+
+
+        ch['metadata'][self.min_type]['datapointer'].grids.load()
+        node_attr.attribute_name = ch['metadata'][self.min_type]['datapointer'].grids[0].name
+
         node_attr.label = ch['name']
         node_attr.hide =True
 
