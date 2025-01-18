@@ -75,11 +75,24 @@ class VolumeIO(DataIO):
         identifier3d = f"x{x_ix}y{y_ix}z{z_ix}"
         dirpath = Path(cache_dir)/f"{identifier3d}"
         dirpath.mkdir(exist_ok=True,parents=True)
-        for t in range(len_axis('t', axes_order, imgdata.shape)):
+        for t in range(0, bpy.context.scene.MiN_load_end_frame+1):
+            if t >= len_axis('t', axes_order, imgdata.shape):
+                break
+
             identifier5d = f"{identifier3d}c{ch['ix']}t{t:04}"
             frame = take_index(imgdata, t, 't', axes_order)
             frame_axes_order = axes_order.replace('t',"")
 
+            vdbfname = dirpath / f"{identifier5d}.vdb"
+            histfname = dirpath / f"{identifier5d}_hist.npy"
+
+            if t < bpy.context.scene.MiN_load_start_frame and not vdbfname.exists():
+                # Makes dummy vdb files to keep sequence reading of Blender correct if the loaded frames are offset
+                # existence of histogram file is then used to see if this is a dummy
+                open(vdbfname, 'a').close()
+                continue
+            
+            
             # VDB data is XYZ
             for dim in 'xyz':
                 if dim not in axes_order:
@@ -135,7 +148,7 @@ class VolumeIO(DataIO):
         
             vol.scale = scale
             vol.data.frame_offset = -1
-            vol.data.frame_start = 0
+            vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
             vol.data.render.clipping = 1/ (2**17)
             
             vol.location = tuple((np.array(chunk['pos']) * scale))  
@@ -283,9 +296,11 @@ class VolumeObject(ChannelObject):
         node_attr.location = (-1400, 0)
         node_attr.name = f"[channel_load_{ch['identifier']}]"
 
-
-        ch['metadata'][self.min_type]['datapointer'].grids.load()
-        node_attr.attribute_name = ch['metadata'][self.min_type]['datapointer'].grids[0].name
+        try:
+            ch['metadata'][self.min_type]['datapointer'].grids.load()
+            node_attr.attribute_name = ch['metadata'][self.min_type]['datapointer'].grids[0].name
+        except Exception:
+            node_attr.attribute_name = f"c{ch['ix']} data"
 
         node_attr.label = ch['name']
         node_attr.hide =True

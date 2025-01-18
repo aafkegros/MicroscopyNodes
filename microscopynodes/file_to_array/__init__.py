@@ -13,6 +13,8 @@ def change_path(self, context):
         if loader.checkPath():
             loader.changePath(context)
             bpy.context.scene.MiN_enable_ui = True
+            if 't' in bpy.context.scene.MiN_axes_order:
+                bpy.context.scene.MiN_load_end_frame = arr_shape()[bpy.context.scene.MiN_axes_order.find('t')]-1
             return
     bpy.context.scene.MiN_channel_nr = 0
     bpy.context.scene.MiN_enable_ui = False
@@ -20,6 +22,8 @@ def change_path(self, context):
     context.scene.property_unset("MiN_z_size")
     context.scene.property_unset("MiN_axes_order")
     context.scene.property_unset("MiN_reload")
+    context.scene.property_unset("MiN_load_start_frame")
+    context.scene.property_unset("MiN_load_end_frame")
 
 
 def load_array(input_file, axes_order, ch_dicts):

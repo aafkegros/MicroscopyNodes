@@ -73,7 +73,7 @@ def load_blocking(params):
     update_settings = bpy.context.scene.MiN_update_settings
     update_data = bpy.context.scene.MiN_update_data
 
-     # --- Load components ---
+    # --- Load components ---
     container = bpy.context.scene.MiN_reload
     objs = parse_reload(container)
     if container is None:

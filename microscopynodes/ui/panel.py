@@ -25,20 +25,32 @@ class TIFLoadPanel(bpy.types.Panel):
         split = layout.split()
 
         # First column
-        col = split.column(align=True)
-        col.alignment='RIGHT'
-        col.label(text="xy pixel size (µm):")
-        col.label(text="z pixel size (µm):")
-        col.label(text="axes:")
+        col1 = split.column(align=True)
+        col1.alignment='RIGHT'
+        col1.label(text="xy pixel size (µm):")
+        col1.label(text="z pixel size (µm):")
+        col1.label(text="axes:")
+        #  row.label(text="", icon='BLANK1')
+        
+        
         if not bpy.context.scene.MiN_enable_ui:
-            col.enabled=False
+            col1.enabled=False
 
-        col = split.column(align=True)
-        col.prop(scn, "MiN_xy_size", emboss=True)
-        col.prop(scn, "MiN_z_size", emboss=True)
-        col.prop(scn, "MiN_axes_order", emboss=True)
+        col2 = split.column(align=True)
+        col2.prop(scn, "MiN_xy_size", emboss=True)
+        col2.prop(scn, "MiN_z_size", emboss=True)
+        col2.prop(scn, "MiN_axes_order", emboss=True)
+
+
+        if 't' in scn.MiN_axes_order:
+            col1.label(text='time:')
+            row = col2.row(align=True)
+            row.prop(scn,'MiN_load_start_frame')
+            row.prop(scn,'MiN_load_end_frame')
+
+
         if not bpy.context.scene.MiN_enable_ui:
-            col.enabled=False
+            col2.enabled=False
         
         col = layout.column(align=False)  
 
@@ -46,6 +58,8 @@ class TIFLoadPanel(bpy.types.Panel):
 
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
+
+        col.separator()
 
         row = col.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
@@ -55,8 +69,10 @@ class TIFLoadPanel(bpy.types.Panel):
             row.prop(bpy.context.scene, 'MiN_update_settings', icon="MATERIAL_DATA")
         
         
-        layout.separator()
-        col = layout.column(align=False)  
+        # layout.separator()
+        col.separator()
+        # col = layout.column(align=False)  
+        # row = col.row(align=False)
         col.operator("microscopynodes.load")
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
