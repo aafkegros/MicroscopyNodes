@@ -49,10 +49,7 @@ def scale_node_group():
     interface.items_tree[-1].min_value = 0
     interface.items_tree[-1].max_value = 1111111
     interface.items_tree[-1].attribute_domain = 'POINT'
-    
-    interface.new_socket("Color",in_out="INPUT",socket_type='NodeSocketColor')
-    interface.items_tree[-1].default_value = (1,1,1, 1)
-    
+
     interface.new_socket("Material",in_out="INPUT",socket_type='NodeSocketMaterial')
 
     group_input = node_group.nodes.new("NodeGroupInput")
@@ -176,26 +173,11 @@ def scale_node_group():
     culling.location = (1600, 10)
     links.new(join.outputs[0], culling.inputs[0])
     links.new(demultiplex_axes.outputs[0], culling.inputs.get('Value'))
-    
-    color =  node_group.nodes.new("GeometryNodeStoreNamedAttribute")
-    color.label = "passthrough color to shader"
-    color.inputs.get("Name").default_value = "color_scale_bar"
-    color.data_type = 'FLOAT_COLOR'
-    color.domain = 'POINT'
-    color.location = (1800, 0)
-    links.new(culling.outputs[0], color.inputs[0])
-    links.new(group_input.outputs.get('Color'), color.inputs.get('Value'))
-    
+
     material = node_group.nodes.new("GeometryNodeSetMaterial")
     material.location = (2000,0)
-    links.new(color.outputs[0], material.inputs[0])
+    links.new(culling.outputs[0], material.inputs[0])
     links.new(group_input.outputs.get('Material'), material.inputs[2])
-    
-    # interface.new_socket("size",in_out="INPUT",socket_type='NodeSocketFloat')
-    # interface.items_tree[-1].default_value = 15.0
-    # interface.items_tree[-1].min_value = 0.0
-    # interface.items_tree[-1].max_value = 3.4028234663852886e+38
-    # interface.items_tree[-1].attribute_domain = 'POINT'
     
     interface.new_socket("Geometry",in_out="OUTPUT",socket_type='NodeSocketGeometry')
     interface.items_tree[-1].attribute_domain = 'POINT'
