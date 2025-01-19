@@ -229,7 +229,7 @@ class LabelmaskObject(ChannelObject):
         get_cmap('mpl-tab10', ramp=tab10)
         links.new(map_range.outputs[0], tab10.inputs.get('Fac'))
         links.new(tab10.outputs[0], princ.inputs.get("Base Color"))
-        links.new(tab10.outputs[0], princ.inputs[26])
+        links.new(tab10.outputs[0], princ.inputs[27])
         
         # make optional linear colormap
         map_range_lin = nodes.new(type='ShaderNodeMapRange')
@@ -248,10 +248,10 @@ class LabelmaskObject(ChannelObject):
     def update_material(self, mat, ch):
         try:
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
-            if ch['emission'] and princ.inputs[27].default_value == 0.0:
-                princ.inputs[27].default_value = 0.5
-            elif not ch['emission'] and princ.inputs[27].default_value == 0.5:
-                princ.inputs[27].default_value = 0
+            if ch['emission'] and princ.inputs[28].default_value == 0.0:
+                princ.inputs[28].default_value = 0.5
+            elif not ch['emission'] and princ.inputs[28].default_value == 0.5:
+                princ.inputs[28].default_value = 0
         except:
             pass
         return

@@ -99,15 +99,18 @@ def check_channels(ch_dicts, test_render=True):
                 socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
                 ch_obj.gn_mod[socket.identifier] = False
 
-    if test_render:
-        for ch in ch_dicts:
-            for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
-                socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
+    for ch in ch_dicts:
+        for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
+            if ch[min_type]and test_render:
+                # print(socket)
                 img1 = quick_render('1')
                 ch_obj.gn_mod[socket.identifier] = True
                 img2 = quick_render('2')
                 ch_obj.gn_mod[socket.identifier] = False
+                if np.array_equal(img1, img2):
+                    raise ValueError(f"{socket}, ")
                 assert(not np.array_equal(img1, img2))
+                
                 
 
 def quick_render(name):
@@ -137,6 +140,6 @@ def quick_render(name):
     bpy.ops.render.render()
     bpy.data.images["Render Result"].save_render(output_file)
     data = np.array(iio.imread(output_file))
-    os.remove(output_file)
+    # os.remove(output_file)
     return data
 
