@@ -26,7 +26,6 @@ def expand_to_xyz(arr, axes_order):
         if dim not in axes_order:
             frame = np.expand_dims(frame,axis=0)
             new_axes_order = dim + frame_axes_order     
-    print(new_axes_order)
     return np.moveaxis(arr, [new_axes_order.find('x'),new_axes_order.find('y'),new_axes_order.find('z')],[0,1,2]).copy()
 
 
@@ -70,8 +69,11 @@ class LabelmaskIO(DataIO):
             if (Path(fname).exists() and os.path.getsize(fname) > 0):
                 if remake:
                     Path(fname).unlink()
-                else:
-                    continue
+                else: 
+                    # Allowing reloading of abc files could be done here, but this can cause strange issues
+                    # That still need triage - for now, files are always overwritten.
+                    pass
+                    # continue
             
             timeframe_arr = take_index(mask, timestep, 't', axes_order).compute()
             timeframe_arr = expand_to_xyz(timeframe_arr, axes_order.replace('t', ''))
@@ -90,7 +92,6 @@ class LabelmaskIO(DataIO):
                     verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=step_size)
                     verts = verts + np.array([objslice[0].start, objslice[1].start, objslice[2].start])
                 except Exception as e:
-                    print()
                     print(f'excepted {e} in meshing')
                     if ch['surf_resolution'] != 0: # march throws with too small objects
                         continue
