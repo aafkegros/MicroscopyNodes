@@ -8,27 +8,6 @@ import os
 from ..handle_blender_structs import *
 from .load_generic import *
 
-def take_index(imgdata, indices, dim, axes_order):
-    if dim in axes_order:
-        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
-    return imgdata
-
-def len_axis(dim, axes_order, shape):
-        if dim in axes_order:
-            return shape[axes_order.find(dim)]
-        return 1
-
-def expand_to_xyz(arr, axes_order):
-    # should only be called after computing dask, with no more t/c in the axes order
-    # handles 1D, 2D, and ordering of data
-    new_axes_order = axes_order
-    for dim in 'xyz':
-        if dim not in axes_order:
-            frame = np.expand_dims(frame,axis=0)
-            new_axes_order = dim + frame_axes_order     
-    return np.moveaxis(arr, [new_axes_order.find('x'),new_axes_order.find('y'),new_axes_order.find('z')],[0,1,2]).copy()
-
-
 class LabelmaskIO(DataIO):
     min_type = min_keys.LABELMASK
 
@@ -53,7 +32,7 @@ class LabelmaskIO(DataIO):
         tmp_collection, _ = collection_by_name('tmp')
 
         mask_objects = {}  
-        for timestep in range(0,bpy.context.scene.MiN_load_end_frame):
+        for timestep in range(0,bpy.context.scene.MiN_load_end_frame+1):
             bpy.ops.object.select_all(action='DESELECT')
 
             if timestep >= len_axis('t', axes_order, mask.shape):
@@ -155,7 +134,7 @@ class LabelmaskIO(DataIO):
             obj.modifiers[-1].node_group = self.gn_oid_tree(oid, ch)
             obj.scale = scale
             oids.append(oid)
-    
+
         return mask_coll, {'max': max(oids)}
 
 

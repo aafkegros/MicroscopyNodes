@@ -12,15 +12,7 @@ from ..handle_blender_structs import *
 from .. import min_nodes
 
 NR_HIST_BINS = 2**16
-def len_axis(dim, axes_order, shape):
-        if dim in axes_order:
-            return shape[axes_order.find(dim)]
-        return 1
 
-def take_index(imgdata, indices, dim, axes_order):
-    if dim in axes_order:
-        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
-    return imgdata
 
 def get_leading_trailing_zero_float(arr):
         min_val = max(np.argmax(arr > 0)-1, 0) / len(arr)
@@ -92,15 +84,6 @@ class VolumeIO(DataIO):
                 open(vdbfname, 'a').close()
                 continue
             
-            
-            # VDB data is XYZ
-            for dim in 'xyz':
-                if dim not in axes_order:
-                    frame = np.expand_dims(frame,axis=0)
-                    frame_axes_order = dim + frame_axes_order          
-
-            vdbfname = dirpath / f"{identifier5d}.vdb"
-            histfname = dirpath / f"{identifier5d}_hist.npy"
             time_vdbs.append({"name":str(vdbfname.name)})
             time_hists.append({"name":str(histfname.name)})
             if( not vdbfname.exists() or not histfname.exists()) or remake :
@@ -110,7 +93,7 @@ class VolumeIO(DataIO):
                     histfname.unlink()
                 log(f"loading chunk {identifier5d}")
                 arr = frame.compute()
-                arr = np.moveaxis(arr, [frame_axes_order.find('x'),frame_axes_order.find('y'),frame_axes_order.find('z')],[0,1,2]).copy()
+                arr = expand_to_xyz(arr, frame_axes_order) 
                 try:
                     arr = arr.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
                 except ValueError:
@@ -147,8 +130,9 @@ class VolumeIO(DataIO):
             strpos = f"{pos[0]}{pos[1]}{pos[2]}"
         
             vol.scale = scale
-            vol.data.frame_offset = -1
+            vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
             vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
+            vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
             vol.data.render.clipping = 1/ (2**17)
             
             vol.location = tuple((np.array(chunk['pos']) * scale))  

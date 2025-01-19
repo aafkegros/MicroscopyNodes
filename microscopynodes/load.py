@@ -116,6 +116,10 @@ def load_blocking(params):
     
     # set default 
     collection_deactivate_by_name('cache')
+
+    if bpy.context.scene.frame_current < bpy.context.scene.MiN_load_start_frame or bpy.context.scene.frame_current > bpy.context.scene.MiN_load_end_frame:
+        bpy.context.scene.frame_set(bpy.context.scene.MiN_load_start_frame)
+
     try:
         if prev_active_obj is not None:
             prev_active_obj.select_set(True)
