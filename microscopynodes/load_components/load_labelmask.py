@@ -3,9 +3,32 @@ import bpy
 import bmesh
 from pathlib import Path
 import json
+import os
 
 from ..handle_blender_structs import *
 from .load_generic import *
+
+def take_index(imgdata, indices, dim, axes_order):
+    if dim in axes_order:
+        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
+    return imgdata
+
+def len_axis(dim, axes_order, shape):
+        if dim in axes_order:
+            return shape[axes_order.find(dim)]
+        return 1
+
+def expand_to_xyz(arr, axes_order):
+    # should only be called after computing dask, with no more t/c in the axes order
+    # handles 1D, 2D, and ordering of data
+    new_axes_order = axes_order
+    for dim in 'xyz':
+        if dim not in axes_order:
+            frame = np.expand_dims(frame,axis=0)
+            new_axes_order = dim + frame_axes_order     
+    print(new_axes_order)
+    return np.moveaxis(arr, [new_axes_order.find('x'),new_axes_order.find('y'),new_axes_order.find('z')],[0,1,2]).copy()
+
 
 class LabelmaskIO(DataIO):
     min_type = min_keys.LABELMASK
@@ -23,96 +46,82 @@ class LabelmaskIO(DataIO):
     def export_ch(self, ch, cache_dir, remake, axes_order):
         from skimage.measure import marching_cubes
         from scipy.ndimage import find_objects, label
-        axes_order = axes_order.replace("c","")
+        axes_order = axes_order.replace('c', '') # only gets a single channel
         abcfiles = []
+        mask = ch['data']
 
-        mask = ch['data'].compute()
-
-        for dim in 'txyz': # essential for mask loading
-            if dim not in axes_order:
-                mask = np.expand_dims(mask,axis=0)
-                axes_order = dim + axes_order
-        mask= np.moveaxis(mask, [axes_order.find('t'), axes_order.find('x'),axes_order.find('y'),axes_order.find('z')],[0,1,2,3])
-        
         parentcoll = get_current_collection()
         tmp_collection, _ = collection_by_name('tmp')
-        objnames = {} # register objnames as dict at start value : name
-        locations = {} 
 
-        unique_vals_all = np.unique(mask)
-        if len(unique_vals_all) == 2: 
-            # if binary mask, do connected components, to save memory when meshing if a lot of objects are present
-            try: 
-                mask = mask.astype(np.uint16)
-                for timepoint, time_arr in enumerate(mask):
-                    new_unique_vals = label(time_arr,structure=np.ones((3,3,3)) ,output=time_arr)
-                    if new_unique_vals > len(unique_vals_all):
-                        unique_vals_all = [uni for uni in range(new_unique_vals + 1)]
-                    mask[timepoint] = time_arr
-            except RuntimeError as e:
-                # this catches binary masks with > 65k objects
-                raise ValueError("This binary mask seems to be too complicated (>65k separate obj/timepoint) to load as a label mask. Consider loading it as a volume and using the 'Surfaces' visualization or applying a new Volume to Surface Blender node")        
-
-        for timestep in range(0,mask.shape[0]):
+        mask_objects = {}  
+        for timestep in range(0,bpy.context.scene.MiN_load_end_frame):
             bpy.ops.object.select_all(action='DESELECT')
-            if timestep == 0:
-                
-                for obj_id_val in unique_vals_all[1:]: 
-                    #skip zero, register all object with new names, need to be present in first frame
-                    objname=f"ch{ch['ix']}_obj{obj_id_val}_" 
-                    bpy.ops.mesh.primitive_cube_add()
-                    obj=bpy.context.view_layer.objects.active
-                    obj.name = objname
-                    obj.data.name = objname
-                    # obj.scale = scale
-                    objnames[obj_id_val] = obj.name
-                    locations[obj.name]={}
-                    locations[obj.name][0] = {'x':-1,'y':-1,'z':-1}
 
-            for obj_id, objslice in enumerate(find_objects(mask[timestep])):
+            if timestep >= len_axis('t', axes_order, mask.shape):
+                break
+
+            fname = str(Path(cache_dir) / f"mask_ch{ch['ix']}_res_{ch['surf_resolution']}_t_{timestep:04}.abc")
+            if timestep < bpy.context.scene.MiN_load_start_frame:
+                if not Path(fname).exists(): #make dummy file for sequencing
+                    open(fname, 'a').close()
+                continue
+            
+            abcfiles.append(fname)
+            if (Path(fname).exists() and os.path.getsize(fname) > 0):
+                if remake:
+                    Path(fname).unlink()
+                else:
+                    continue
+            
+            timeframe_arr = take_index(mask, timestep, 't', axes_order).compute()
+            timeframe_arr = expand_to_xyz(timeframe_arr, axes_order.replace('t', ''))
+
+            for obj_id, objslice in enumerate(find_objects(timeframe_arr)):
                 if objslice is None:
                     continue
+
                 obj_id_val = obj_id + 1
-                objarray = np.pad(mask[timestep][objslice], 1, constant_values=0)
+                objarray = np.pad(timeframe_arr[objslice], 1, constant_values=0)
                 
                 size = objarray.shape[0]-2 * objarray.shape[1]-2 * objarray.shape[0]-2
 
                 step_size = [1,2,4,8][ch['surf_resolution']]
                 try:
                     verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=step_size)
-                except:
+                    verts = verts + np.array([objslice[0].start, objslice[1].start, objslice[2].start])
+                except Exception as e:
+                    print()
+                    print(f'excepted {e} in meshing')
                     if ch['surf_resolution'] != 0: # march throws with too small objects
                         continue
-                obj = bpy.data.objects.get(objnames[obj_id_val])
+                
+                if obj_id_val in mask_objects:
+                    obj = mask_objects[obj_id_val]
+                else: 
+                    objname=f"ch{ch['ix']}_obj{obj_id_val}_" 
+                    bpy.ops.mesh.primitive_cube_add()
+                    obj=bpy.context.view_layer.objects.active
+                    obj.name = objname
+                    obj.data.name = objname
+                    mask_objects[obj_id_val] = obj
 
                 mesh = obj.data
                 mesh.clear_geometry()
                 mesh.from_pydata(verts,[], faces)
                 bpy.ops.object.mode_set(mode = 'OBJECT')
-
-                loc = (objslice[0].start, objslice[1].start, objslice[2].start)
-                obj.location = loc
-
-                locations[obj.name][timestep] = {'x':loc[0],'y':loc[1],'z':loc[2]} 
-
                 self.dissolve(obj, obj_id)
+                # obj.select_set(True) #TODO see if this works
             
-
             for obj in tmp_collection.all_objects: 
                 obj.select_set(True)
             
-            fname = str(Path(cache_dir) / f"mask_ch{ch['ix']}_res_{ch['surf_resolution']}_t_{timestep:04}.abc")
-            abcfiles.append(fname)
-
-            if Path(fname).exists() and remake:
-                Path(fname).unlink() # this may fix an issue with subsequent loads
-            
+           
             bpy.ops.wm.alembic_export(filepath=fname,
                             visible_objects_only=False,
                             selected=True,
                             vcolors = False,
-                            flatten=True,
-                            orcos=False,
+                            flatten=False,
+                            orcos=True,
                             export_custom_properties=False,
                             start = 0,
                             end = 1,
@@ -121,45 +130,31 @@ class LabelmaskIO(DataIO):
             for obj in tmp_collection.all_objects: 
                 obj.data.clear_geometry()
 
-        for objname in objnames.values():
+        for obj in mask_objects.values():
             obj.select_set(True)
         bpy.ops.object.delete(use_global=False)
         bpy.data.collections.remove(tmp_collection)
         collection_activate(*parentcoll)
-
-        jsonfile = str(Path(cache_dir) / f"mask_locs_ch{ch['ix']}_{ch['surf_resolution']}.json")
-        with open(jsonfile, 'w') as fp:
-            json.dump(locations, fp, indent=4)
-        return [{'json': jsonfile, 'abcfiles':abcfiles}]
+        return [{'abcfiles':abcfiles}]
     
+
     def import_data(self, ch, scale):
         mask_objs = []
         mask_coll, mask_lcoll = make_subcollection(f"{ch['name']}_{self.min_type.name.lower()}", duplicate=True)
         
         maskfiles = ch['local_files'][self.min_type][0]
         bpy.ops.wm.alembic_import(filepath=maskfiles['abcfiles'][0], is_sequence=(len(maskfiles['abcfiles']) >1))
-        with open(maskfiles['json'], 'r') as fp:
-            locations = json.load(fp)
 
         locnames_newnames = {}
+        oids = []
         for obj in mask_coll.all_objects: # for blender renaming
             oid = int(obj.name.split('_')[1].removeprefix('obj'))
             ch = int(obj.name.split('_')[0].removeprefix('ch'))
-            locnames_newnames[(oid, ch)] = obj
-        
-        oids = []
-        for objname in locations:
-            oid = int(objname.split('_')[1].removeprefix('obj'))
-            oids.append(oid)
-            ch = int(objname.split('_')[0].removeprefix('ch'))
-            obj = locnames_newnames[(oid, ch)]   
-            obj.scale = scale
-            mask_objs.append(obj)
-            for time, loc in locations[objname].items():
-                obj.location = (loc['x'], loc['y'], loc['z']) * scale
-                obj.keyframe_insert(data_path="location", frame=int(time))
             obj.modifiers.new(type='NODES', name=f'object id + channel {oid}')
             obj.modifiers[-1].node_group = self.gn_oid_tree(oid, ch)
+            obj.scale = scale
+            oids.append(oid)
+    
         return mask_coll, {'max': max(oids)}
 
 
