@@ -7,6 +7,9 @@ You can download and install the add-on on the [Blender extensions platform](htt
 
 The add-on will then show up as a window in the `Scene Properties`.
 
+For usage questions please use the [image.sc forum](https://forum.image.sc/tag/microscopy-nodes) 😁
+For issues/bug reports/feature requests please [open an issue](https://github.com/oanegros/MicroscopyNodes/issues).
+
 ## Video tutorials
 
 See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the microscopynodes add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
