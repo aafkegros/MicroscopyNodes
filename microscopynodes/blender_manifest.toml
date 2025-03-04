@@ -24,7 +24,7 @@ license = [
   "SPDX:GPL-3.0-or-later"
 ]
 copyright =[
-	"2023-2024 Oane Gros",
+	"2023-2025 Oane Gros",
 ]
 
 # Optional: bundle 3rd party Python modules.

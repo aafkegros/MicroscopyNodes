@@ -25,6 +25,22 @@ bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     default = False
     )
 
+bpy.types.Scene.MiN_load_start_frame = bpy.props.IntProperty(
+    name = "", 
+    description = "First timeframe to be loaded",
+    default = 0,
+    min=0,
+    soft_max=10000,
+    )
+
+bpy.types.Scene.MiN_load_end_frame = bpy.props.IntProperty(
+    name = "", 
+    description = "Last timeframe to be loaded.",
+    default = 100,
+    soft_max= 10000,
+    min=0,
+    )
+
 bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
     name = "MiN_preset_environment", 
     description = "Set environment variables for easy initial rendering, useful for first load.\nWill overwrite previous settings",

@@ -73,7 +73,7 @@ def load_blocking(params):
     update_settings = bpy.context.scene.MiN_update_settings
     update_data = bpy.context.scene.MiN_update_data
 
-     # --- Load components ---
+    # --- Load components ---
     container = bpy.context.scene.MiN_reload
     objs = parse_reload(container)
     if container is None:
@@ -116,6 +116,10 @@ def load_blocking(params):
     
     # set default 
     collection_deactivate_by_name('cache')
+
+    if bpy.context.scene.frame_current < bpy.context.scene.MiN_load_start_frame or bpy.context.scene.frame_current > bpy.context.scene.MiN_load_end_frame:
+        bpy.context.scene.frame_set(bpy.context.scene.MiN_load_start_frame)
+
     try:
         if prev_active_obj is not None:
             prev_active_obj.select_set(True)
