@@ -3,10 +3,9 @@ import tifffile
 import bpy
 
 class TifLoader(ArrayLoader):
-    suffix = '.tif'
+    suffixes = ['.tif', '.TIF', '.tiff', '.TIFF']
 
     def load_array(self, input_file):
-        
         with tifffile.TiffFile(input_file) as ifstif:
             return ifstif.asarray()
 

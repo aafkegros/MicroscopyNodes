@@ -8,7 +8,9 @@ CLASSES = zarr.CLASSES
 
 def change_path(self, context):
     log("")
+    context.scene.property_unset("MiN_reload")
     for Loader in [TifLoader, ZarrLoader]:
+        
         loader = Loader()
         if loader.checkPath():
             loader.changePath(context)
@@ -21,7 +23,6 @@ def change_path(self, context):
     context.scene.property_unset("MiN_xy_size")
     context.scene.property_unset("MiN_z_size")
     context.scene.property_unset("MiN_axes_order")
-    context.scene.property_unset("MiN_reload")
     context.scene.property_unset("MiN_load_start_frame")
     context.scene.property_unset("MiN_load_end_frame")
 

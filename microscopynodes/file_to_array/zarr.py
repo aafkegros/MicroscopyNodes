@@ -30,12 +30,12 @@ class ZarrLevelsGroup(bpy.types.PropertyGroup):
     # bpy.types.Scene.MiN_zarrLevels = bpy.props.CollectionProperty(type=ZarrLevelsGroup)
 
 class ZarrLoader(ArrayLoader):
-    suffix = '.zarr'
+    suffixes = ['.zarr']
 
     def checkPath(self):
-        if self.suffix not in str(bpy.context.scene.MiN_input_file):
+        if self.suffixes[0] not in str(bpy.context.scene.MiN_input_file):
             bpy.context.scene.property_unset("MiN_selected_zarr_level")
-        return self.suffix in str(bpy.context.scene.MiN_input_file)
+        return self.suffixes[0] in str(bpy.context.scene.MiN_input_file)
 
     def load_array(self, input_file):
         uncached_store = FSStore(input_file, mode="r", **OME_ZARR_V_0_4_KWARGS)

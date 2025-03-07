@@ -127,6 +127,7 @@ def load_blocking(params):
     except:
         pass
     # after first load this should not be used again, to prevent overwriting user values
+    bpy.context.scene.MiN_reload = container
     bpy.context.scene.MiN_preset_environment = False
     bpy.context.scene.MiN_enable_ui = True
     log('')

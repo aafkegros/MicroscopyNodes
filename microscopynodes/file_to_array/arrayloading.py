@@ -8,7 +8,7 @@ class ArrayLoader():
     suffix = None
 
     def checkPath(self):
-        return Path(bpy.context.scene.MiN_input_file).suffix == self.suffix
+        return Path(bpy.context.scene.MiN_input_file).suffix in self.suffixes
 
     def changePath(self, context):
         return
