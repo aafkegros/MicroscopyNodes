@@ -6,7 +6,7 @@ from ..handle_blender_structs import *
 from .. import min_nodes
 
 def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
-    axes_obj.parent = container
+   
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
         nodes = mod.node_group.nodes
@@ -25,6 +25,7 @@ def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
     center =  tuple(center_loc * size_px*scale )
     axes_obj = init_axes(size_px, pixel_size, scale, center, container)
+    axes_obj.parent = container
     return axes_obj 
 
 def update_axes(nodes, size_px, pixel_size, scale):

@@ -22,7 +22,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
             ("METER_SCALE", "m -> m", "Scales to 1 m/blender-meter " ,"", 3),
             ("MOLECULAR_NODES", "nm -> cm (Molecular Nodes)", "Scales to 1 nm/blender-centimeter " ,"", 4),
         ], 
-        description= "Defines the scale transform from input space to Blender meters",
+        description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
         default='DEFAULT',
     )
 
