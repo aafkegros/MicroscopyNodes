@@ -123,8 +123,13 @@ def init_axes(size_px, pixel_size, scale, location, container):
 
     node_group.interface.new_socket(name='µm per tick', in_out="INPUT",socket_type='NodeSocketFloat')
     node_group.interface.new_socket(name='Grid', in_out="INPUT",socket_type='NodeSocketBool')
+    
     links.new(inputnode.outputs[0], scale_node.inputs.get('µm per tick'))
     links.new(inputnode.outputs[1], scale_node.inputs.get('Grid'))
+
+    node_group.interface.new_socket(name='Line thickness', in_out="INPUT",socket_type='NodeSocketFloat')
+    links.new(inputnode.outputs[2], scale_node.inputs.get('Line thickness'))
+    axes_obj.modifiers[-1][node_group.interface.items_tree[-1].identifier] =1.0
     
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))
