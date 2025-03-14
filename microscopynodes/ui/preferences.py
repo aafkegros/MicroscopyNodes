@@ -13,7 +13,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     import_scale_no_unit_spoof : EnumProperty(
-        name = 'Microscopy -> Blender scale (needs metric pixel unit)',
+        name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
         items=[
             ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel " ,"", 0),
         ],
@@ -21,7 +21,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         default='DEFAULT',
     )
     import_scale : EnumProperty(
-        name = "Microscopy -> Blender scale",
+        name = "Microscopy scale -> Blender scale",
         items=[
             ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel " ,"", 0),
             ("NANOMETER_SCALE", "nm -> m", "Scales to 1 nm/blender-meter" ,"", 1),
