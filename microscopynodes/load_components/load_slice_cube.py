@@ -1,7 +1,7 @@
 import bpy
 from .. import handle_blender_structs
 
-def load_slice_cube(size_px, scale, slicecube=None):
+def load_slice_cube(size_px, scale, container, slicecube=None):
     if slicecube is None:
         bpy.ops.mesh.primitive_cube_add(location=size_px*scale/2)
         slicecube = bpy.context.active_object
@@ -17,5 +17,5 @@ def load_slice_cube(size_px, scale, slicecube=None):
         mat.use_nodes = True
         mat.node_tree.nodes['Principled BSDF'].inputs.get("Alpha").default_value = 0
         slicecube.data.materials.append(mat)
-    
+    slicecube.parent = container
     return slicecube

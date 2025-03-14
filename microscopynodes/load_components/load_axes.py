@@ -5,32 +5,27 @@ from pathlib import Path
 from ..handle_blender_structs import *
 from .. import min_nodes
 
-def load_axes(size_px, pixel_size, axes_obj=None, container=None):
-
+def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
+    axes_obj.parent = container
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
         nodes = mod.node_group.nodes
-        try:
-            old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-            old_scale = nodes['[Microscopy Nodes scale]'].vector
-            scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
-        except KeyError as e:
-            print(e)
-            scale = default_scale(pixel_size)
+        if not bpy.context.scene.MiN_update_data:
+            try:
+                old_size_px = nodes['[Microscopy Nodes size_px]'].vector
+                old_scale = nodes['[Microscopy Nodes scale]'].vector
+                scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
+            except KeyError as e:
+                print(e)
+                pass
         
         update_axes(nodes, size_px, pixel_size, scale)
-        return axes_obj, scale
+        return axes_obj
 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
-    scale = default_scale(pixel_size)
     center =  tuple(center_loc * size_px*scale )
     axes_obj = init_axes(size_px, pixel_size, scale, center, container)
-    return axes_obj,  scale
-
-def default_scale(pixel_size):
-    init_scale = 0.02
-    scale =  np.array([1,1,pixel_size[-1]/pixel_size[0]])*init_scale
-    return scale
+    return axes_obj 
 
 def update_axes(nodes, size_px, pixel_size, scale):
     for k, v in zip(["size_px","pixel_size", "scale"], [size_px, pixel_size, scale]):

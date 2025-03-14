@@ -55,13 +55,26 @@ bpy.types.Scene.MiN_cache_dir = StringProperty(
 
 bpy.types.Scene.MiN_xy_size = FloatProperty(
         name="",
-        description="xy physical pixel size in micrometer",
+        description="xy physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
         default=1.0)
     
 bpy.types.Scene.MiN_z_size = FloatProperty(
         name="",
-        description="z physical pixel size in micrometer",
+        description="z physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
         default=1.0)
+
+bpy.types.Scene.MiN_unit = EnumProperty(
+        name = '',
+        items=[
+            ("ANGSTROM", "Å","" ,"", 0),
+            ("NANOMETER", "nm","" ,"", 1),
+            ("MICROMETER", "µm","" ,"", 2),
+            ("MILLIMETER", "mm","" ,"", 3),
+            ("METER", "m","" ,"", 4),
+        ], 
+        description= "Unit of pixel sizes",
+        default=2,
+    )
 
 
 
@@ -88,7 +101,7 @@ bpy.types.Scene.MiN_update_data = BoolProperty(
 
 bpy.types.Scene.MiN_update_settings = BoolProperty(
         name = "",
-        description = "Update microscopy nodes channel settings",
+        description = "Update microscopy nodes channel settings, reapplies import transforms, so will move your data.",
         default = True,
     )
 

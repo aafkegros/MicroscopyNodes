@@ -1,5 +1,6 @@
 import bpy
 from .. import load
+from .. import parse_inputs
 from .. import handle_blender_structs
 from .channel_list import *
 from bpy.types import (Panel,
@@ -40,7 +41,7 @@ class TifLoadOperator(bpy.types.Operator):
     def execute(self, context):
         wm = context.window_manager
         self._timer = wm.event_timer_add(0.1, window=context.window)
-        self.params = load.load_init()
+        self.params = parse_inputs.parse_initial()
         self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
         wm.modal_handler_add(self)
         self.thread.start()
@@ -58,7 +59,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
     bl_label = "Load"
 
     def execute(self, context):
-        params = load.load_init()
+        params = parse_inputs.parse_initial()
         load.load_threaded(params)
         load.load_blocking(params)
         return {'FINISHED'}
