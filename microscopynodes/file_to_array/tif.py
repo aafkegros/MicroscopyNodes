@@ -19,6 +19,11 @@ class TifLoader(ArrayLoader):
                 except Exception as e:
                     context.scene.property_unset("MiN_axes_order")
                 try:
+                    context.scene.MiN_unit =  self.parse_unit(dict(ifstif.imagej_metadata)['unit'])
+                except Exception as e:
+                    print(e)
+                    context.scene.property_unset("MiN_unit")
+                try:
                     context.scene.MiN_xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
                 except Exception as e:
                     context.scene.property_unset("MiN_xy_size")

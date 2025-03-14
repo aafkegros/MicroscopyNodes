@@ -98,8 +98,12 @@ class TIFLoadPanel(bpy.types.Panel):
         row.prop(bpy.context.scene, 'MiN_chunk', emboss=True, text="Chunked", icon_value=0)                   
 
         row = box.row()
+
         row.label(text="", icon='CON_SIZELIKE')
-        row.prop(addon_preferences(), 'import_scale', emboss=True,text="")
+        if bpy.context.scene.MiN_unit == "PIXEL":
+            row.prop(addon_preferences(), 'import_scale_no_unit_spoof', emboss=True,text="")
+        else:
+            row.prop(addon_preferences(), 'import_scale', emboss=True,text="")
         row.label(text="", icon='ORIENTATION_PARENT')
         row.prop(addon_preferences(), 'import_loc', emboss=True,text="")
 

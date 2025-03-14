@@ -54,9 +54,9 @@ def parse_scale(size_px, pixel_size):
     # prefs = bpy.context.preferences.addons['bl_ext.blender_org.microscopynodes'].preferences
     world_scale = addon_preferences(bpy.context).import_scale
     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
-    if world_scale == "DEFAULT": # cm / px
+    if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'PIXEL': # cm / px
         return isotropic*0.01
-    print(parse_unit(bpy.context.scene.MiN_unit), pixel_size, size_px, isotropic)
+    
     # physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size * size_px * isotropic
     physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
     if world_scale == "MOLECULAR_NODES": # cm / nm

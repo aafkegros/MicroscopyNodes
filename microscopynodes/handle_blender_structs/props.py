@@ -71,9 +71,10 @@ bpy.types.Scene.MiN_unit = EnumProperty(
             ("MICROMETER", "µm","" ,"", 2),
             ("MILLIMETER", "mm","" ,"", 3),
             ("METER", "m","" ,"", 4),
+            ("PIXEL", "pixels","" ,"", 5),
         ], 
         description= "Unit of pixel sizes",
-        default=2,
+        default="PIXEL",
     )
 
 
