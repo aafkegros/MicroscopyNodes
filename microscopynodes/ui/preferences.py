@@ -47,10 +47,10 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        col = layout.column()
-        col.label(text="Transformations upon import:")
-        col.prop(self, "import_scale", emboss=False)
-        col.prop(self, "import_loc", emboss=False)
+        # col = layout.column()
+        # col.label(text="Transformations upon import:")
+        # col.prop(self, "import_scale", emboss=False)
+        # col.prop(self, "import_loc", emboss=False)
 
         
 
