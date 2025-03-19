@@ -51,7 +51,6 @@ def parse_unit(string):
         return 1
 
 def parse_scale(size_px, pixel_size):
-    # prefs = bpy.context.preferences.addons['bl_ext.blender_org.microscopynodes'].preferences
     world_scale = addon_preferences(bpy.context).import_scale
     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
     if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'PIXEL': # cm / px

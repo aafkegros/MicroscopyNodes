@@ -1,13 +1,7 @@
 import bpy
 from .. import __package__
 from bpy.props import StringProperty, BoolProperty, EnumProperty
-
-def addon_preferences(
-    context: bpy.types.Context | None = None,
-) -> bpy.types.AddonPreferences:
-    if context is None:
-        context = bpy.context
-    return context.preferences.addons[__package__].preferences
+from pathlib import Path
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
@@ -52,7 +46,25 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         # col.prop(self, "import_scale", emboss=False)
         # col.prop(self, "import_loc", emboss=False)
 
-        
+class DictWithElements:
+    # wraps a dictionary to access elements by dct.element - same method call as addonpreferences
+    def __init__(self, dictionary):
+        self.__dict__ = dictionary
+
+
+def addon_preferences(context: bpy.types.Context | None = None):
+    try:
+        if context is None:
+            context = bpy.context
+        return context.preferences.addons[__package__].preferences
+    except KeyError:
+        import yaml
+        with open(Path(__file__).parent / 'headless_preferences.yaml') as stream:
+            try:
+                return DictWithElements(yaml.safe_load(stream))
+            except yaml.YAMLError as exc:
+                print(exc)
+        return None
 
 
 CLASSES = [MicroscopyNodesPreferences]
