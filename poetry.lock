@@ -172,16 +172,17 @@ tests-mypy = ["mypy (>=1.11.1) ; platform_python_implementation == \"CPython\" a
 
 [[package]]
 name = "bpy"
-version = "4.3.0"
+version = "4.4.0"
 description = "Blender as a Python module"
 optional = false
 python-versions = "==3.11.*"
 groups = ["main"]
 files = [
-    {file = "bpy-4.3.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:82c3486e9762e8cfce4bbc1d6752f5625da8515f6b217e02810350627d693897"},
-    {file = "bpy-4.3.0-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:490aa94699664a99eee755047485a3ad70470fc6267c55a73459660f52299ade"},
-    {file = "bpy-4.3.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:1620199392a7e7aab58672aa47c50b3c5b1e4d39d46af5a7f9bbe2af561ea942"},
-    {file = "bpy-4.3.0-cp311-cp311-win_amd64.whl", hash = "sha256:1a7b2c516aa7a95c31fcaae8842addd07fa86c1ce4768e88a34b480d17e2e93a"},
+    {file = "bpy-4.4.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:3b8736699a6ea06fed33d2e3042cdd5555409d0b51e2b7274f38be3f9bf774f4"},
+    {file = "bpy-4.4.0-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:9609454d84fd4d668adc82f839d14817f56a14179dd0ddf02ac24580be5ca77b"},
+    {file = "bpy-4.4.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:50ee92155cdb8740214fa3b29d9a45ee90cda9dc15eb978860916de468b8580f"},
+    {file = "bpy-4.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:6281ddd11ebe6008db143f422d7dd709c520f3f3574814dd37dda6d9cd85a1ae"},
+    {file = "bpy-4.4.0-cp311-cp311-win_arm64.whl", hash = "sha256:5658b7f9e13dc90a64419038a52585a581fc9ab53ec909bf5199946226f4b0c0"},
 ]
 
 [package.dependencies]
@@ -1826,4 +1827,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~=3.11.6"
-content-hash = "215c1d34a62e76a4df27ff9b8d9a7b360a34d7ed8082c227c9eb8da912459b1c"
+content-hash = "614c0c77ea284aa8ad0c5852035337b32dec2ec197ae1f9c59197cadd0982380"

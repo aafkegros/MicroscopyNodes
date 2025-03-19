@@ -161,5 +161,6 @@ cython_debug/
 #.idea/
 *.abc
 tests/.DS_Store
+tests/test_data/**
 .DS_Store
 .DS_Store
