@@ -1,6 +1,8 @@
 import pytest
 import bpy
+import microscopynodes
 
+microscopynodes._test_register()
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session, exitstatus):

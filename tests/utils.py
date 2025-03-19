@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 test_folder = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data"))
-microscopynodes._test_register()
+
 print('imported utils')
 
 def len_axis(dim, axes_order, shape):
@@ -53,6 +53,7 @@ def make_tif(path, arrtype):
 
 
 def prep_load(arrtype=None):
+    # microscopynodes._test_register()
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
     if arrtype is None:
@@ -71,7 +72,7 @@ def prep_load(arrtype=None):
     return
 
 def do_load():
-    params = microscopynodes.load.load_init()
+    params = microscopynodes.parse_inputs.parse_initial()
     # if platform.system() == 'Linux':
         # bpy.context.scene.MiN_remake = True
     params = microscopynodes.load.load_threaded(params)

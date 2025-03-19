@@ -5,32 +5,28 @@ from pathlib import Path
 from ..handle_blender_structs import *
 from .. import min_nodes
 
-def load_axes(size_px, pixel_size, axes_obj=None, container=None):
-
+def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
+   
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
         nodes = mod.node_group.nodes
-        try:
-            old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-            old_scale = nodes['[Microscopy Nodes scale]'].vector
-            scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
-        except KeyError as e:
-            print(e)
-            scale = default_scale(pixel_size)
+        if not bpy.context.scene.MiN_update_data:
+            try:
+                old_size_px = nodes['[Microscopy Nodes size_px]'].vector
+                old_scale = nodes['[Microscopy Nodes scale]'].vector
+                scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
+            except KeyError as e:
+                print(e)
+                pass
         
         update_axes(nodes, size_px, pixel_size, scale)
-        return axes_obj, scale
+        return axes_obj
 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
-    scale = default_scale(pixel_size)
     center =  tuple(center_loc * size_px*scale )
     axes_obj = init_axes(size_px, pixel_size, scale, center, container)
-    return axes_obj,  scale
-
-def default_scale(pixel_size):
-    init_scale = 0.02
-    scale =  np.array([1,1,pixel_size[-1]/pixel_size[0]])*init_scale
-    return scale
+    axes_obj.parent = container
+    return axes_obj 
 
 def update_axes(nodes, size_px, pixel_size, scale):
     for k, v in zip(["size_px","pixel_size", "scale"], [size_px, pixel_size, scale]):
@@ -127,8 +123,13 @@ def init_axes(size_px, pixel_size, scale, location, container):
 
     node_group.interface.new_socket(name='µm per tick', in_out="INPUT",socket_type='NodeSocketFloat')
     node_group.interface.new_socket(name='Grid', in_out="INPUT",socket_type='NodeSocketBool')
+    
     links.new(inputnode.outputs[0], scale_node.inputs.get('µm per tick'))
     links.new(inputnode.outputs[1], scale_node.inputs.get('Grid'))
+
+    node_group.interface.new_socket(name='Line thickness', in_out="INPUT",socket_type='NodeSocketFloat')
+    links.new(inputnode.outputs[2], scale_node.inputs.get('Line thickness'))
+    axes_obj.modifiers[-1][node_group.interface.items_tree[-1].identifier] =1.0
     
     links.new(axnode_bm.outputs[0], scale_node.inputs.get('Size (m)'))
     links.new(axnode_um.outputs[0], scale_node.inputs.get('Size (µm)'))

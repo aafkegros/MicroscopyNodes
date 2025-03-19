@@ -3,10 +3,9 @@ import tifffile
 import bpy
 
 class TifLoader(ArrayLoader):
-    suffix = '.tif'
+    suffixes = ['.tif', '.TIF', '.tiff', '.TIFF']
 
     def load_array(self, input_file):
-        
         with tifffile.TiffFile(input_file) as ifstif:
             return ifstif.asarray()
 
@@ -19,6 +18,11 @@ class TifLoader(ArrayLoader):
                     context.scene.MiN_axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
                 except Exception as e:
                     context.scene.property_unset("MiN_axes_order")
+                try:
+                    context.scene.MiN_unit =  self.parse_unit(dict(ifstif.imagej_metadata)['unit'])
+                except Exception as e:
+                    print(e)
+                    context.scene.property_unset("MiN_unit")
                 try:
                     context.scene.MiN_xy_size = ifstif.pages[0].tags['XResolution'].value[1]/ifstif.pages[0].tags['XResolution'].value[0]
                 except Exception as e:

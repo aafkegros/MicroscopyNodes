@@ -111,7 +111,7 @@ class VolumeIO(DataIO):
     def make_vdb(self, vdbfname, arr, gridname):
         import pyopenvdb as vdb
         grid = vdb.FloatGrid()
-        grid.name = f"{gridname} data"
+        grid.name = f"data"
         grid.copyFromArray(arr.astype(np.float32))
         # For future OME-Zarr transforms - something like this:
         # grid.transform = vdb.createLinearTransform(np.array([[ 2. ,  0. ,  0. , 8.5],[ 0. ,  2. ,  0. ,  8.5],[ 0. ,  0. ,  2. ,  10.5],[ 0. ,  0. ,  0. ,  1. ]]).T)
@@ -284,7 +284,7 @@ class VolumeObject(ChannelObject):
             ch['metadata'][self.min_type]['datapointer'].grids.load()
             node_attr.attribute_name = ch['metadata'][self.min_type]['datapointer'].grids[0].name
         except Exception:
-            node_attr.attribute_name = f"c{ch['ix']} data"
+            node_attr.attribute_name = f"data"
 
         node_attr.label = ch['name']
         node_attr.hide =True

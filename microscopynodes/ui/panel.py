@@ -1,5 +1,6 @@
 import bpy
 from ..handle_blender_structs.dependent_props import *
+from .preferences import addon_preferences
 
 class TIFLoadPanel(bpy.types.Panel):
     bl_idname = "SCENE_PT_zstackpanel"
@@ -21,36 +22,38 @@ class TIFLoadPanel(bpy.types.Panel):
         if bpy.context.scene.MiN_selected_zarr_level != "":
             col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
         
-        # Create two columns, by using a split layout.
+        
+        # # Create two columns, by using a split layout.
         split = layout.split()
 
         # First column
         col1 = split.column(align=True)
         col1.alignment='RIGHT'
-        col1.label(text="xy pixel size (µm):")
-        col1.label(text="z pixel size (µm):")
+        col1.label(text="xy pixel size:")
+        col1.label(text="z pixel size:")
         col1.label(text="axes:")
-        #  row.label(text="", icon='BLANK1')
-        
-        
-        if not bpy.context.scene.MiN_enable_ui:
-            col1.enabled=False
 
         col2 = split.column(align=True)
-        col2.prop(scn, "MiN_xy_size", emboss=True)
-        col2.prop(scn, "MiN_z_size", emboss=True)
+        
+        rowxy = col2.row(align=True)
+        rowxy.prop(scn, "MiN_xy_size", emboss=True)
+        rowxy.prop(scn, "MiN_unit", emboss=False)
+        
+        rowz = col2.row(align=True)
+        rowz.prop(scn, "MiN_z_size", emboss=True)
+        rowz.prop(scn, "MiN_unit", emboss=False)
+        
         col2.prop(scn, "MiN_axes_order", emboss=True)
-
 
         if 't' in scn.MiN_axes_order:
             col1.label(text='time:')
-            row = col2.row(align=True)
-            row.prop(scn,'MiN_load_start_frame')
-            row.prop(scn,'MiN_load_end_frame')
-
+            rowt = col2.row(align=True)
+            rowt.prop(scn,'MiN_load_start_frame')
+            rowt.prop(scn,'MiN_load_end_frame')
 
         if not bpy.context.scene.MiN_enable_ui:
             col2.enabled=False
+
         
         col = layout.column(align=False)  
 
@@ -94,6 +97,15 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = 'Set environment', icon_value=0, emboss=True)
         row.prop(bpy.context.scene, 'MiN_chunk', emboss=True, text="Chunked", icon_value=0)                   
 
+        row = box.row()
+
+        row.label(text="", icon='CON_SIZELIKE')
+        if bpy.context.scene.MiN_unit == "PIXEL":
+            row.prop(addon_preferences(), 'import_scale_no_unit_spoof', emboss=True,text="")
+        else:
+            row.prop(addon_preferences(), 'import_scale', emboss=True,text="")
+        row.label(text="", icon='ORIENTATION_PARENT')
+        row.prop(addon_preferences(), 'import_loc', emboss=True,text="")
 
 class CacheSelectOperator(bpy.types.Operator):
     """Select local storage location. This will host copies of all data in blender-compatible formats."""

@@ -8,7 +8,7 @@ class ArrayLoader():
     suffix = None
 
     def checkPath(self):
-        return Path(bpy.context.scene.MiN_input_file).suffix == self.suffix
+        return Path(bpy.context.scene.MiN_input_file).suffix in self.suffixes
 
     def changePath(self, context):
         return
@@ -38,6 +38,19 @@ class ArrayLoader():
             if ix >= channels:
                 break
         return 
+
+    def parse_unit(self, unit_str):
+        if unit_str in ['A', 'Å', '\\u00C5','ANGSTROM', 'ÅNGSTROM','ÅNGSTRÖM', 'Ångstrom','angstrom','ångström','ångstrom']:
+            return "ANGSTROM"
+        elif unit_str in ['nm', 'nanometer', 'NM', 'NANOMETER']:
+            return "NANOMETER"
+        elif unit_str in ['\\u00B5m', 'micron', 'micrometer', 'microns', 'um', 'µm']:
+            return "MICROMETER"
+        elif unit_str in ['mm', 'millimeter', 'MM', 'MILLIMETER']:
+            return "MILLIMETER"
+        elif unit_str in ['m', 'meter', 'M', 'METER']:
+            return "METER"
+        return "PIXEL"
 
 
         

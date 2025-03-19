@@ -1,6 +1,16 @@
 import bpy
 
 def preset_environment():
+    bgcol = (0.2,0.2,0.2, 1)
+    emitting = [ch.emission for ch in bpy.context.scene.MiN_channelList if (ch.surface or ch.volume) or ch.labelmask]
+    if all(emitting):
+        bgcol = (0, 0, 0, 1)
+    if all([(not emit) for emit in emitting]):
+        bgcol = (1, 1, 1, 1)
+    try:
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
+    except:
+        pass
     bpy.context.scene.eevee.volumetric_tile_size = '1'
     bpy.context.scene.cycles.preview_samples = 8
     bpy.context.scene.cycles.samples = 64
