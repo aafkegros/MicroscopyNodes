@@ -109,7 +109,12 @@ class VolumeIO(DataIO):
         return str(dirpath), time_vdbs, time_hists
 
     def make_vdb(self, vdbfname, arr, gridname):
-        import pyopenvdb as vdb
+        try:
+            import openvdb as vdb
+        except:
+            bpy.utils.expose_bundled_modules()
+            import openvdb as vdb
+            pass
         grid = vdb.FloatGrid()
         grid.name = f"data"
         grid.copyFromArray(arr.astype(np.float32))

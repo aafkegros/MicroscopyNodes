@@ -100,7 +100,8 @@ class ChannelObject():
             return
 
         for ix, socket in enumerate(self.node_group.interface.items_tree):
-            if ch['identifier'] in socket.default_attribute_name:
+            
+            if isinstance(socket, bpy.types.NodeTreeInterfaceSocket) and ch['identifier'] in socket.default_attribute_name:
                 set_name_socket(socket, ch['name'])
         
         self.update_gn(ch)

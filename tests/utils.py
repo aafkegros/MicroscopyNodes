@@ -74,7 +74,7 @@ def prep_load(arrtype=None):
 def do_load():
     params = microscopynodes.parse_inputs.parse_initial()
     # if platform.system() == 'Linux':
-        # bpy.context.scene.MiN_remake = True
+    bpy.context.scene.MiN_remake = True
     params = microscopynodes.load.load_threaded(params)
     microscopynodes.load.load_blocking(params)
     return params[0]
