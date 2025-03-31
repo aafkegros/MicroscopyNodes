@@ -8,7 +8,5 @@ from .nodeBoundedMapRange import bounded_map_range_node_group
 from .nodeSliceCube import slice_cube_node_group
 
 from . import shader_nodes
-from .shader_nodes import MIN_add_shader_node_menu
-
 
 CLASSES =shader_nodes.CLASSES

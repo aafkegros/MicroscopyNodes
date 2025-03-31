@@ -214,7 +214,7 @@ class VolumeObject(ChannelObject):
             print(e, " skipping update of shader")
             return
 
-        min_nodes.shader_nodes.set_color_ramp(ch, lut)
+        min_nodes.shader_nodes.set_color_ramp_from_ch(ch, lut)
 
 
         if '[shaderframe]' not in node_names:

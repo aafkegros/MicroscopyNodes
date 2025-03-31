@@ -4,7 +4,6 @@ import cmap
 
 
 def volume_alpha_node():
-    # decorates the color ramp with convenience functions especially useful for volumes
     node_group = bpy.data.node_groups.get("Volume Transparency")
     if node_group:
         return node_group
@@ -26,7 +25,7 @@ def volume_alpha_node():
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 100.0
     interface.new_socket("Alpha Multiplier", in_out="INPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 0.1
+    interface.items_tree[-1].default_value = 0.0
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 100.0

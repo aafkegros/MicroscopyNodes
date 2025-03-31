@@ -10,15 +10,15 @@ def remap_oid_node():
 
     interface.new_socket("Value", in_out="INPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.new_socket("Use Modulus", in_out="INPUT",socket_type='NodeSocketBool')
+    interface.new_socket("Revolving Colormap", in_out="INPUT",socket_type='NodeSocketBool')
     interface.items_tree[-1].default_value = True
     interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.new_socket("Modulus", in_out="INPUT",socket_type='NodeSocketInt')
+    interface.new_socket("# Colors", in_out="INPUT",socket_type='NodeSocketInt')
     interface.items_tree[-1].default_value = 10
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0
     interface.items_tree[-1].max_value = 32
-    interface.new_socket("Maximum", in_out="INPUT",socket_type='NodeSocketInt')
+    interface.new_socket("# Objects", in_out="INPUT",socket_type='NodeSocketInt')
     interface.items_tree[-1].default_value = 100
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0
@@ -33,12 +33,12 @@ def remap_oid_node():
     mod.location = (200, 0)
     mod.operation = "MODULO"
     links.new(group_input.outputs.get("Value"), mod.inputs[0])
-    links.new(group_input.outputs.get("Modulus"), mod.inputs[1])
+    links.new(group_input.outputs.get("# Colors"), mod.inputs[1])
     
     add = node_group.nodes.new("ShaderNodeMath")
     add.location = (200, -200)
     add.operation = "ADD"
-    links.new(group_input.outputs.get("Modulus"), add.inputs[0])
+    links.new(group_input.outputs.get("# Colors"), add.inputs[0])
     add.inputs[1].default_value = 1
 
     map_range = node_group.nodes.new("ShaderNodeMapRange")
@@ -49,11 +49,11 @@ def remap_oid_node():
     map_range2 = node_group.nodes.new("ShaderNodeMapRange")
     map_range2.location = (400, -300)
     links.new(group_input.outputs.get('Value'), map_range2.inputs[0])
-    links.new(group_input.outputs.get('Maximum'), map_range2.inputs[2])
+    links.new(group_input.outputs.get('# Objects'), map_range2.inputs[2])
     
     mix = node_group.nodes.new("ShaderNodeMix")
     mix.location = (600, -100)
-    links.new(group_input.outputs.get('Use Modulus'), mix.inputs[0])
+    links.new(group_input.outputs.get('Revolving Colormap'), mix.inputs[0])
     links.new(map_range.outputs[0], mix.inputs[3])
     links.new(map_range2.outputs[0], mix.inputs[2])
 

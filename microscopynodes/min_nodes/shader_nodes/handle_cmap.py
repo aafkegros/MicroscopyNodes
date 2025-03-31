@@ -2,8 +2,12 @@ import bpy
 import cmap
 
 
-def set_color_ramp(ch, ramp_node):
-    lut, linear = get_lut(ch)
+def set_color_ramp_from_ch(ch, ramp_node):
+    lut, linear = get_lut(ch['cmap'], ch['single_color'])
+    set_color_ramp(ramp_node, lut, linear, ch['cmap'])
+    return
+
+def set_color_ramp(ramp_node, lut, linear, name):
     for stop in range(len(ramp_node.color_ramp.elements) -2):
         ramp_node.color_ramp.elements.remove( ramp_node.color_ramp.elements[0] )
 
@@ -16,13 +20,12 @@ def set_color_ramp(ch, ramp_node):
         ramp_node.color_ramp.interpolation = "CONSTANT"
     else:
         ramp_node.color_ramp.interpolation = "LINEAR"
-    ramp_node.label = ch['cmap'].capitalize()
+    ramp_node.label = name.capitalize()
     return
 
-def get_lut(ch):
-    name = ch['cmap']
+def get_lut(name, single_color):
     if name.lower() == "single_color":
-        lut = [[0,0,0,1], [*ch['single_color'],1]]
+        lut = [[0,0,0,1], [*single_color,1]]
         linear = True
     else:
         lut = cmap.Colormap(name.lower()).lut(min(len(cmap.Colormap(name.lower()).lut()), 32))

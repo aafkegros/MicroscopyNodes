@@ -116,7 +116,7 @@ class SurfaceObject(ChannelObject):
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
             color = min_nodes.shader_nodes.get_lut(ch)[-1]
             colornode = mat.node_tree.nodes.get(f"[color_lut]")
-            min_nodes.shader_nodes.set_color_ramp(ch, colornode)
+            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, colornode)
             if ch['emission'] and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
             elif not ch['emission'] and princ.inputs[28].default_value == 0.5:

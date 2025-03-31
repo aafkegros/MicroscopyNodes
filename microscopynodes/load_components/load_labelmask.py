@@ -218,7 +218,7 @@ class LabelmaskObject(ChannelObject):
         remap.name = '[remap_oid]'
         remap.location = (-600, 300)
         remap.show_options = False
-        remap.inputs.get('Maximum').default_value = ch['metadata'][self.min_type]['max']
+        remap.inputs.get('# Objects').default_value = ch['metadata'][self.min_type]['max']
         links.new(idnode.outputs.get('Color'), remap.inputs.get('Value'))
 
         color_lut = nodes.new(type="ShaderNodeValToRGB")
@@ -236,9 +236,9 @@ class LabelmaskObject(ChannelObject):
     def update_material(self, mat, ch):
         try:
             nodes =  mat.node_tree.nodes
-            min_nodes.shader_nodes.set_color_ramp(ch, nodes.get('[color_lut]'))
-            nodes.get('[remap_oid]').inputs.get('Use Modulus').default_value = (nodes.get('[color_lut]').color_ramp.interpolation == 'CONSTANT')
-            nodes.get('[remap_oid]').inputs.get('Modulus').default_value = len(nodes.get('[color_lut]').color_ramp.elements) -1
+            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes.get('[color_lut]'))
+            nodes.get('[remap_oid]').inputs.get('Revolving Colormap').default_value = (nodes.get('[color_lut]').color_ramp.interpolation == 'CONSTANT')
+            nodes.get('[remap_oid]').inputs.get('# Colors').default_value =max(len(nodes.get('[color_lut]').color_ramp.elements) -1, 5)
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
             if ch['emission'] and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
