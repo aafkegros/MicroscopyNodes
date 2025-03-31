@@ -2,6 +2,8 @@ import bpy
 
 from .load_generic import *
 from ..handle_blender_structs import *
+from .. import min_nodes
+
     
 class SurfaceIO(DataIO):
     def import_data(self, ch, scale):
@@ -31,17 +33,18 @@ class SurfaceObject(ChannelObject):
         
         princ = nodes.get("Principled BSDF")
         princ.name = f"[{ch['identifier']}] principled"
-        color = get_cmap('default_ch')[ch['ix'] % len(get_cmap('default_ch'))]
-        princ.inputs.get('Base Color').default_value = color
-        princ.inputs[26].default_value = color
 
-        colornode = nodes.new("ShaderNodeRGB")
-        colornode.location = (princ.location[0]-200, princ.location[1])
-        colornode.outputs[0].default_value = color
-        links.new(colornode.outputs[0], princ.inputs.get('Base Color'))
-        links.new(colornode.outputs[0], princ.inputs[26])
+        color_lut = nodes.new(type="ShaderNodeValToRGB")
+        color_lut.location = (princ.location[0]-400, princ.location[1])
+        color_lut.width = 300
+        color_lut.name = "[color_lut]"
+        color_lut.outputs[1].hide = True
+        color_lut.inputs[0].default_value = 1
 
-        princ.inputs.get('Alpha').default_value = 0.5
+        links.new(color_lut.outputs[0], princ.inputs.get('Base Color'))
+        links.new(color_lut.outputs[0], princ.inputs[27])
+
+        princ.inputs.get('Alpha').default_value = 0.8
         return mat
 
     def append_channel_to_holder(self, ch):
@@ -111,11 +114,14 @@ class SurfaceObject(ChannelObject):
     def update_material(self, mat, ch):
         try:
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
-            if ch['emission'] and princ.inputs[27].default_value == 0.0:
-                princ.inputs[27].default_value = 0.5
-            elif not ch['emission'] and princ.inputs[27].default_value == 0.5:
-                princ.inputs[27].default_value = 0
-        except Exception(e):
+            color = min_nodes.shader_nodes.get_lut(ch)[-1]
+            colornode = mat.node_tree.nodes.get(f"[color_lut]")
+            min_nodes.shader_nodes.set_color_ramp(ch, colornode)
+            if ch['emission'] and princ.inputs[28].default_value == 0.0:
+                princ.inputs[28].default_value = 0.5
+            elif not ch['emission'] and princ.inputs[28].default_value == 0.5:
+                princ.inputs[28].default_value = 0
+        except Exception as e:
             print(e, 'in update surface shader')
             pass
         return

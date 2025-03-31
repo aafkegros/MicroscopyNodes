@@ -39,6 +39,7 @@ def load_threaded(params):
 def load_blocking(params):
     # loads from the modal/threaded implementation
     ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
+    prev_active_obj = bpy.context.active_object
     scn = bpy.context.scene
 
     # reads env variables

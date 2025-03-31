@@ -2,9 +2,9 @@ import bpy
 
 
 def ignore_extremes_node_group():
-#    node_group = bpy.data.node_groups.get("Ignore Extremes")
-#    if node_group:
-#        return node_group
+    node_group = bpy.data.node_groups.get("Ignore Extremes")
+    if node_group:
+        return node_group
     node_group= bpy.data.node_groups.new(type = 'ShaderNodeTree', name = "Ignore Extremes")
     links = node_group.links
     interface = node_group.interface

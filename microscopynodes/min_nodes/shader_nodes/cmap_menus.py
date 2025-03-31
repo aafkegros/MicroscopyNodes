@@ -21,8 +21,8 @@ def cmap_submenu_class(category, namespace=None):
                 self.layout.menu(cmap_bl(self.category, namespace)[0], text=cmap_bl(category, namespace)[1])
         else:
             for cmap in cmaps(self.category, self.namespace):
-                op = self.layout.operator("microscopynodes.add_shader_node_group", text=cmap)
-                op.cmap_name = cmap
+                op_ = self.layout.operator( "microscopynodes.add_lut", text=cmap)
+                op_.cmap_name = cmap
 #            menu_items.get_submenu("utils").menu(self.layout, context)
     
     cls_elements = {
@@ -62,23 +62,15 @@ def cmap_catalog():
         for cmap_name in cmap.Catalog().unique_keys(categories=[category], prefer_short_names=False):
             yield category, cmap_name.split(':')[0],  cmap_name.split(':')[1]
 
-def draw_category_menus(self, context):
+def draw_category_menus(self, context, op):
     for category in CMAP_CATEGORIES:
         self.layout.menu(cmap_bl(category)[0], text=cmap_bl(category)[1].capitalize(), icon=CMAP_CATEGORIES[category])
-    self.layout.operator("microscopynodes.load_background", text="Single Color", icon="MESH_PLANE")
-    self.layout.operator("microscopynodes.load_background", text="From Fiji LUT...", icon="FILE")
+    self.layout.operator(op, text="Single Color", icon="MESH_PLANE")
+    self.layout.operator(op, text="From Fiji LUT...", icon="FILE")
 
 
 
-class MIN_MT_CMAPS(bpy.types.Menu):
-    bl_idname = "MIN_MT_CMAPS"
-    bl_label = "Menu for adding LUTs to a shader tree"
-
-    def draw(self, context):
-        draw_category_menus(self, context)
-
-CLASSES = [MIN_MT_CMAPS]
-CLASSES.extend([cmap_submenu_class(category) for category in CMAP_CATEGORIES])
+CLASSES = [cmap_submenu_class(category) for category in CMAP_CATEGORIES]
 for category in CMAP_CATEGORIES:
     CLASSES.extend([cmap_submenu_class(category, namespace) for namespace in cmap_namespaces(categories=category)])
 

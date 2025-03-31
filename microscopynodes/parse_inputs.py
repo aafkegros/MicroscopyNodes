@@ -27,7 +27,7 @@ def parse_channellist(channellist):
     # initializes ch_dicts, which holds data and metadata, such as user settings, per channel
     ch_dicts = []
     for channel in bpy.context.scene.MiN_channelList:
-        ch_dicts.append({k:v for k,v in channel.items()}) # take over settings from UI
+        ch_dicts.append({k:getattr(channel,k) for k in channel.keys()}) # take over settings from UI - uses getattr to get enum names
         for key in min_keys: # rename ui-keys to enum for which objects to load
             if key.name.lower() in ch_dicts[-1]:
                 ch_dicts[-1][key] = ch_dicts[-1][key.name.lower()]
@@ -36,6 +36,7 @@ def parse_channellist(channellist):
         ch_dicts[-1]['collections'] = {}
         ch_dicts[-1]['metadata'] = {}
         ch_dicts[-1]['local_files'] = {}
+        ch_dicts[-1]['surf_resolution'] = int(addon_preferences(bpy.context).surf_resolution)
     return ch_dicts
 
 def parse_unit(string):

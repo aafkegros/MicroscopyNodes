@@ -5,17 +5,18 @@ from bpy.props import (StringProperty, FloatProperty,
                         PointerProperty, IntProperty,
                         BoolProperty, EnumProperty
                         )
-from .nodeCmap import cmap_node
+# from .nodeCmap import cmap_node
 
 # adapted from Molecular Nodes
 class MIN_OT_Add_Cmap_Node_Group(Operator):
-    bl_idname = "microscopynodes.add_shader_node_group"
+    bl_idname = "microscopynodes.add_lut"
     bl_label = "Add Shader Node Group"
 
     bl_options = {"REGISTER", "UNDO"}
     cmap_name: StringProperty(  # type: ignore
         name="cmap", description="", default="", subtype="NONE", maxlen=0
     )
+    description: StringProperty(name="Description")
 
     @classmethod
     def description(cls, context, properties):
@@ -49,7 +50,7 @@ def _add_cmap(cmap_name, context, show_options=False, material="default"):
         "INVOKE_DEFAULT", type="ShaderNodeGroup", use_transform=True
     )
     node = context.active_node
-    node.node_tree = cmap_node(cmap_name)
+    # node.node_tree = cmap_node(cmap_name)
     node.width = 200
     node.show_options = show_options
     node.label = f"Apply {cmap_name.capitalize()}  LUT"
