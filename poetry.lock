@@ -412,6 +412,28 @@ files = [
 ]
 
 [[package]]
+name = "cmap"
+version = "0.6.0"
+description = "Scientific colormaps for python, without dependencies"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "cmap-0.6.0-py3-none-any.whl", hash = "sha256:7196d1632f0105024aaf570c216b10e7db5a064dadc1f74a3558e911bc1a783b"},
+    {file = "cmap-0.6.0.tar.gz", hash = "sha256:26b305847e7d722f1be42c2b339417222711da13852f9a123a57a0d100827197"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[package.extras]
+dev = ["bokeh", "colorspacious", "colour", "ipython", "matplotlib", "mypy", "napari (>=0.5.0)", "numba", "numba (<0.61) ; python_version < \"3.12\"", "pdbpp", "plotly", "pre-commit", "pydantic", "pydantic-extra-types (>=2,!=2.10.1)", "pygfx", "pyqt6", "pyqtgraph", "pytest", "pytest (>=6.0)", "pytest-cov", "pytest-qt", "qtpy", "rich", "ruff", "viscm ; python_version < \"3.13\"", "vispy (>=0.14)"]
+docs = ["colorcet", "colorspacious", "imageio", "mkdocs", "mkdocs-api-autonav", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-material", "mkdocs-minify-plugin", "mkdocstrings-python", "natsort"]
+test = ["pytest (>=6.0)", "pytest-cov"]
+test-min = ["pytest (>=6.0)"]
+test-thirdparty = ["bokeh", "colorspacious", "colour", "matplotlib", "napari (>=0.5.0)", "numba", "numba (<0.61) ; python_version < \"3.12\"", "plotly", "pydantic", "pydantic-extra-types (>=2,!=2.10.1)", "pygfx", "pyqtgraph", "pytest (>=6.0)", "pytest-cov", "pytest-qt", "qtpy", "rich", "viscm ; python_version < \"3.13\"", "vispy (>=0.14)"]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -1827,4 +1849,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~=3.11.6"
-content-hash = "614c0c77ea284aa8ad0c5852035337b32dec2ec197ae1f9c59197cadd0982380"
+content-hash = "13b974b911d9007961d73ede9feec157e6df9dc1b8b7e13408cdfe6d3508ea95"

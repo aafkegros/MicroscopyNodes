@@ -7,6 +7,7 @@ import os
 
 from ..handle_blender_structs import *
 from .load_generic import *
+from .. import min_nodes
 
 class LabelmaskIO(DataIO):
     min_type = min_keys.LABELMASK
@@ -211,48 +212,40 @@ class LabelmaskObject(ChannelObject):
         idnode =  nodes.new("ShaderNodeVertexColor")
         idnode.layer_name = 'object id'
         idnode.location = (-800, 300)
-        
-        mod = nodes.new("ShaderNodeMath")
-        mod.operation = "MODULO"
-        mod.location =(-600, 300)
-        links.new(idnode.outputs.get('Color'), mod.inputs[0])
-        mod.inputs[1].default_value = 10
-        
-        map_range = nodes.new(type='ShaderNodeMapRange')
-        map_range.location = (-450, 300)
-        map_range.inputs[1].default_value = 0
-        map_range.inputs[2].default_value = 11
-        links.new(mod.outputs[0],map_range.inputs[0])
-        
-        tab10 = nodes.new(type="ShaderNodeValToRGB")
-        tab10.location = (-300, 300)
-        get_cmap('mpl-tab10', ramp=tab10)
-        links.new(map_range.outputs[0], tab10.inputs.get('Fac'))
-        links.new(tab10.outputs[0], princ.inputs.get("Base Color"))
-        links.new(tab10.outputs[0], princ.inputs[27])
-        
-        # make optional linear colormap
-        map_range_lin = nodes.new(type='ShaderNodeMapRange')
-        map_range_lin.location = (-450, 0)
-        map_range_lin.inputs[1].default_value = 0
-        map_range_lin.inputs[2].default_value = ch['metadata'][self.min_type]['max']
-        links.new(idnode.outputs.get('Color'),map_range_lin.inputs[0])
-        
-        vir = nodes.new(type="ShaderNodeValToRGB")
-        vir.location = (-300, 0)
-        get_cmap('mpl-viridis', ramp=vir)
-        links.new(map_range_lin.outputs[0], vir.inputs.get('Fac'))
+
+        remap = nodes.new('ShaderNodeGroup')
+        remap.node_tree = min_nodes.shader_nodes.remap_oid_node()
+        remap.name = '[remap_oid]'
+        remap.location = (-600, 300)
+        remap.show_options = False
+        remap.inputs.get('# Objects').default_value = ch['metadata'][self.min_type]['max']
+        links.new(idnode.outputs.get('Color'), remap.inputs.get('Value'))
+
+        color_lut = nodes.new(type="ShaderNodeValToRGB")
+        color_lut.location = (-350, 300)
+        color_lut.width = 300
+        color_lut.name = "[color_lut]"
+        color_lut.outputs[1].hide = True
+        links.new(remap.outputs[0], color_lut.inputs[0])
+
+        links.new(color_lut.outputs[0], princ.inputs.get("Base Color"))
+        links.new(color_lut.outputs[0], princ.inputs[27])
         return mat
 
 
     def update_material(self, mat, ch):
         try:
+            nodes =  mat.node_tree.nodes
+            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes.get('[color_lut]'))
+            nodes.get('[remap_oid]').inputs.get('Revolving Colormap').default_value = (nodes.get('[color_lut]').color_ramp.interpolation == 'CONSTANT')
+            nodes.get('[remap_oid]').inputs.get('# Colors').default_value =max(len(nodes.get('[color_lut]').color_ramp.elements) -1, 5)
             princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
             if ch['emission'] and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
             elif not ch['emission'] and princ.inputs[28].default_value == 0.5:
                 princ.inputs[28].default_value = 0
-        except:
+        except Exception as e:
+            print(e)
             pass
         return
         

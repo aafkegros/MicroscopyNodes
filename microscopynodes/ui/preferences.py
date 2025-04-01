@@ -38,12 +38,22 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         description= "Defines the coordinate translation after import from input space to Blender meters",
         default='XY_CENTER',
     )
-
+    surf_resolution : bpy.props.EnumProperty(
+        name = "Meshing density of surfaces and masks",
+        items=[
+            ("0", "Actual","Takes the actual grid size, most accurate, but heavy on RAM." ,"EVENT_A", 0),
+            ("1", "Fine", "Close to actual grid meshing, but more flexible" ,"EVENT_F", 1),
+            ("2", "Medium", "Medium density mesh","EVENT_M", 2),
+            ("3", "Coarse","Coarse mesh minimizes the RAM usage of surface encoding.", "EVENT_C", 3),
+        ], 
+        description= "Coarser will be less RAM intensive",
+        default='0',
+    )
     def draw(self, context):
         layout = self.layout
-        # col = layout.column()
+        col = layout.column()
         # col.label(text="Transformations upon import:")
-        # col.prop(self, "import_scale", emboss=False)
+        col.prop(self, "surf_resolution")
         # col.prop(self, "import_loc", emboss=False)
 
 class DictWithElements:

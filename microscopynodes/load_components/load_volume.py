@@ -139,6 +139,9 @@ class VolumeIO(DataIO):
             vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
             vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
             vol.data.render.clipping = 1/ (2**17)
+            # vol.data.display.density = 1e-5
+            # vol.data.display.interpolation_method = 'CLOSEST'
+
             
             vol.location = tuple((np.array(chunk['pos']) * scale))  
         
@@ -152,7 +155,8 @@ class VolumeIO(DataIO):
         if np.sum(histtotal)> 0:
             metadata['range'] = get_leading_trailing_zero_float(histtotal)
             metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
-            metadata['threshold'] = skimage.filters.threshold_isodata(hist=metadata['histogram'] )/len(metadata['histogram'] )  
+            threshold = skimage.filters.threshold_isodata(hist=metadata['histogram'] )
+            metadata['threshold'] = threshold/len(metadata['histogram'] )  
         if ch['threshold'] != -1:
             metadata['threshold'] = ch['threshold']
         return vol_collection, metadata
@@ -202,18 +206,24 @@ class VolumeObject(ChannelObject):
 
         try:
             ch_load = nodes[f"[channel_load_{ch['identifier']}]"]
-            shader_in = nodes['[shader_in]']
+            shader_in_color = nodes['[shader_in_color]']
+            shader_in_alpha = nodes['[shader_in_alpha]']
             shader_out = nodes['[shader_out]']
+            lut = nodes['[color_lut]']
         except KeyError as e:
             print(e, " skipping update of shader")
             return
+
+        min_nodes.shader_nodes.set_color_ramp_from_ch(ch, lut)
+
 
         if '[shaderframe]' not in node_names:
             shaderframe = nodes.new('NodeFrame')
             shaderframe.name = '[shaderframe]'
             shaderframe.use_custom_color = True
             shaderframe.color = (0.2,0.2,0.2)
-            shader_in.parent = shaderframe
+            shader_in_color.parent = shaderframe
+            shader_in_alpha.parent = shaderframe
             shader_out.parent = shaderframe
         else:
             shaderframe = nodes['[shaderframe]']
@@ -234,28 +244,22 @@ class VolumeObject(ChannelObject):
             emit = nodes.new(type='ShaderNodeEmission')
             emit.name = '[emit]'
             emit.location = (250,0)
-            links.new(shader_in.outputs[0], emit.inputs.get('Color'))
+            links.new(shader_in_color.outputs[0], emit.inputs.get('Color'))
+            links.new(shader_in_alpha.outputs[0], emit.inputs[1])
             links.new(emit.outputs[0], shader_out.inputs[0])
             emit.parent=shaderframe
         else:
-            scale = nodes.new(type='ShaderNodeVectorMath')
-            scale.name = "scale [absorb]"
-            scale.location = (-150,-100)
-            scale.operation = "SCALE"
-            links.new(shader_in.outputs[0], scale.inputs.get("Vector"))
-            scale.inputs.get('Scale').default_value = 1
-            scale.parent=shaderframe
             
             adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
             adsorb.name = 'absorb [absorb]'
             adsorb.location = (50,-100)
-            links.new(shader_in.outputs[0], adsorb.inputs.get('Color'))
-            links.new(scale.outputs[0], adsorb.inputs.get('Density'))
+            links.new(shader_in_color.outputs[0], adsorb.inputs.get('Color'))
+            links.new(shader_in_alpha.outputs[0], adsorb.inputs.get('Density'))
             scatter = nodes.new(type='ShaderNodeVolumeScatter')
             scatter.name = 'scatter absorb'
             scatter.location = (250,-200)
-            links.new(shader_in.outputs[0], scatter.inputs.get('Color'))
-            links.new(scale.outputs[0], scatter.inputs.get('Density'))
+            links.new(shader_in_color.outputs[0], scatter.inputs.get('Color'))
+            links.new(shader_in_alpha.outputs[0], scatter.inputs.get('Density'))
             scatter.parent=shaderframe
 
             add = nodes.new(type='ShaderNodeAddShader')
@@ -267,7 +271,7 @@ class VolumeObject(ChannelObject):
             add.parent=shaderframe
 
         for node in nodes:
-            if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
+            if (len(node.inputs) > 0 and not node.hide) and node.name != '[alpha_ramp]':
                 node.inputs[0].show_expanded = True
         return
 
@@ -282,7 +286,7 @@ class VolumeObject(ChannelObject):
             nodes.remove(nodes.get("Principled Volume"))
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
-        node_attr.location = (-1400, 0)
+        node_attr.location = (-1600, 0)
         node_attr.name = f"[channel_load_{ch['identifier']}]"
 
         try:
@@ -295,7 +299,7 @@ class VolumeObject(ChannelObject):
         node_attr.hide =True
 
         normnode = nodes.new(type="ShaderNodeMapRange")
-        normnode.location = (-1200, 0)
+        normnode.location = (-1400, 0)
         normnode.label = "Normalize data"
         normnode.inputs[1].default_value = ch['metadata'][self.min_type]['range'][0]       
         normnode.inputs[2].default_value = ch['metadata'][self.min_type]['range'][1]    
@@ -303,26 +307,53 @@ class VolumeObject(ChannelObject):
         normnode.hide = True
 
         ramp_node = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node.location = (-1000, 0)
+        ramp_node.location = (-1200, 0)
         ramp_node.width = 1000
         ramp_node.color_ramp.elements[0].position = ch['metadata'][self.min_type]['threshold']
+        
+
+        ramp_node.color_ramp.elements[0].color = (1,1,1,0)
+        ramp_node.color_ramp.elements[1].color = (1,1,1,1)
         ramp_node.color_ramp.elements[1].position = 1
+        ramp_node.name = '[alpha_ramp]'
+        ramp_node.label = "Pixel Intensities"
+        # if 'threshold_upper' in ch['metadata'][self.min_type]:
+        #     ramp_node.color_ramp.elements[1].position = ch['metadata'][self.min_type]['threshold_upper']
+        ramp_node.outputs[0].hide = True
         links.new(normnode.outputs.get('Result'), ramp_node.inputs.get("Fac"))  
 
-        self.draw_histogram(nodes, (-1000, 300), 1000, ch['metadata'][self.min_type]['histogram'])
+        self.draw_histogram(nodes, (-1200, 300), 1000, ch['metadata'][self.min_type]['histogram'])
 
-        color = get_cmap('default_ch')[ch['ix'] % len(get_cmap('default_ch'))]
-        ramp_node.color_ramp.elements[1].color = (color[0],color[1],color[2],color[3])  
+        alphanode =  nodes.new('ShaderNodeGroup')
+        alphanode.node_tree = min_nodes.shader_nodes.volume_alpha_node()
+        alphanode.location = (-300, -120)
+        alphanode.show_options = False
+        links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
+        alphanode.width = 300
 
-        shader_in = nodes.new('NodeReroute')
-        shader_in.name = f"[shader_in]"
-        shader_in.location = (-200, 0)
-        links.new(ramp_node.outputs[0], shader_in.inputs[0])
+
+        color_lut = nodes.new(type="ShaderNodeValToRGB")
+        color_lut.location = (-300, 120)
+        color_lut.width = 300
+        color_lut.name = "[color_lut]"
+        color_lut.outputs[1].hide = True
+        links.new(ramp_node.outputs[1], color_lut.inputs[0])
+        
+
+        shader_in_color = nodes.new('NodeReroute')
+        shader_in_color.name = f"[shader_in_color]"
+        shader_in_color.location = (100, 0)
+        links.new(color_lut.outputs[0], shader_in_color.inputs[0])
+
+        shader_in_alpha = nodes.new('NodeReroute')
+        shader_in_alpha.name = f"[shader_in_alpha]"
+        shader_in_alpha.location = (100, -50)
+        links.new(alphanode.outputs[0], shader_in_alpha.inputs[0])
         
         shader_out = nodes.new('NodeReroute')
         shader_out.location = (600, 0)
         shader_out.name = f"[shader_out]"
-        
+
         if nodes.get("Material Output") is None:
             outnode = nodes.new(type='ShaderNodeOutputMaterial')
             outnode.name = 'Material Output'

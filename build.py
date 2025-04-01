@@ -48,7 +48,7 @@ required_packages = [
     "numcodecs==0.13.0",
     "fsspec==2024.6.0",
     "aiohttp==3.10.3",
-    
+    'cmap==0.6.0'
     # asciitree is permanently added
 
     # development

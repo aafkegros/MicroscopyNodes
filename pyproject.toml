@@ -18,6 +18,7 @@ dask = "*"
 imagecodecs = "*"
 aiohttp = "*"
 fsspec = "*"
+cmap = "*"
 
 
 [tool.poetry.dev-dependencies]

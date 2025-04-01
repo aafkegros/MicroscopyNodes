@@ -1,3 +1,4 @@
 # This gets evaluated instead of the addon preferences in cases where only bpy is loaded
 import_scale: DEFAULT # out of DEFAULT, NANOMETER_SCALE, MICROMETER_SCALE, MILLIMETER_SCALE, METER_SCALE, MOLECULAR_NODES
 import_loc: XY_CENTER # out of XY_CENTER, XYZ_CENTER, ZERO
+surf_resolution: 0
