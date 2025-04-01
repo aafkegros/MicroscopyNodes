@@ -64,7 +64,6 @@ def draw_category_menus(self, context, op, opname):
         self.layout.menu(cmap_bl(category, opname=opname)[0], text=cmap_bl(category,opname=opname)[1].capitalize(), icon=CMAP_CATEGORIES[category])
     op_ = self.layout.operator(op, text="Single Color", icon="MESH_PLANE")
     op_.cmap_name = 'single_color'
-    self.layout.operator(op, text="From Fiji LUT...", icon="FILE")
 
 
 CLASSES = []
