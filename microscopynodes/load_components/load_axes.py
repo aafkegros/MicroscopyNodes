@@ -6,20 +6,9 @@ from ..handle_blender_structs import *
 from .. import min_nodes
 
 def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
-   
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
-        nodes = mod.node_group.nodes
-        if not bpy.context.scene.MiN_update_data:
-            try:
-                old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-                old_scale = nodes['[Microscopy Nodes scale]'].vector
-                scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
-            except KeyError as e:
-                print(e)
-                pass
-        
-        update_axes(nodes, size_px, pixel_size, scale)
+        update_axes(mod, size_px, pixel_size, scale)
         return axes_obj
 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)
@@ -28,7 +17,11 @@ def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
     axes_obj.parent = container
     return axes_obj 
 
-def update_axes(nodes, size_px, pixel_size, scale):
+def update_axes(mod, size_px, pixel_size, scale):
+    node_group = mod.node_group
+    nodes = node_group.nodes
+    if 'per tick' in node_group.interface.items_tree[1].name:
+        node_group.interface.items_tree[1].name = f"{get_readable_enum('MiN_unit', bpy.context.scene.MiN_unit)} per tick"
     for k, v in zip(["size_px","pixel_size", "scale"], [size_px, pixel_size, scale]):
         nodes[f"[Microscopy Nodes {k}]"].vector = v
     return
@@ -63,7 +56,7 @@ def init_axes(size_px, pixel_size, scale, location, container):
     initscale_node.vector = scale
 
     scale_node = nodes.new('FunctionNodeInputVector')
-    scale_node.label = 'scale (µm/px)'
+    scale_node.label = 'scale (unit/px)'
     scale_node.name = '[Microscopy Nodes pixel_size]'
     scale_node.vector = pixel_size
     scale_node.location = (-800, -200)
@@ -121,10 +114,10 @@ def init_axes(size_px, pixel_size, scale, location, container):
     scale_node.width = 300
     scale_node.location = (200, 100)
 
-    node_group.interface.new_socket(name='µm per tick', in_out="INPUT",socket_type='NodeSocketFloat')
+    node_group.interface.new_socket(name=f"{get_readable_enum('MiN_unit', bpy.context.scene.MiN_unit)} per tick", in_out="INPUT",socket_type='NodeSocketFloat')
     node_group.interface.new_socket(name='Grid', in_out="INPUT",socket_type='NodeSocketBool')
     
-    links.new(inputnode.outputs[0], scale_node.inputs.get('µm per tick'))
+    links.new(inputnode.outputs[0], scale_node.inputs.get(f'µm per tick'))
     links.new(inputnode.outputs[1], scale_node.inputs.get('Grid'))
 
     node_group.interface.new_socket(name='Line thickness', in_out="INPUT",socket_type='NodeSocketFloat')
@@ -146,7 +139,7 @@ def init_axes(size_px, pixel_size, scale, location, container):
     ticks = max_um // nice_nrs
     dists = np.abs(ticks[ticks >= min_ticks] - target_nr_of_ticks)
     tick_um = nice_nrs[ticks >= min_ticks].flatten()[np.argmin(dists)]
-    scale_node.inputs.get("µm per tick").default_value = tick_um
+    scale_node.inputs.get(f'µm per tick').default_value = tick_um
     # set input values
     axes_obj.modifiers[-1][node_group.interface.items_tree[0].identifier] = tick_um
     axes_obj.modifiers[-1][node_group.interface.items_tree[1].identifier] = True

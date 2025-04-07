@@ -93,11 +93,12 @@ class VolumeIO(DataIO):
                     histfname.unlink()
                 log(f"loading chunk {identifier5d}")
                 arr = frame.compute()
+                
                 arr = expand_to_xyz(arr, frame_axes_order) 
                 try:
-                    arr = arr.astype(np.float32) / np.iinfo(imgdata.dtype).max # scale between 0 and 1
-                except ValueError:
-                    arr = arr.astype(np.float32) / ch['max_val']
+                    arr = arr.astype(np.float32) / min(np.iinfo(imgdata.dtype).max, np.iinfo(np.int32).max) # scale between 0 and 1, capped to allow uint32 to at least not break
+                except ValueError as e:
+                    arr = arr.astype(np.float32) / ch['max_val'].compute()
 
                 # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
@@ -117,7 +118,7 @@ class VolumeIO(DataIO):
             pass
         grid = vdb.FloatGrid()
         grid.name = f"data"
-        grid.copyFromArray(arr.astype(np.float32))
+        grid.copyFromArray(arr)
         # For future OME-Zarr transforms - something like this:
         # grid.transform = vdb.createLinearTransform(np.array([[ 2. ,  0. ,  0. , 8.5],[ 0. ,  2. ,  0. ,  8.5],[ 0. ,  0. ,  2. ,  10.5],[ 0. ,  0. ,  0. ,  1. ]]).T)
         vdb.write(str(vdbfname), grids=[grid])
@@ -138,7 +139,7 @@ class VolumeIO(DataIO):
             vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
             vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
             vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
-            vol.data.render.clipping = 1/ (2**17)
+            vol.data.render.clipping =0
             # vol.data.display.density = 1e-5
             # vol.data.display.interpolation_method = 'CLOSEST'
 
@@ -152,13 +153,23 @@ class VolumeIO(DataIO):
         metadata['range'] = (0, 1)
         metadata['histogram'] = np.zeros(NR_HIST_BINS)
         metadata['datapointer'] = vol.data
+
         if np.sum(histtotal)> 0:
             metadata['range'] = get_leading_trailing_zero_float(histtotal)
             metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
             threshold = skimage.filters.threshold_isodata(hist=metadata['histogram'] )
             metadata['threshold'] = threshold/len(metadata['histogram'] )  
-        if ch['threshold'] != -1:
+            cs = np.cumsum(metadata['histogram'])
+            percentile = np.searchsorted(cs, np.percentile(cs, 90))
+            if percentile > threshold:
+                metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
+        elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
             metadata['threshold'] = ch['threshold']
+        else:
+            # this is for 0,1 range int32 data
+            metadata['range'] = (0, 1e-9)
+            metadata['threshold'] = 0.3
+            metadata['threshold_upper'] = 1
         return vol_collection, metadata
 
 
@@ -270,9 +281,19 @@ class VolumeObject(ChannelObject):
             links.new(add.outputs[0], shader_out.inputs[0])
             add.parent=shaderframe
 
-        for node in nodes:
-            if (len(node.inputs) > 0 and not node.hide) and node.name != '[alpha_ramp]':
-                node.inputs[0].show_expanded = True
+
+        try:
+            for node in nodes:
+                if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
+                    node.inputs[0].show_expanded = True
+                    if node.inputs.get('Strength') is not None:
+                        node.inputs.get('Strength').show_expanded= True
+                    if node.inputs.get('Density') is not None:
+                        node.inputs.get('Density').show_expanded= True
+            shader_in_alpha.inputs[0].show_expanded=True
+            nodes['[volume_alpha]'].inputs[0].show_expanded = True
+        except:
+            print('could not set outliner options expanded in shader')
         return
 
     def add_material(self, ch):
@@ -317,8 +338,8 @@ class VolumeObject(ChannelObject):
         ramp_node.color_ramp.elements[1].position = 1
         ramp_node.name = '[alpha_ramp]'
         ramp_node.label = "Pixel Intensities"
-        # if 'threshold_upper' in ch['metadata'][self.min_type]:
-        #     ramp_node.color_ramp.elements[1].position = ch['metadata'][self.min_type]['threshold_upper']
+        if 'threshold_upper' in ch['metadata'][self.min_type]:
+            ramp_node.color_ramp.elements[1].position = ch['metadata'][self.min_type]['threshold_upper']
         ramp_node.outputs[0].hide = True
         links.new(normnode.outputs.get('Result'), ramp_node.inputs.get("Fac"))  
 
@@ -326,6 +347,7 @@ class VolumeObject(ChannelObject):
 
         alphanode =  nodes.new('ShaderNodeGroup')
         alphanode.node_tree = min_nodes.shader_nodes.volume_alpha_node()
+        alphanode.name = '[volume_alpha]'
         alphanode.location = (-300, -120)
         alphanode.show_options = False
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))

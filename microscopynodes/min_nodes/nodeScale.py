@@ -5,10 +5,10 @@ from .nodeGridVerts import grid_verts_node_group
 from .nodesBoolmultiplex import axes_demultiplexer_node_group
 #initialize scale node group
 def scale_node_group():
-    node_group = bpy.data.node_groups.get("Scale bars")
+    node_group = bpy.data.node_groups.get("Scale bars (arbitrary pixel unit)")
     if node_group:
         return node_group
-    node_group = bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "Scale bars")
+    node_group = bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "Scale bars (arbitrary pixel unit)")
     links = node_group.links
     interface = node_group.interface
 

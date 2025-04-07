@@ -127,9 +127,14 @@ class ChannelObject():
         # assert that layout is reasonable or make this:
         joingeo, out_node, out_input = get_safe_nodes_last_output(self.node_group, make=True)
         in_node = get_safe_node_input(self.node_group, make=True)
+        if joingeo is not None and joingeo.type == "REALIZE_INSTANCES":
+            joingeo = joingeo.inputs[0].links[0].from_node
         if joingeo is None or joingeo.type != "JOIN_GEOMETRY":
             joingeo = self.node_group.nodes.new('GeometryNodeJoinGeometry')
             insert_last_node(self.node_group, joingeo, safe=True)
+            if self.min_type != min_keys.VOLUME:
+                realize = self.node_group.nodes.new('GeometryNodeRealizeInstances')
+                insert_last_node(self.node_group, realize, safe=True)
         
         if out_node.location[0] - 1200 < in_node.location[0]: # make sure there is enough space
             out_node.location[0] = in_node.location[0]+1200

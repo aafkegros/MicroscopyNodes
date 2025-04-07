@@ -20,8 +20,9 @@ def cmap_submenu_class(op, opname, category, namespace=None):
                 self.layout.menu(cmap_bl(self.category, namespace, opname=opname)[0], text=cmap_bl(category, namespace, opname=opname)[1])
         else:
             for cmap in cmaps(self.category, self.namespace):
-                op_ = self.layout.operator(op, text=cmap)
-                op_.cmap_name = cmap
+                if cmap != 'prinsenvlag': # exclude this colormap, this is a weird fascist dogwhistle
+                    op_ = self.layout.operator(op, text=cmap)
+                    op_.cmap_name = cmap
 #            menu_items.get_submenu("utils").menu(self.layout, context)
     
     cls_elements = {

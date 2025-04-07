@@ -66,15 +66,15 @@ bpy.types.Scene.MiN_z_size = FloatProperty(
 bpy.types.Scene.MiN_unit = EnumProperty(
         name = '',
         items=[
-            ("ANGSTROM", "Å","" ,"", 0),
-            ("NANOMETER", "nm","" ,"", 1),
-            ("MICROMETER", "µm","" ,"", 2),
-            ("MILLIMETER", "mm","" ,"", 3),
-            ("METER", "m","" ,"", 4),
-            ("PIXEL", "pixels","" ,"", 5),
+            ("ANGSTROM", "Å","Ångström, 0.1 nanometer" ,"", 0),
+            ("NANOMETER", "nm","Nanometer" ,"", 1),
+            ("MICROMETER", "µm","Micrometer" ,"", 2),
+            ("MILLIMETER", "mm","Millimeter" ,"", 3),
+            ("METER", "m","Meter" ,"", 4),
+            ("AU", "a.u.","Arbitrary units, used to calculate an isotropic pixel size in Z." ,"", 5),
         ], 
         description= "Unit of pixel sizes",
-        default="PIXEL",
+        default="AU",
     )
 
 
@@ -109,9 +109,8 @@ bpy.types.Scene.MiN_update_settings = BoolProperty(
 bpy.types.Scene.MiN_chunk = BoolProperty(
         name = "Chunking",
         description = 'Loads volumes in chunks of axis < 2048 px if checked.\nUnchunked large volumes WILL crash MacOS-ARM Blender outside of Cycles.\nChunked volumes can cause Cycles rendering artefacts.\nChunking may be slightly more RAM/network-efficient.',
-        default = True if platform.system() == 'Darwin' else False,
+        default = False,
         ) 
-
 
 
 bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(

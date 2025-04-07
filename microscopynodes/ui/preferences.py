@@ -9,7 +9,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     import_scale_no_unit_spoof : EnumProperty(
         name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
         items=[
-            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel " ,"", 0),
+            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
         ],
         description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
         default='DEFAULT',
@@ -17,7 +17,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     import_scale : EnumProperty(
         name = "Microscopy scale -> Blender scale",
         items=[
-            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel " ,"", 0),
+            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
             ("NANOMETER_SCALE", "nm -> m", "Scales to 1 nm/blender-meter" ,"", 1),
             ("MICROMETER_SCALE", "µm -> m", "Scales to 1 µm/blender-meter" ,"", 2),
             ("MILLIMETER_SCALE", "mm -> m", "Scales to 1 mm/blender-meter " ,"", 3),
@@ -54,6 +54,13 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         col = layout.column()
         # col.label(text="Transformations upon import:")
         col.prop(self, "surf_resolution")
+        row = layout.row()
+        row.prop(bpy.context.scene, 'MiN_remake', 
+                        text = 'Overwrite files', icon_value=0, emboss=True)
+        # row.prop(bpy.context.scene, 'MiN_preset_environment', 
+        #                 text = 'Set environment', icon_value=0, emboss=True)
+        # row.prop(bpy.context.scene, 'MiN_chunk', emboss=True, text="Chunked", icon_value=0)                   
+
         # col.prop(self, "import_loc", emboss=False)
 
 class DictWithElements:

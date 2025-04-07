@@ -20,7 +20,7 @@ def volume_alpha_node():
     interface.items_tree[-1].default_value = False
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.new_socket("Alpha Baseline", in_out="INPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 0.1
+    interface.items_tree[-1].default_value = 0.2
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 100.0

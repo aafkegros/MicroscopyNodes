@@ -44,9 +44,6 @@ def load_blocking(params):
 
     # reads env variables
     base_coll, cache_coll = min_base_colls(Path(scn.MiN_input_file).stem[:50], scn.MiN_reload)    
-    
-    # read preference variables
-    scale = parse_scale(size_px, pixel_size)
 
     if scn.MiN_preset_environment:
         preset_environment()    
@@ -54,6 +51,11 @@ def load_blocking(params):
     # --- Prepare  container ---
     container = scn.MiN_reload
     objs = parse_reload(container)
+
+    # read preference variables - or in certain cases read from prev
+    scale = parse_scale(size_px, pixel_size, objs) # reads from previous if only update data
+    loc = parse_loc(scale, size_px, container)
+    
     if container is None:
         bpy.ops.object.empty_add(type="PLAIN_AXES")
         container = bpy.context.view_layer.objects.active
@@ -87,8 +89,7 @@ def load_blocking(params):
             ch_obj.set_parent_and_slicer(container, slice_cube, ch)
 
     if scn.MiN_update_data:
-        loc = parse_loc()
-        container.location = np.array(size_px) * loc * scale 
+        container.location = loc
     
     # -- wrap up --
     collection_deactivate_by_name('cache')
