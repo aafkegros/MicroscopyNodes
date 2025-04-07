@@ -20,9 +20,8 @@ def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
 def update_axes(mod, size_px, pixel_size, scale):
     node_group = mod.node_group
     nodes = node_group.nodes
-    for ix, socket in enumerate(node_group.interface.items_tree):
-        if socket is not None and re.search(string=socket.name, pattern=f"per tick") is not None:
-            node_group.interface.items_tree[ix].name = f"{get_readable_enum('MiN_unit', bpy.context.scene.MiN_unit)} per tick"
+    if 'per tick' in node_group.interface.items_tree[1].name:
+        node_group.interface.items_tree[1].name = f"{get_readable_enum('MiN_unit', bpy.context.scene.MiN_unit)} per tick"
     for k, v in zip(["size_px","pixel_size", "scale"], [size_px, pixel_size, scale]):
         nodes[f"[Microscopy Nodes {k}]"].vector = v
     return
