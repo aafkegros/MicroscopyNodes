@@ -3,8 +3,20 @@ from .. import __package__
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 
+
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
+    from .ui.channel_list import ChannelDescriptor
     bl_idname = __package__
+
+    def set_channels(self, context):
+        while len(addon_preferences(bpy.context).default_channels)-1 < addon_preferences(bpy.context).n_default_channels:
+            ch = len(addon_preferences(bpy.context).default_channels)
+            channel = addon_preferences(bpy.context).default_channels.add()
+            channel.ix = ch
+            channel.name = f"Channel {ch}"
+            channel.single_color = INIT_COLORS[ch % len(INIT_COLORS)]
+        while len(addon_preferences(bpy.context).default_channels)-1 >= addon_preferences(bpy.context).n_default_channels:
+            addon_preferences(bpy.context).default_channels.remove(len(addon_preferences(bpy.context).default_channels)-1)
 
     import_scale_no_unit_spoof : EnumProperty(
         name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
@@ -27,7 +39,16 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
         default='DEFAULT',
     )
+    n_default_channels : bpy.props.IntProperty(
+        name = 'Defined default channels',
+        min= 1,
+        max=20,
+        default =6,
+        update=set_channels
+    )
 
+    default_channels : bpy.props.CollectionProperty(type=ChannelDescriptor)
+    
     import_loc : EnumProperty(
         name = 'Import location',
         items=[
@@ -49,19 +70,24 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         description= "Coarser will be less RAM intensive",
         default='0',
     )
+
+
     def draw(self, context):
+        
         layout = self.layout
+        
+        row = layout.row()
+        row.prop(bpy.context.scene, 'MiN_remake', 
+                        text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
+        
+        col = layout.column(align=True)
+        col.label(text="Default channel settings to set for new files.")
+        col.prop(self, "n_default_channels")
+        col.template_list("SCENE_UL_Channels", "", self, "default_channels", bpy.context.scene, "MiN_ch_index", rows=6,sort_lock=True)
         col = layout.column()
         # col.label(text="Transformations upon import:")
         col.prop(self, "surf_resolution")
-        row = layout.row()
-        row.prop(bpy.context.scene, 'MiN_remake', 
-                        text = 'Overwrite files', icon_value=0, emboss=True)
-        # row.prop(bpy.context.scene, 'MiN_preset_environment', 
-        #                 text = 'Set environment', icon_value=0, emboss=True)
-        # row.prop(bpy.context.scene, 'MiN_chunk', emboss=True, text="Chunked", icon_value=0)                   
 
-        # col.prop(self, "import_loc", emboss=False)
 
 class DictWithElements:
     # wraps a dictionary to access elements by dct.element - same method call as addonpreferences
@@ -82,6 +108,16 @@ def addon_preferences(context: bpy.types.Context | None = None):
             except yaml.YAMLError as exc:
                 print(exc)
         return None
+
+
+INIT_COLORS = [
+    (1.0, 1.0, 1.0),
+    (0/255, 157/255, 224/255),
+    (224/255, 0/255, 37/255),
+    (224/255, 214/255, 0/255),
+    (117/255, 0/255, 224/255),
+    (0/255, 224/255, 87/255),
+]
 
 
 CLASSES = [MicroscopyNodesPreferences]

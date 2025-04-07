@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import UIList
 import os
+
 # from ..min_nodes.shader_nodes import draw_category_menus
 
 def update_ix(self, context):
@@ -18,7 +19,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty(description="Channel name (editable)", update = update_func )
     volume : bpy.props.BoolProperty(description="Load data as volume", default=True, update=update_func )
     emission : bpy.props.BoolProperty(description="Volume data emits light on load\n(off is recommended for EM)", default=True, update=update_func )
-    surface : bpy.props.BoolProperty(description="Load isosurface object.\nAlso useful for binary masks", default=True, update=update_func )
+    surface : bpy.props.BoolProperty(description="Load isosurface object.\nAlso useful for binary masks", default=False, update=update_func )
     labelmask : bpy.props.BoolProperty(description="Do not use on regular images.\nLoads separate values in the mask as separate mesh objects", default=False, update=update_func )
     # -- internal --
     threshold : bpy.props.FloatProperty(default=-1)
@@ -74,31 +75,22 @@ class SCENE_UL_Channels(UIList):
     def invoke(self, context, event):
         pass   
 
-INIT_COLORS = [
-    (1.0, 1.0, 1.0),
-    (0/255, 157/255, 224/255),
-    (224/255, 0/255, 37/255),
-    (224/255, 214/255, 0/255),
-    (117/255, 0/255, 224/255),
-    (0/255, 224/255, 87/255),
-]
-
 def set_channels(self, context):
+    from .preferences import addon_preferences
     bpy.context.scene.MiN_channelList.clear()
-
     for ch in range(bpy.context.scene.MiN_channel_nr):
         channel = bpy.context.scene.MiN_channelList.add()
+        default = addon_preferences(bpy.context).default_channels[ch % len(addon_preferences(bpy.context).default_channels)]
+        for key in default.keys():
+            print(key)
+            try:
+                setattr(channel, key, default[key])
+            except:
+                setattr(channel, key, getattr(default, key))
+        if ch >= len(addon_preferences(bpy.context).default_channels):
+            channel.name = f"Channel {ch}"
         channel.ix = ch
-        channel.name = f"Channel {ch}"
-        # set all defaults explicitly so they are created as keys
-        channel.volume = True
-        channel.emission = True
-        channel.surface = False
-        channel.labelmask = False
-        channel.materials = True
-        channel.surf_resolution = 'ACTUAL'
-        channel.threshold=-1
-        channel.cmap='SINGLE_COLOR'
-        channel.single_color = INIT_COLORS[ch % len(INIT_COLORS)]
+        
+        
 
 CLASSES = [ChannelDescriptor, SCENE_UL_Channels]

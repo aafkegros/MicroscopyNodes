@@ -2,3 +2,13 @@
 import_scale: DEFAULT # out of DEFAULT, NANOMETER_SCALE, MICROMETER_SCALE, MILLIMETER_SCALE, METER_SCALE, MOLECULAR_NODES
 import_loc: XY_CENTER # out of XY_CENTER, XYZ_CENTER, ZERO
 surf_resolution: 0
+default_channels:
+  0:
+    ix: 0
+    name: test_channel_default
+    volume: True
+    surface: False
+    labelmask: False
+    emission: True
+    cmap: SINGLE_COLOR
+    single_color: [1,1,1]
