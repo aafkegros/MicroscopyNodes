@@ -28,6 +28,7 @@ def parse_channellist(channellist):
     ch_dicts = []
     for channel in bpy.context.scene.MiN_channelList:
         ch_dicts.append({k:getattr(channel,k) for k in channel.keys()}) # take over settings from UI - uses getattr to get enum names
+        print(ch_dicts[-1].keys())
         for key in min_keys: # rename ui-keys to enum for which objects to load
             if key.name.lower() in ch_dicts[-1]:
                 ch_dicts[-1][key] = ch_dicts[-1][key.name.lower()]
@@ -97,8 +98,8 @@ def get_previous_scale(axes_obj, size_px):
 def get_cache_subdir():
     # make sure 'With Project is at current fname'
     if bpy.context.scene.MiN_cache_dir == '':
-        # from .handle_blender_structs.dependent_props import update_cache_dir
-        # update_cache_dir(None, bpy.context.scene)
+        from .handle_blender_structs.dependent_props import update_cache_dir
+        update_cache_dir(None, bpy.context.scene)
         if bpy.context.scene.MiN_cache_dir == '':
             raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
     # create folder for this dataset with filename/(zarr_level/)
