@@ -12,7 +12,16 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         while len(addon_preferences(bpy.context).default_channels)-1 < addon_preferences(bpy.context).n_default_channels:
             ch = len(addon_preferences(bpy.context).default_channels)
             channel = addon_preferences(bpy.context).default_channels.add()
+            # This instantiates the keys!
             channel.ix = ch
+            channel.volume = True
+            channel.emission = True
+            channel.surface = False
+            channel.labelmask = False
+            channel.materials = True
+            channel.surf_resolution = 'ACTUAL'
+            channel.threshold=-1
+            channel.cmap='SINGLE_COLOR'
             channel.name = f"Channel {ch}"
             channel.single_color = INIT_COLORS[ch % len(INIT_COLORS)]
         while len(addon_preferences(bpy.context).default_channels)-1 >= addon_preferences(bpy.context).n_default_channels:
