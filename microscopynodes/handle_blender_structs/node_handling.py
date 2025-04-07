@@ -93,6 +93,8 @@ def get_min_gn(obj):
             return mod
     return None
 
+def get_readable_enum(enum_name, enum):
+    return bpy.context.scene.bl_rna.properties[enum_name].enum_items[enum].name
 
 
 MIN_SOCKET_TYPES = {
@@ -129,7 +131,6 @@ def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
     if return_ix:
         return None, None
     return None
-
 
 def insert_slicing(group, slice_obj):
     nodes = group.nodes

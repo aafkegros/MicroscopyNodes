@@ -90,7 +90,6 @@ class TIFLoadPanel(bpy.types.Panel):
         grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
         CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
 
-       
         row = box.row()
         row.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = '', icon="WORLD",icon_only=True,emboss=True)
