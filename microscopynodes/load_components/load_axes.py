@@ -6,19 +6,9 @@ from ..handle_blender_structs import *
 from .. import min_nodes
 
 def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
-   
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
         nodes = mod.node_group.nodes
-        if not bpy.context.scene.MiN_update_data:
-            try:
-                old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-                old_scale = nodes['[Microscopy Nodes scale]'].vector
-                scale =  (np.array(old_size_px) / np.array(size_px)) * old_scale
-            except KeyError as e:
-                print(e)
-                pass
-        
         update_axes(nodes, size_px, pixel_size, scale)
         return axes_obj
 

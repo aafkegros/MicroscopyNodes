@@ -51,7 +51,12 @@ def parse_unit(string):
     if string == "METER":
         return 1
 
-def parse_scale(size_px, pixel_size):
+def parse_scale(size_px, pixel_size, objs):
+    if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
+        try:
+            scale = get_previous_scale(objs[min_keys.AXES], size_px)
+        except Exception as e:
+            pass
     world_scale = addon_preferences(bpy.context).import_scale
     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
     if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'PIXEL': # cm / px
@@ -64,15 +69,30 @@ def parse_scale(size_px, pixel_size):
     if "_SCALE" in world_scale:
         return physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
     
-def parse_loc():
+def parse_loc(scale, size_px, container):
+    if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
+        try:
+            return container.location
+        except Exception as e:
+            pass
     prefloc = addon_preferences(bpy.context).import_loc
     if prefloc == "XY_CENTER":
-        return [-0.5,-0.5,0]
+        return [-0.5,-0.5,0] * np.array(size_px) * scale 
     if prefloc == "XYZ_CENTER":
-        return [-0.5,-0.5,-0.5]
+        return [-0.5,-0.5,-0.5] * np.array(size_px) * scale 
     if prefloc == "ZERO":
-        return [0, 0, 0]
+        return [0, 0, 0] * np.array(size_px) * scale 
 
+def get_previous_scale(axes_obj, size_px):
+    try:
+        mod = get_min_gn(axes_obj)
+        nodes = mod.node_group.nodes
+        old_size_px = nodes['[Microscopy Nodes size_px]'].vector
+        old_scale = nodes['[Microscopy Nodes scale]'].vector
+        return  (np.array(old_size_px) / np.array(size_px)) * old_scale
+    except KeyError as e:
+        print(e)
+        pass
 
 def get_cache_subdir():
     # make sure 'With Project is at current fname'
@@ -106,5 +126,6 @@ def parse_reload(container_obj):
             for child in container_obj.children:
                 if get_min_gn(child) is not None and key.name.lower() in get_min_gn(child).name:
                     objs[key] = child
+
     return objs
 

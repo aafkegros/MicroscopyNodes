@@ -90,17 +90,12 @@ class TIFLoadPanel(bpy.types.Panel):
         grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
         CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
 
-        row = grid.split(factor=0.4)
-        row.prop(bpy.context.scene, 'MiN_remake', 
-                        text = 'Overwrite files', icon_value=0, emboss=True)
-        row.prop(bpy.context.scene, 'MiN_preset_environment', 
-                        text = 'Set environment', icon_value=0, emboss=True)
-        row.prop(bpy.context.scene, 'MiN_chunk', emboss=True, text="Chunked", icon_value=0)                   
-
+       
         row = box.row()
-
+        row.prop(bpy.context.scene, 'MiN_preset_environment', 
+                        text = '', icon="WORLD",icon_only=True,emboss=True)
         row.label(text="", icon='CON_SIZELIKE')
-        if bpy.context.scene.MiN_unit == "PIXEL":
+        if bpy.context.scene.MiN_unit == "AU":
             row.prop(addon_preferences(), 'import_scale_no_unit_spoof', emboss=True,text="")
         else:
             row.prop(addon_preferences(), 'import_scale', emboss=True,text="")
