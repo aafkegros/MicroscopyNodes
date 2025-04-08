@@ -8,6 +8,9 @@ def set_color_ramp_from_ch(ch, ramp_node):
     return
 
 def set_color_ramp(ramp_node, lut, linear, name):
+    from ...ui.preferences import addon_preferences
+    if addon_preferences(bpy.context).invert_color:
+        lut = list(reversed(lut))
     for stop in range(len(ramp_node.color_ramp.elements) -2):
         ramp_node.color_ramp.elements.remove( ramp_node.color_ramp.elements[0] )
 

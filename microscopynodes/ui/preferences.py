@@ -99,7 +99,11 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         description= "Coarser will be less RAM intensive",
         default='0',
     )
-
+    invert_color : bpy.props.BoolProperty(
+        name="Invert Color",
+        description = "Invert color lookup tables on load",
+        default = False
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -123,6 +127,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         col = layout.column()
         # col.label(text="Transformations upon import:")
         col.prop(self, "surf_resolution")
+        col.prop(self, "invert_color")
         row = layout.row()
         row.prop(bpy.context.scene, 'MiN_remake', 
                         text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
