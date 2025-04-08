@@ -81,18 +81,35 @@ class TIFLoadPanel(bpy.types.Panel):
             col.enabled=False
         
         col.prop(context.scene, 'MiN_progress_str', emboss=False)
+
+        
+        box = layout.box()
+        row = box.row(align=True)
+        if context.scene.MiN_yaml_preferences != "":
+            row.label(text=f"Preferences are overriden from {context.scene.MiN_yaml_preferences}", icon="ERROR")
+            row= box.row()
+            row.prop(bpy.context.scene, 'MiN_yaml_preferences', text="")
+            row = box.row()
+            row.operator("microscopynodes.reset_yaml")
+            return
+        
         
 
-        box = layout.box()
-        grid = box.grid_flow(columns = 1)
+        row.label(text="Data Storage:", icon="FILE_FOLDER")
+        row.prop(addon_preferences(context), 'cache_option', text="", icon="NONE", emboss=True)
+        
+        if addon_preferences().cache_option == 'PATH':
+            row = box.row()
+            row.prop(addon_preferences(context), 'cache_path', text="")
+        if addon_preferences().cache_option == 'WITH_PROJECT' and bpy.path.abspath('//') == '':
+            row = box.row()
+            row.label(text = "Don't forget to save your blend file :)")
 
-        grid.label(text="Data storage:", icon="FILE_FOLDER")
-        grid.menu(menu='SCENE_MT_CacheSelectionMenu', text=bpy.context.scene.MiN_selected_cache_option)
-        CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['ui_element'](grid)
-
-        row = box.row()
+        row = box.row(align=True)
+        
         row.prop(bpy.context.scene, 'MiN_preset_environment', 
                         text = '', icon="WORLD",icon_only=True,emboss=True)
+        row.separator()
         row.label(text="", icon='CON_SIZELIKE')
         if bpy.context.scene.MiN_unit == "AU":
             row.prop(addon_preferences(bpy.context), 'import_scale_no_unit_spoof', emboss=True,text="")
@@ -101,25 +118,5 @@ class TIFLoadPanel(bpy.types.Panel):
         row.label(text="", icon='ORIENTATION_PARENT')
         row.prop(addon_preferences(bpy.context), 'import_loc', emboss=True,text="")
 
-class CacheSelectOperator(bpy.types.Operator):
-    """Select local storage location. This will host copies of all data in blender-compatible formats."""
-    bl_idname = "microscopynodes.cacheselection"
-    bl_label = "Cache Selection"
-    selected: bpy.props.StringProperty()
-
-    def execute(self, context):
-        bpy.context.scene.MiN_selected_cache_option = self.selected
-        return {'FINISHED'}
-
-
-class CacheSelectionMenu(bpy.types.Menu):
-    bl_label = "Cache/asset location"
-    bl_idname = "SCENE_MT_CacheSelectionMenu"
-
-    def draw(self, context):
-        layout = self.layout
-        for location in CACHE_LOCATIONS:
-            prop = layout.operator(CacheSelectOperator.bl_idname, text=location, icon=CACHE_LOCATIONS[location]["icon"])
-            prop.selected = location
-
-CLASSES = [TIFLoadPanel, CacheSelectionMenu, CacheSelectOperator]
+       
+CLASSES = [TIFLoadPanel]

@@ -2,6 +2,8 @@ import bpy
 from .. import __package__
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
+import tempfile
+import yaml
 
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
@@ -9,9 +11,9 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     def set_channels(self, context):
-        while len(addon_preferences(bpy.context).default_channels)-1 < addon_preferences(bpy.context).n_default_channels:
-            ch = len(addon_preferences(bpy.context).default_channels)
-            channel = addon_preferences(bpy.context).default_channels.add()
+        while len(addon_preferences(bpy.context).channels)-1 < addon_preferences(bpy.context).n_default_channels:
+            ch = len(addon_preferences(bpy.context).channels)
+            channel = addon_preferences(bpy.context).channels.add()
             # This instantiates the keys!
             channel.ix = ch
             channel.volume = True
@@ -24,8 +26,8 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
             channel.cmap='SINGLE_COLOR'
             channel.name = f"Channel {ch}"
             channel.single_color = INIT_COLORS[ch % len(INIT_COLORS)]
-        while len(addon_preferences(bpy.context).default_channels)-1 >= addon_preferences(bpy.context).n_default_channels:
-            addon_preferences(bpy.context).default_channels.remove(len(addon_preferences(bpy.context).default_channels)-1)
+        while len(addon_preferences(bpy.context).channels)-1 >= addon_preferences(bpy.context).n_default_channels:
+            addon_preferences(bpy.context).channels.remove(len(addon_preferences(bpy.context).channels)-1)
 
     import_scale_no_unit_spoof : EnumProperty(
         name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
@@ -56,7 +58,25 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         update=set_channels
     )
 
-    default_channels : bpy.props.CollectionProperty(type=ChannelDescriptor)
+    
+    cache_path: StringProperty(
+        description = 'Only used if cache option is PATH',
+        options = {'TEXTEDIT_UPDATE'},
+        default = str(Path('~', '.microscopynodes').expanduser()),
+        subtype = 'DIR_PATH',
+    )
+    cache_option: bpy.props.EnumProperty(
+        name = "Data storage",
+        items=[
+            ("TEMPORARY", "Temporary","See the current temp path in Addon Preferences" ,"", 0),
+            ("PATH", "Path", "","", 1),
+            ("WITH_PROJECT", "With Project","", "", 2),
+        ], 
+        description= "Data is resaved into vdb files (large 32bit volume files) for volumes and isosurfaces, and smaller abc mesh files for labelmasks. Microscopy Nodes does not clean out the files.",
+        default='TEMPORARY',
+    )
+
+    channels : bpy.props.CollectionProperty(type=ChannelDescriptor)
     
     import_loc : EnumProperty(
         name = 'Import location',
@@ -82,21 +102,40 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
 
 
     def draw(self, context):
-        
         layout = self.layout
-        
         row = layout.row()
-        row.prop(bpy.context.scene, 'MiN_remake', 
-                        text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
+        if context.scene.MiN_yaml_preferences != "":
+            row.label(text=f"Preferences are overriden from {context.scene.MiN_yaml_preferences}", icon="ERROR")
+            row= layout.row()
+            row.prop(bpy.context.scene, 'MiN_yaml_preferences', text="")
+            row = layout.row()
+            row.operator("microscopynodes.reset_yaml")
+            return
         
+        row.prop(self, 'cache_path', text='Data storage "Path" default:')
+        row = layout.row()
+        row.label(text='Data storage "Temporary" default:')
+        row.label(text=tempfile.gettempdir())
         col = layout.column(align=True)
         col.label(text="Default channel settings to set for new files.")
         col.prop(self, "n_default_channels")
-        col.template_list("SCENE_UL_Channels", "", self, "default_channels", bpy.context.scene, "MiN_ch_index", rows=6,sort_lock=True)
+        col.template_list("SCENE_UL_Channels", "", self, "channels", bpy.context.scene, "MiN_ch_index", rows=6,sort_lock=True)
         col = layout.column()
         # col.label(text="Transformations upon import:")
         col.prop(self, "surf_resolution")
+        row = layout.row()
+        row.prop(bpy.context.scene, 'MiN_remake', 
+                        text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
 
+
+class ResetPreferenceYamlOperator(bpy.types.Operator):
+    """ Unsets the preference yaml path """
+    bl_idname ="microscopynodes.reset_yaml"
+    bl_label = "Use Blender Preferences"
+
+    def execute(self, context):
+        context.scene.MiN_yaml_preferences = ""
+        return {'FINISHED'}
 
 class DictWithElements:
     # wraps a dictionary to access elements by dct.element - same method call as addonpreferences
@@ -105,18 +144,18 @@ class DictWithElements:
 
 
 def addon_preferences(context: bpy.types.Context | None = None):
+    if context is None:
+        context = bpy.context
+    
+    if hasattr(context, 'scene') and context.scene.MiN_yaml_preferences != "":
+        with open(context.scene.MiN_yaml_preferences) as stream:
+            return DictWithElements(yaml.safe_load(stream))
     try:
-        if context is None:
-            context = bpy.context
         return context.preferences.addons[__package__].preferences
     except KeyError:
-        import yaml
-        with open(Path(__file__).parent / 'headless_preferences.yaml') as stream:
-            try:
-                return DictWithElements(yaml.safe_load(stream))
-            except yaml.YAMLError as exc:
-                print(exc)
+        print('CANNOT FIND PREFERENCES')
         return None
+    
 
 
 INIT_COLORS = [
@@ -129,4 +168,4 @@ INIT_COLORS = [
 ]
 
 
-CLASSES = [MicroscopyNodesPreferences]
+CLASSES = [MicroscopyNodesPreferences, ResetPreferenceYamlOperator]

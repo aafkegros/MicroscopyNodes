@@ -80,14 +80,14 @@ def set_channels(self, context):
     bpy.context.scene.MiN_channelList.clear()
     for ch in range(bpy.context.scene.MiN_channel_nr):
         channel = bpy.context.scene.MiN_channelList.add()
-        default = addon_preferences(bpy.context).default_channels[ch % len(addon_preferences(bpy.context).default_channels)]
+        default = addon_preferences(bpy.context).channels[ch % len(addon_preferences(bpy.context).channels)]
         for key in default.keys():
             print(key)
             try:
                 setattr(channel, key, default[key])
             except:
                 setattr(channel, key, getattr(default, key))
-        if ch >= len(addon_preferences(bpy.context).default_channels):
+        if ch >= len(addon_preferences(bpy.context).channels):
             channel.name = f"Channel {ch}"
         channel.ix = ch
         
