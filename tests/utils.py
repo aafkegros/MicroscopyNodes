@@ -55,6 +55,9 @@ def make_tif(path, arrtype):
 def prep_load(arrtype=None):
     # microscopynodes._test_register()
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.context.scene.MiN_yaml_preferences = str(Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_preferences.yaml")))
+
+
 
     if arrtype is None:
         arrtype = '5D_5cube'

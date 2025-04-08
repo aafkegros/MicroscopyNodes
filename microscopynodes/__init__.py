@@ -64,9 +64,12 @@ def register():
     bpy.types.NODE_MT_add.append(MIN_add_shader_node_menu)
     bpy.types.NODE_MT_context_menu.append(MIN_context_shader_node_menu)
     try: 
-        addon_preferences(bpy.context).default_channels[0].name
+        addon_preferences(bpy.context).channels[0].name
     except:
-        addon_preferences(bpy.context).n_default_channels = 6
+        try:
+            addon_preferences(bpy.context).n_default_channels = 6
+        except AttributeError:
+            pass
     return
 
 def unregister():

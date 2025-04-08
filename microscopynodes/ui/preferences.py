@@ -146,10 +146,12 @@ class DictWithElements:
 def addon_preferences(context: bpy.types.Context | None = None):
     if context is None:
         context = bpy.context
-    
-    if hasattr(context, 'scene') and context.scene.MiN_yaml_preferences != "":
-        with open(context.scene.MiN_yaml_preferences) as stream:
-            return DictWithElements(yaml.safe_load(stream))
+    try:
+        if hasattr(context, 'scene') and context.scene.MiN_yaml_preferences != "":
+            with open(context.scene.MiN_yaml_preferences) as stream:
+                return DictWithElements(yaml.safe_load(stream))
+    except KeyError as e:
+        print(e)
     try:
         return context.preferences.addons[__package__].preferences
     except KeyError:

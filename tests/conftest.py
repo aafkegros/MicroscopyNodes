@@ -12,8 +12,6 @@ def pytest_sessionfinish(session, exitstatus):
 
     UPDATE_PROPS = [
         'MiN_input_file',
-        'MiN_explicit_cache_dir',
-        'MiN_selected_cache_option',
         'MiN_axes_order',
         'MiN_selected_zarr_level',
         'MiN_channel_nr',
