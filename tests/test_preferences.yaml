@@ -2,6 +2,7 @@
 import_scale: DEFAULT # out of DEFAULT, NANOMETER_SCALE, MICROMETER_SCALE, MILLIMETER_SCALE, METER_SCALE, MOLECULAR_NODES
 import_loc: XY_CENTER # out of XY_CENTER, XYZ_CENTER, ZERO
 surf_resolution: 0 # 0, 1, 2, 3 -> Actual, fine, medium, coarse 
+invert_color: False
 
 # revolving list that defines the channel settings
 channels: 

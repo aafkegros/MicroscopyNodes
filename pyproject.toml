@@ -18,10 +18,10 @@ dask = "*"
 imagecodecs = "*"
 aiohttp = "*"
 fsspec = "*"
-cmap = "*"
+cmap = "0.6.0"
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 pytest-cov = "*"
 pytest-snapshot = "*"
