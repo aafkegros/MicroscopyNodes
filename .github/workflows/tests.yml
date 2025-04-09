@@ -19,10 +19,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-13]
         # os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.11.6'
+          python-version: '3.11'
           cache: 'pip'
       # - run: pip install bpy==${{ matrix.blender-version }}
 
@@ -34,25 +34,8 @@ jobs:
       - name: install
         run: pip install -r requirements.txt
       
-      - name: Install tif_loader
+      - name: Install microscopy nodes
         run: pip install .
-
-    #   - name: Install pyopenvdb
-    #     if: matrix.os == 'ubuntu-latest'
-    #     run:
-    #         conda install openvdb
-    #     # run: |
-        #     cd $(poetry run python -c "import os; import bpy; print(os.path.dirname(bpy.__file__)+'/../../../../../')")
-        #     ORIGIN=`pwd`
-        #     svn export https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228/python/lib/python3.10/site-packages/pyopenvdb.so@r63589
-        #     pip install patchelf
-        #     patchelf --set-rpath '$ORIGIN/bpy/lib' pyopenvdb.so
-        #     echo $?
-        #     ls $ORIGIN/bpy/lib
-        #     echo ""
-        #     ls $ORIGIN/bpy
-        #     echo ""
-        #     ls $ORIGIN
 
      
       - name: Run Tests

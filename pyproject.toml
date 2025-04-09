@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "microscopynodes"
-version = "2.1.1"
+version = "2.2.0"
 description = "Loading and handling microscopy data in Blender."
 authors = ["Oane Gros <oane.gros@embl.de>"]
 include = [
@@ -18,10 +18,10 @@ dask = "*"
 imagecodecs = "*"
 aiohttp = "*"
 fsspec = "*"
-cmap = "*"
+cmap = "0.6.0"
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 pytest-cov = "*"
 pytest-snapshot = "*"

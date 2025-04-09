@@ -7,6 +7,15 @@ from .handle_blender_structs import *
 from .file_to_array import load_array, arr_shape
 from .ui.preferences import addon_preferences
 
+
+def get_cache_dir():
+    if bpy.context.scene.MiN_cache_dir_option == 'TEMPORARY':
+        return tempfile.gettempdir()
+    if bpy.context.scene.MiN_cache_dir_option == 'PATH':
+        return addon_preferences().cache_path
+    if bpy.context.scene.MiN_cache_dir_option == 'WITH_PROJECT':
+        return bpy.path.abspath('//')
+
 def parse_initial():
     # all parameters initialized here are shared between threaded and blocking load functions
     check_input()
@@ -97,8 +106,7 @@ def get_previous_scale(axes_obj, size_px):
 def get_cache_subdir():
     # make sure 'With Project is at current fname'
     if bpy.context.scene.MiN_cache_dir == '':
-        # from .handle_blender_structs.dependent_props import update_cache_dir
-        # update_cache_dir(None, bpy.context.scene)
+        get_cache_dir()
         if bpy.context.scene.MiN_cache_dir == '':
             raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
     # create folder for this dataset with filename/(zarr_level/)

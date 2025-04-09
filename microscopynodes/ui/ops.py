@@ -65,7 +65,6 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
 class ZarrSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""
     bl_idname = "microscopynodes.zarrselection"

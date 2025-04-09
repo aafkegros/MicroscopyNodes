@@ -42,7 +42,7 @@ bpy.types.Scene.MiN_load_end_frame = bpy.props.IntProperty(
     )
 
 bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
-    name = "MiN_preset_environment", 
+    name = "Set environment variables", 
     description = "Set environment variables for easy initial rendering, useful for first load.\nWill overwrite previous settings",
     default = True
     )
@@ -76,7 +76,6 @@ bpy.types.Scene.MiN_unit = EnumProperty(
         description= "Unit of pixel sizes",
         default="AU",
     )
-
 
 
 # necessary to make uilist work
@@ -118,3 +117,11 @@ bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
     description = "current process in load",
     default="",
 )
+
+bpy.types.Scene.MiN_yaml_preferences = StringProperty(
+    description = 'File path to a .yaml file that overrides the Microscopy Nodes preferences - use for bpy usage',
+    default = "",
+    subtype = 'FILE_PATH',
+)
+
+

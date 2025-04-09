@@ -1,0 +1,20 @@
+# This gets evaluated instead of the addon preferences in cases where only bpy is loaded
+import_scale: DEFAULT # out of DEFAULT, NANOMETER_SCALE, MICROMETER_SCALE, MILLIMETER_SCALE, METER_SCALE, MOLECULAR_NODES
+import_loc: XY_CENTER # out of XY_CENTER, XYZ_CENTER, ZERO
+surf_resolution: 0 # 0, 1, 2, 3 -> Actual, fine, medium, coarse 
+invert_color: False
+
+# revolving list that defines the channel settings
+channels: 
+  0: #arbitrary key
+    ix: 0 # unused, needs to be present
+    name: test_channel_default # names don't revolve (to keep easier uniqueness)
+    volume: True 
+    surface: False
+    labelmask: False
+    emission: True
+    cmap: SINGLE_COLOR # out of SINGLE_COLOR, VIRIDIS, PLASMA, COOLWARM, ICEFIRE, TAB10, BRIGHT
+    single_color: [1,1,1] # only used in SINGLE_COLOR - floating point RGB value
+  
+cache_option: TEMPORARY # out of PATH, TEMPORARY, WITH_PROJECT
+cache_path: /example/path # only used if cache_option == PATH

@@ -15,30 +15,7 @@ from pathlib import Path
 
 print('registering dependent props')
 
-# --- cache dir helpers
 
-CACHE_LOCATIONS = {
-    'Temporary' : {
-        'icon' : 'FILE_HIDDEN',
-        'cache_dir' : functools.partial(tempfile.gettempdir),
-        'ui_element': functools.partial(lambda ui_layout : ui_layout.label(text =f'{bpy.context.scene.MiN_cache_dir}', icon="TEMP"))
-    },
-    'Path' : {
-        'icon' : 'FILE_CACHE',
-        'cache_dir' : functools.partial(attrgetter('context.scene.MiN_explicit_cache_dir'), bpy),
-        'ui_element': functools.partial(lambda ui_layout : ui_layout.prop(bpy.context.scene, "MiN_explicit_cache_dir", text= 'Asset dir'))
-    },
-    'With Project' : {
-        'icon' : 'FILE_BLEND',
-        'cache_dir' : functools.partial(bpy.path.abspath, '//'),
-        'ui_element' : functools.partial(lambda ui_layout: ui_layout.label(text ='Make sure the project is saved'))
-    },
-}
-
-
-def update_cache_dir(self, context):
-    bpy.context.scene.MiN_cache_dir = CACHE_LOCATIONS[bpy.context.scene.MiN_selected_cache_option]['cache_dir']()
-    
 
 bpy.types.Scene.MiN_input_file = StringProperty(
         name="",
@@ -47,21 +24,6 @@ bpy.types.Scene.MiN_input_file = StringProperty(
         options = {'TEXTEDIT_UPDATE'},
         default="",
         maxlen=1024,
-        )
-
-bpy.types.Scene.MiN_explicit_cache_dir = StringProperty(
-    description = 'Location to store VDB and ABC files, any image data will get RESAVED into blender formats here',
-    options = {'TEXTEDIT_UPDATE'},
-    default = str(Path('~', '.microscopynodes').expanduser()),
-    subtype = 'DIR_PATH',
-    update = update_cache_dir
-    )
-
-bpy.types.Scene.MiN_selected_cache_option = StringProperty(
-        name="",
-        description="Where VDB and ABC files are created",
-        default= "Temporary",
-        update= update_cache_dir
         )
 
 

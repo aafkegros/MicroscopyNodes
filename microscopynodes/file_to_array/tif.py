@@ -15,7 +15,7 @@ class TifLoader(ArrayLoader):
         try: 
             with tifffile.TiffFile(context.scene.MiN_input_file) as ifstif:
                 try:
-                    context.scene.MiN_axes_order = ifstif.series[0].axes.lower().replace('s', 'c')
+                    context.scene.MiN_axes_order = ifstif.series[0].axes.lower().replace('s', 'c').replace('q','z')
                 except Exception as e:
                     context.scene.property_unset("MiN_axes_order")
                 try:
