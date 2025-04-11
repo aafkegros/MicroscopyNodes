@@ -1,3 +1,4 @@
+print('importing for dependent props')
 import bpy
 from bpy.props import (StringProperty, FloatProperty,
                         PointerProperty, IntProperty,
@@ -5,7 +6,7 @@ from bpy.props import (StringProperty, FloatProperty,
                         )
 
 # update functions are defined locally
-from ..file_to_array import change_path, change_zarr_level, change_channel_ax
+from ..file_to_array import change_path, change_channel_ax, change_array_option, get_array_options
 from ..ui.channel_list import set_channels
 
 import functools
@@ -26,7 +27,6 @@ bpy.types.Scene.MiN_input_file = StringProperty(
         maxlen=1024,
         )
 
-
 bpy.types.Scene.MiN_axes_order = StringProperty(
         name="",
         description="axes order (out of tzcyx)",
@@ -34,11 +34,11 @@ bpy.types.Scene.MiN_axes_order = StringProperty(
         update=change_channel_ax,
         maxlen=6)
 
-bpy.types.Scene.MiN_selected_zarr_level = StringProperty(
+bpy.types.Scene.MiN_selected_array_option = EnumProperty(
         name="",
-        description="Selected zarr level/dataset",
-        update= change_zarr_level,
-        default= ""
+        description="Select the imported array or transform",
+        items= get_array_options,
+        update= change_array_option
         )
 
 bpy.types.Scene.MiN_channel_nr = IntProperty(

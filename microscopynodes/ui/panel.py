@@ -1,5 +1,6 @@
 import bpy
 from ..handle_blender_structs.dependent_props import *
+from ..file_to_array import selected_array_option
 from .preferences import addon_preferences
 
 class TIFLoadPanel(bpy.types.Panel):
@@ -19,8 +20,9 @@ class TIFLoadPanel(bpy.types.Panel):
         row.prop(bpy.context.scene, 'MiN_input_file', text= '')
         row.operator("microscopynodes.select_path", text="", icon='FILEBROWSER')
 
-        if bpy.context.scene.MiN_selected_zarr_level != "":
-            col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
+        # if bpy.context.scene.MiN_selected_array_option != -1:
+        col.prop(bpy.context.scene, 'MiN_selected_array_option')
+            # col.menu(menu='SCENE_MT_ArrayOptionMenu', text=selected_array_option().ui_text)
         
         
         # # Create two columns, by using a split layout.

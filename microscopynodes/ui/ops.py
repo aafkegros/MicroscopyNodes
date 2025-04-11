@@ -65,25 +65,25 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ZarrSelectOperator(bpy.types.Operator):
+class ArrayOptionSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""
-    bl_idname = "microscopynodes.zarrselection"
-    bl_label = "Zarr Selection"
-    selected: bpy.props.StringProperty()
+    bl_idname = "microscopynodes.arrayselection"
+    bl_label = "Load array option"
+    ix: bpy.props.IntProperty()
 
     def execute(self, context):
-        bpy.context.scene.MiN_selected_zarr_level = self.selected
+        bpy.context.scene.MiN_selected_zarr_level = self.ix
         return {'FINISHED'}
 
-class ZarrMenu(bpy.types.Menu):
+class ArrayOptionMenu(bpy.types.Menu):
     bl_label = "Zarr datasets"
-    bl_idname = "SCENE_MT_ZarrMenu"
+    bl_idname = "SCENE_MT_ArrayOptionMenu"
 
     def draw(self, context):
         layout = self.layout
-        for zarrlevel in bpy.context.scene.MiN_zarrLevels:
-            prop = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
-            prop.selected = zarrlevel.level_descriptor
+        for ix, array_option in enumerate(bpy.context.scene.MiN_array_options):
+            prop = layout.operator(ArrayOptionSelectOperator.bl_idname, text=array_option.ui_text, icon=array_option.icon)
+            prop.ix = ix
 
 class SelectPathOperator(Operator):
     """Select file or directory"""
@@ -117,4 +117,4 @@ class SelectPathOperator(Operator):
         return {'RUNNING_MODAL'}
 
 
-CLASSES = [TifLoadOperator, TifLoadBackgroundOperator, ZarrSelectOperator, ZarrMenu, SelectPathOperator]
+CLASSES = [TifLoadOperator, TifLoadBackgroundOperator, ArrayOptionSelectOperator, ArrayOptionMenu, SelectPathOperator]
