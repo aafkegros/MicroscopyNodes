@@ -1,6 +1,7 @@
 import pytest
 import bpy
 import microscopynodes
+import shutil, os
 
 microscopynodes._test_register()
 
@@ -13,7 +14,6 @@ def pytest_sessionfinish(session, exitstatus):
     UPDATE_PROPS = [
         'MiN_input_file',
         'MiN_axes_order',
-        'MiN_selected_zarr_level',
         'MiN_channel_nr',
         'MiN_reload',
     ]
@@ -26,5 +26,8 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"{prop} not found")
 
     microscopynodes.unregister()
-    print(f'called session finish, {deleted} properties deleted')
+    test_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp_test_data")
+    if os.path.isdir(test_folder):
+        shutil.rmtree(test_folder)
+    # print(f'called session finish, {deleted} properties deleted')
     # raise ValueError

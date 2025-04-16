@@ -5,8 +5,8 @@ import pytest
 @pytest.mark.parametrize('level', [None, 0, 1, 2])
 def test_zarr(level):
     prep_load()
-    bpy.context.scene.MiN_input_file = str(Path(test_folder) / '5D_5cube.zarr')
-
+    bpy.context.scene.MiN_input_file = str(Path(test_folder).parent / 'test_data' / '5D_5cube.zarr')
+    
     if not level is None:
         bpy.context.scene.MiN_selected_array_option = str(bpy.context.scene.MiN_array_options[level].identifier)
 
@@ -22,9 +22,9 @@ def test_zarr(level):
 @pytest.mark.parametrize('which_not_update', [['MiN_update_data','MiN_update_settings'], ['MiN_update_data'], ['MiN_update_settings'], []])
 def test_reload(which_not_update):
     prep_load()
-    bpy.context.scene.MiN_input_file = str(Path(test_folder) / '5D_5cube.zarr')
+    bpy.context.scene.MiN_input_file = str(Path(test_folder).parent  / 'test_data' / '5D_5cube.zarr')
     bpy.context.scene.MiN_selected_array_option = str(len(bpy.context.scene.MiN_array_options)-1)
-
+    
     ch_dicts1 = do_load()
     objects1 = set([obj.name for obj in bpy.data.objects])
 

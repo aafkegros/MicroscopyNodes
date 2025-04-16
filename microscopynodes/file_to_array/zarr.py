@@ -27,7 +27,8 @@ class ZarrLoader(ArrayLoader):
         try:
             file_globals, _ = self.parse_zattrs(input_file)
         except KeyError as e:
-            log(f"Could not parse .zattrs, see print log for detail")
+            print(f"key error: {e}")
+            log(f"Could not parse .zattrs")
         self._set_axes_order(file_globals['axes_order'])
         self._set_unit(file_globals['unit'])
         self._set_ch_names(file_globals['ch_names'])
