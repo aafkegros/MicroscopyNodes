@@ -1,4 +1,3 @@
-print('importing for dependent props')
 import bpy
 from bpy.props import (StringProperty, FloatProperty,
                         PointerProperty, IntProperty,
@@ -6,16 +5,13 @@ from bpy.props import (StringProperty, FloatProperty,
                         )
 
 # update functions are defined locally
-from ..file_to_array import change_path, change_channel_ax, change_array_option, get_array_options
+from ..file_to_array import change_path, change_channel_ax, change_array_option, get_array_options, selected_array_option
 from ..ui.channel_list import set_channels
 
 import functools
 from operator import attrgetter
 import tempfile
 from pathlib import Path
-
-print('registering dependent props')
-
 
 
 bpy.types.Scene.MiN_input_file = StringProperty(
@@ -61,4 +57,18 @@ bpy.types.Scene.MiN_reload = PointerProperty(
         type=bpy.types.Object,
         poll=poll_empty,
         )
-        
+
+def switch_pixel_size(self, context):
+    if bpy.context.scene.MiN_pixel_sizes_are_rescaled:
+        bpy.context.scene.MiN_xy_size *= selected_array_option().scale()[0]
+        bpy.context.scene.MiN_z_size *= selected_array_option().scale()[2]
+    else:
+        bpy.context.scene.MiN_xy_size /= selected_array_option().scale()[0]
+        bpy.context.scene.MiN_z_size /= selected_array_option().scale()[2]
+    return        
+
+bpy.types.Scene.MiN_pixel_sizes_are_rescaled = BoolProperty(
+    name= "Show rescaled pixel size.",
+    default = False,
+    update = switch_pixel_size
+)

@@ -8,7 +8,7 @@ def test_zarr(level):
     bpy.context.scene.MiN_input_file = str(Path(test_folder) / '5D_5cube.zarr')
 
     if not level is None:
-        bpy.context.scene.MiN_selected_zarr_level = bpy.context.scene.MiN_zarrLevels[level].level_descriptor
+        bpy.context.scene.MiN_selected_array_option = str(bpy.context.scene.MiN_array_options[level].identifier)
 
     for ch in bpy.context.scene.MiN_channelList:
         ch['volume'] = True
@@ -23,7 +23,7 @@ def test_zarr(level):
 def test_reload(which_not_update):
     prep_load()
     bpy.context.scene.MiN_input_file = str(Path(test_folder) / '5D_5cube.zarr')
-    bpy.context.scene.MiN_selected_zarr_level = bpy.context.scene.MiN_zarrLevels[-1].level_descriptor
+    bpy.context.scene.MiN_selected_array_option = str(len(bpy.context.scene.MiN_array_options)-1)
 
     ch_dicts1 = do_load()
     objects1 = set([obj.name for obj in bpy.data.objects])
@@ -37,8 +37,7 @@ def test_reload(which_not_update):
         ch['surface'] = True
     bpy.context.scene.MiN_channelList[0]['volume'] = True
     
-    bpy.context.scene.MiN_selected_zarr_level = bpy.context.scene.MiN_zarrLevels[-2].level_descriptor
-
+    bpy.context.scene.MiN_selected_array_option = str(len(bpy.context.scene.MiN_array_options) -2)
     ch_dicts2 = do_load()
     objects2 = set([obj.name for obj in bpy.data.objects])
     

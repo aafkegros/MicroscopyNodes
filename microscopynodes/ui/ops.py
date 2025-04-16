@@ -11,6 +11,7 @@ from bpy.types import (Panel,
 from bpy.types import UIList
 import threading
 
+
 class TifLoadOperator(bpy.types.Operator):
     """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
     bl_idname ="microscopynodes.load"
@@ -25,6 +26,9 @@ class TifLoadOperator(bpy.types.Operator):
         if event.type == 'TIMER':
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
+                if 'EXCEPTION' in self.params[0][0]: # hacky
+                    raise(self.params[0][0]['EXCEPTION'])
+                    return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
                 load.load_blocking(self.params)
                 return {'FINISHED'}

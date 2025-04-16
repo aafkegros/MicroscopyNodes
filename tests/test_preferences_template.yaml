@@ -17,4 +17,4 @@ channels:
     single_color: [1,1,1] # only used in SINGLE_COLOR - floating point RGB value
   
 cache_option: TEMPORARY # out of PATH, TEMPORARY, WITH_PROJECT
-cache_path: /example/path # only used if cache_option == PATH
+cache_path: /example/path # only used if cache_option == PATH - gets replaced in tests 
