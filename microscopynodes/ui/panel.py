@@ -1,5 +1,6 @@
 import bpy
 from ..handle_blender_structs.dependent_props import *
+from ..file_to_array import selected_array_option
 from .preferences import addon_preferences
 
 class TIFLoadPanel(bpy.types.Panel):
@@ -19,8 +20,17 @@ class TIFLoadPanel(bpy.types.Panel):
         row.prop(bpy.context.scene, 'MiN_input_file', text= '')
         row.operator("microscopynodes.select_path", text="", icon='FILEBROWSER')
 
-        if bpy.context.scene.MiN_selected_zarr_level != "":
-            col.menu(menu='SCENE_MT_ZarrMenu', text=bpy.context.scene.MiN_selected_zarr_level)
+        
+        
+        if bpy.context.scene.MiN_selected_array_option != "" and len(bpy.context.scene.MiN_array_options) != 0:
+            row =col.row(align=True)
+            row.prop(bpy.context.scene, 'MiN_selected_array_option')
+            row.enabled = True
+            if len(bpy.context.scene.MiN_array_options) == 0:
+                row.enabled = False
+            if selected_array_option().is_rescaled:
+                row.prop(bpy.context.scene, 'MiN_pixel_sizes_are_rescaled', icon="FIXED_SIZE", icon_only=True)
+            # col.menu(menu='SCENE_MT_ArrayOptionMenu', text=selected_array_option().ui_text)
         
         
         # # Create two columns, by using a split layout.
@@ -29,8 +39,16 @@ class TIFLoadPanel(bpy.types.Panel):
         # First column
         col1 = split.column(align=True)
         col1.alignment='RIGHT'
-        col1.label(text="xy pixel size:")
-        col1.label(text="z pixel size:")
+        if selected_array_option() is None or not selected_array_option().is_rescaled or not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
+            col1.label(text="xy pixel size:")
+            col1.label(text="z pixel size:")
+        else:
+            if selected_array_option().path != "":
+                col1.label(text=f"{selected_array_option().path} xy pixel size:")
+                col1.label(text=f"{selected_array_option().path} z pixel size:")
+            else:
+                col1.label(text=f"xy pixel size (after rescaling):")
+                col1.label(text=f"z pixel size (after rescaling):")
         col1.label(text="axes:")
 
         col2 = split.column(align=True)
@@ -52,6 +70,7 @@ class TIFLoadPanel(bpy.types.Panel):
             rowt.prop(scn,'MiN_load_end_frame')
 
         if not bpy.context.scene.MiN_enable_ui:
+            col1.enabled=False
             col2.enabled=False
 
         
@@ -76,7 +95,10 @@ class TIFLoadPanel(bpy.types.Panel):
         col.separator()
         # col = layout.column(align=False)  
         # row = col.row(align=False)
-        col.operator("microscopynodes.load")
+        if bpy.context.scene.MiN_reload is None:
+            col.operator("microscopynodes.load", text="Load")
+        else:
+            col.operator("microscopynodes.load", text="Reload")
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
         

@@ -18,6 +18,7 @@ class min_keys(Enum):
 
 
 # # -- props --
+## Names start with MiN for Microscopy Nodes (MN = Molecular Nodes)
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 
@@ -47,12 +48,6 @@ bpy.types.Scene.MiN_preset_environment = bpy.props.BoolProperty(
     default = True
     )
 
-bpy.types.Scene.MiN_cache_dir = StringProperty(
-        name="MiN cache dir",
-        description="Cache/asset location",
-        default= tempfile.gettempdir()
-        )
-
 bpy.types.Scene.MiN_xy_size = FloatProperty(
         name="",
         description="xy physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
@@ -77,6 +72,9 @@ bpy.types.Scene.MiN_unit = EnumProperty(
         default="AU",
     )
 
+bpy.types.Scene.MiN_ch_names = StringProperty( # | separated list of channel names from file
+    name = "", 
+    )
 
 # necessary to make uilist work
 bpy.types.Scene.MiN_ch_index = IntProperty(
@@ -123,5 +121,6 @@ bpy.types.Scene.MiN_yaml_preferences = StringProperty(
     default = "",
     subtype = 'FILE_PATH',
 )
+
 
 

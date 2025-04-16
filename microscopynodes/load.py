@@ -13,27 +13,30 @@ from mathutils import Matrix
 
 
 def load_threaded(params):
-    scn = bpy.context.scene
-    if not scn.MiN_update_data:
-        return params
+    try:
+        scn = bpy.context.scene
+        if not scn.MiN_update_data:
+            return params
 
-    ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
+        ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
 
-    log('Loading file')
-    load_array(scn.MiN_input_file, axes_order, ch_dicts) # unpacks into ch_dicts
-    axes_order = axes_order.replace('c', "") # channels are separated
-    
-    for ch in ch_dicts:
-        if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]:
-            ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir, scn.MiN_remake,  axes_order)
+        log('Loading file')
+        load_array(ch_dicts) # unpacks into ch_dicts
+        axes_order = axes_order.replace('c', "") # channels are separated
+        
+        for ch in ch_dicts:
+            if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]:
+                ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir, scn.MiN_remake,  axes_order)
 
 
-    progress = 'Loading objects to Blender'
-    if any([ch['surface'] for ch in ch_dicts]):
-        progress = 'Meshing surfaces, ' + progress.lower()
-    if any([ch['labelmask'] for ch in ch_dicts]):
-        progress = 'Making labelmasks, ' + progress.lower()
-    log(progress)
+        progress = 'Loading objects to Blender'
+        if any([ch['surface'] for ch in ch_dicts]):
+            progress = 'Meshing surfaces, ' + progress.lower()
+        if any([ch['labelmask'] for ch in ch_dicts]):
+            progress = 'Making labelmasks, ' + progress.lower()
+        log(progress)
+    except Exception as e: # hacky way to track exceptions across threaded process
+        params[0][0]['EXCEPTION'] = e
     return params
 
 def load_blocking(params):

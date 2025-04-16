@@ -11,6 +11,7 @@ from bpy.types import (Panel,
 from bpy.types import UIList
 import threading
 
+
 class TifLoadOperator(bpy.types.Operator):
     """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
     bl_idname ="microscopynodes.load"
@@ -25,6 +26,9 @@ class TifLoadOperator(bpy.types.Operator):
         if event.type == 'TIMER':
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
+                if 'EXCEPTION' in self.params[0][0]: # hacky
+                    raise(self.params[0][0]['EXCEPTION'])
+                    return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
                 load.load_blocking(self.params)
                 return {'FINISHED'}
@@ -65,25 +69,25 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ZarrSelectOperator(bpy.types.Operator):
+class ArrayOptionSelectOperator(bpy.types.Operator):
     """Select Zarr dataset"""
-    bl_idname = "microscopynodes.zarrselection"
-    bl_label = "Zarr Selection"
-    selected: bpy.props.StringProperty()
+    bl_idname = "microscopynodes.arrayselection"
+    bl_label = "Load array option"
+    ix: bpy.props.IntProperty()
 
     def execute(self, context):
-        bpy.context.scene.MiN_selected_zarr_level = self.selected
+        bpy.context.scene.MiN_selected_zarr_level = self.ix
         return {'FINISHED'}
 
-class ZarrMenu(bpy.types.Menu):
+class ArrayOptionMenu(bpy.types.Menu):
     bl_label = "Zarr datasets"
-    bl_idname = "SCENE_MT_ZarrMenu"
+    bl_idname = "SCENE_MT_ArrayOptionMenu"
 
     def draw(self, context):
         layout = self.layout
-        for zarrlevel in bpy.context.scene.MiN_zarrLevels:
-            prop = layout.operator(ZarrSelectOperator.bl_idname, text=zarrlevel.level_descriptor, icon='VOLUME_DATA')
-            prop.selected = zarrlevel.level_descriptor
+        for ix, array_option in enumerate(bpy.context.scene.MiN_array_options):
+            prop = layout.operator(ArrayOptionSelectOperator.bl_idname, text=array_option.ui_text, icon=array_option.icon)
+            prop.ix = ix
 
 class SelectPathOperator(Operator):
     """Select file or directory"""
@@ -117,4 +121,4 @@ class SelectPathOperator(Operator):
         return {'RUNNING_MODAL'}
 
 
-CLASSES = [TifLoadOperator, TifLoadBackgroundOperator, ZarrSelectOperator, ZarrMenu, SelectPathOperator]
+CLASSES = [TifLoadOperator, TifLoadBackgroundOperator, ArrayOptionSelectOperator, ArrayOptionMenu, SelectPathOperator]

@@ -1,6 +1,7 @@
 import os
 os.environ["MIN_TEST"] = "1"
 import bpy
+import yaml
 
 from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
@@ -15,7 +16,8 @@ import imageio.v3 as iio
 from pathlib import Path
 
 
-test_folder = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data"))
+test_folder = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp_test_data"))
+test_folder.mkdir(exist_ok=True)
 
 print('imported utils')
 
@@ -55,9 +57,16 @@ def make_tif(path, arrtype):
 def prep_load(arrtype=None):
     # microscopynodes._test_register()
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.context.scene.MiN_yaml_preferences = str(Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_preferences.yaml")))
 
 
+    pref_template = str(Path(test_folder).parent / "test_preferences_template.yaml")
+    with open(pref_template) as f: 
+        prefdct = yaml.safe_load(f)
+    prefdct['cache_path'] = str(test_folder)
+    pref_path = test_folder / 'pref.yaml'
+    with open(pref_path, 'w') as f: 
+        yaml.safe_dump(prefdct, f)
+    bpy.context.scene.MiN_yaml_preferences = str(pref_path)
 
     if arrtype is None:
         arrtype = '5D_5cube'
@@ -67,7 +76,7 @@ def prep_load(arrtype=None):
 
     # bpy.context.scene.MiN_selected_cache_option = "Path"
     # bpy.context.scene.MiN_explicit_cache_dir = str(test_folder)
-    bpy.context.scene.MiN_cache_dir = str(test_folder)
+    # bpy.context.scene.MiN_cache_dir = str(test_folder)
     
     bpy.context.scene.MiN_input_file = str(path)
     # assert(arr_shape() == arr.shape)
@@ -121,7 +130,6 @@ def quick_render(name):
     bpy.context.scene.cycles.samples = 16
     # Set the output file path
     output_file = str(test_folder / f'tmp{name}.png')
-
     scn = bpy.context.scene
 
     cam1 = bpy.data.cameras.new("Camera 1")

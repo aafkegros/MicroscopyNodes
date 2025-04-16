@@ -4,27 +4,33 @@ from pathlib import Path
 
 from .ui import preferences
 from .handle_blender_structs import *
-from .file_to_array import load_array, arr_shape
+from .file_to_array import load_array, selected_array_option
 from .ui.preferences import addon_preferences
 
 
 def get_cache_dir():
-    if bpy.context.scene.MiN_cache_dir_option == 'TEMPORARY':
-        return tempfile.gettempdir()
-    if bpy.context.scene.MiN_cache_dir_option == 'PATH':
-        return addon_preferences().cache_path
-    if bpy.context.scene.MiN_cache_dir_option == 'WITH_PROJECT':
-        return bpy.path.abspath('//')
+    if addon_preferences().cache_option == 'TEMPORARY':
+        path = tempfile.gettempdir()
+    if addon_preferences().cache_option == 'PATH':
+        path = addon_preferences().cache_path
+    if addon_preferences().cache_option == 'WITH_PROJECT':
+        path = bpy.path.abspath('//')
+    path = Path(path) / Path(bpy.context.scene.MiN_input_file).stem 
+    path = path / str(bpy.context.scene.MiN_selected_array_option)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 def parse_initial():
     # all parameters initialized here are shared between threaded and blocking load functions
     check_input()
     axes_order = bpy.context.scene.MiN_axes_order
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
-    cache_dir = get_cache_subdir()
+    if not bpy.context.scene.MiN_pixel_sizes_are_rescaled: 
+        pixel_size *= selected_array_option().scale() 
+    cache_dir = get_cache_dir() 
 
     ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
-    size_px = np.array([arr_shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
+    size_px = np.array([selected_array_option().shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
     size_px = tuple([max(ax, 1) for ax in size_px])
 
     if bpy.context.scene.MiN_reload is None:
@@ -103,18 +109,17 @@ def get_previous_scale(axes_obj, size_px):
         print(e)
         pass
 
-def get_cache_subdir():
-    # make sure 'With Project is at current fname'
-    if bpy.context.scene.MiN_cache_dir == '':
-        get_cache_dir()
-        if bpy.context.scene.MiN_cache_dir == '':
-            raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
-    # create folder for this dataset with filename/(zarr_level/)
-    cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(bpy.context.scene.MiN_input_file).stem 
-    if  bpy.context.scene.MiN_selected_zarr_level != "":
-        cache_dir = cache_dir / bpy.context.scene.MiN_selected_zarr_level.split(":")[0]
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir
+# def get_cache_subdir():
+#     # make sure 'With Project is at current fname'
+#     if bpy.context.scene.MiN_cache_dir == '':
+#         get_cache_dir()
+#         if bpy.context.scene.MiN_cache_dir == '':
+#             raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
+#     # create folder for this dataset with filename/(zarr_level/)
+#     cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(bpy.context.scene.MiN_input_file).stem 
+#     cache_dir = cache_dir / str(bpy.context.scene.MiN_selected_array_option)
+#     cache_dir.mkdir(parents=True, exist_ok=True)
+#     return cache_dir
 
 
 def check_input():
