@@ -143,13 +143,16 @@ class ArrayLoader():
 
         if selected_array_option().is_rescaled:
             imgdata = map_resize(imgdata)
-        imgdata = imgdata.compute_chunk_sizes()
+        # imgdata = imgdata.compute_chunk_sizes()
         ix = 0
-        for ch in ch_dicts:
+        for ix, ch in enumerate(ch_dicts):
             if ch['data'] is None:
+                print(ix, axes_order.find('c'), axes_order.find('t'))
                 ch['data'] = np.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
-            if np.issubdtype(ch['data'].dtype,np.floating):
-                ch['max_val'] = np.max(ch['data'])
+                if np.issubdtype(ch['data'].dtype,np.floating):
+                    ch['max_val'] = np.max(ch['data'])
+            if ix >= selected_array_option().len_axis('c'): 
+                break
         return 
 
 def parse_unit(unit_str):
