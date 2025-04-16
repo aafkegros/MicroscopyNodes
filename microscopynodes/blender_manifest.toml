@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "microscopynodes"
-version = "2.1.2"
+version = "2.2.0"
 name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Oane Gros <oane.gros@embl.de>"
@@ -61,10 +61,10 @@ wheels = [
 	"./wheels/importlib_metadata-8.6.1-py3-none-any.whl",
 	"./wheels/lazy_loader-0.4-py3-none-any.whl",
 	"./wheels/locket-1.0.0-py2.py3-none-any.whl",
-	"./wheels/multidict-6.3.2-cp311-cp311-macosx_10_9_x86_64.whl",
-	"./wheels/multidict-6.3.2-cp311-cp311-macosx_11_0_arm64.whl",
-	"./wheels/multidict-6.3.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-	"./wheels/multidict-6.3.2-cp311-cp311-win_amd64.whl",
+	"./wheels/multidict-6.4.3-cp311-cp311-macosx_10_9_x86_64.whl",
+	"./wheels/multidict-6.4.3-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/multidict-6.4.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/multidict-6.4.3-cp311-cp311-win_amd64.whl",
 	"./wheels/networkx-3.4.2-py3-none-any.whl",
 	"./wheels/numcodecs-0.13.0-cp311-cp311-macosx_10_9_x86_64.whl",
 	"./wheels/numcodecs-0.13.0-cp311-cp311-macosx_11_0_arm64.whl",
@@ -72,10 +72,10 @@ wheels = [
 	"./wheels/numcodecs-0.13.0-cp311-cp311-win_amd64.whl",
 	"./wheels/packaging-24.2-py3-none-any.whl",
 	"./wheels/partd-1.4.2-py3-none-any.whl",
-	"./wheels/pillow-11.1.0-cp311-cp311-macosx_10_10_x86_64.whl",
-	"./wheels/pillow-11.1.0-cp311-cp311-macosx_11_0_arm64.whl",
-	"./wheels/pillow-11.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-	"./wheels/pillow-11.1.0-cp311-cp311-win_amd64.whl",
+	"./wheels/pillow-11.2.1-cp311-cp311-macosx_10_10_x86_64.whl",
+	"./wheels/pillow-11.2.1-cp311-cp311-macosx_11_0_arm64.whl",
+	"./wheels/pillow-11.2.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/pillow-11.2.1-cp311-cp311-win_amd64.whl",
 	"./wheels/propcache-0.3.1-cp311-cp311-macosx_10_9_x86_64.whl",
 	"./wheels/propcache-0.3.1-cp311-cp311-macosx_11_0_arm64.whl",
 	"./wheels/propcache-0.3.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
