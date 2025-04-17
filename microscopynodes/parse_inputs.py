@@ -109,18 +109,6 @@ def get_previous_scale(axes_obj, size_px):
         print(e)
         pass
 
-# def get_cache_subdir():
-#     # make sure 'With Project is at current fname'
-#     if bpy.context.scene.MiN_cache_dir == '':
-#         get_cache_dir()
-#         if bpy.context.scene.MiN_cache_dir == '':
-#             raise ValueError("Empty data directory - please save the project first before using With Project saving.") 
-#     # create folder for this dataset with filename/(zarr_level/)
-#     cache_dir = Path(bpy.context.scene.MiN_cache_dir) / Path(bpy.context.scene.MiN_input_file).stem 
-#     cache_dir = cache_dir / str(bpy.context.scene.MiN_selected_array_option)
-#     cache_dir.mkdir(parents=True, exist_ok=True)
-#     return cache_dir
-
 
 def check_input():
     if bpy.context.scene.MiN_xy_size <= 0  or bpy.context.scene.MiN_z_size <= 0:
