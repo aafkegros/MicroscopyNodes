@@ -143,7 +143,7 @@ class ArrayLoader():
 
         if selected_array_option().is_rescaled:
             imgdata = map_resize(imgdata)
-        # imgdata = imgdata.compute_chunk_sizes()
+            imgdata = imgdata.compute_chunk_sizes()
         ix = 0
         for ix, ch in enumerate(ch_dicts):
             if ch['data'] is None:
