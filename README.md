@@ -37,10 +37,10 @@ Check out the [video tutorial playlist](https://www.youtube.com/playlist?list=PL
 - Fluorescence & EM visualization
 - Making presentation-ready renders
 
-<p align="center"><img src="./figures/newprettyside.png" width="600"/></p>
+<p align="center"><img src="./figures/newprettyside.png" width="400"/></p>
 
 
-## How to Use It
+## First use
 
 1. Load your file (local path or URL) into the **Microscopy Nodes** panel in Scene Properties <img src="./docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> 
 2. The metadata will auto-load, and you can define how each channel is visualized
