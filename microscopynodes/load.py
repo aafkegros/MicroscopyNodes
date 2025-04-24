@@ -2,7 +2,6 @@ import bpy
 from pathlib import Path
 import numpy as np
 
-from .initial_global_settings import preset_environment
 from .handle_blender_structs import *
 from .handle_blender_structs import dependent_props
 from .load_components import *
@@ -48,8 +47,10 @@ def load_blocking(params):
     # reads env variables
     base_coll, cache_coll = min_base_colls(Path(scn.MiN_input_file).stem[:50], scn.MiN_reload)    
 
-    if scn.MiN_preset_environment:
-        preset_environment()    
+    if scn.MiN_overwrite_background_color:
+        set_background_color()
+    if scn.MiN_overwrite_render_settings:
+        set_render_settings()
 
     # --- Prepare  container ---
     container = scn.MiN_reload
@@ -108,7 +109,38 @@ def load_blocking(params):
         pass
     # after first load this should not be used again, to prevent overwriting user values
     scn.MiN_reload = container
-    scn.MiN_preset_environment = False
+    scn.MiN_overwrite_render_settings = False
     scn.MiN_enable_ui = True
     log('')
+    return
+
+
+
+def set_background_color():
+    bgcol = (0.2,0.2,0.2, 1)
+    emitting = [ch.emission for ch in bpy.context.scene.MiN_channelList if (ch.surface or ch.volume) or ch.labelmask]
+    if all(emitting):
+        bgcol = (0, 0, 0, 1)
+    if all([(not emit) for emit in emitting]):
+        bgcol = (1, 1, 1, 1)
+    try:
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
+    except:
+        pass
+    return
+
+
+def set_render_settings():
+    bpy.context.scene.eevee.volumetric_tile_size = '1'
+    bpy.context.scene.cycles.preview_samples = 8
+    bpy.context.scene.cycles.samples = 64
+    bpy.context.scene.view_settings.view_transform = 'Standard'
+    bpy.context.scene.eevee.volumetric_end = 300
+    bpy.context.scene.eevee.taa_samples = 64
+
+    bpy.context.scene.render.engine = 'CYCLES'
+    bpy.context.scene.cycles.transparent_max_bounces = 40 # less slicing artefacts
+    bpy.context.scene.cycles.volume_bounces = 32
+    bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
+    bpy.context.scene.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
     return

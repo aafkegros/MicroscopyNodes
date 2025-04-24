@@ -129,8 +129,10 @@ class TIFLoadPanel(bpy.types.Panel):
 
         row = box.row(align=True)
         
-        row.prop(bpy.context.scene, 'MiN_preset_environment', 
+        row.prop(bpy.context.scene, 'MiN_overwrite_background_color', 
                         text = '', icon="WORLD",icon_only=True,emboss=True)
+        row.prop(bpy.context.scene, 'MiN_overwrite_render_settings', 
+                        text = '', icon="SCENE",icon_only=True,emboss=True)
         row.separator()
         row.label(text="", icon='CON_SIZELIKE')
         if bpy.context.scene.MiN_unit == "AU":
