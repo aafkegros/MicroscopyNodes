@@ -5,10 +5,12 @@ from pathlib import Path
 from ..handle_blender_structs import *
 from .. import min_nodes
 
-def load_axes(size_px, pixel_size, scale, axes_obj=None, container=None):
+def load_axes(size_px, pixel_size, scale, scale_factor, axes_obj=None, container=None):
     if axes_obj is not None:
         mod = get_min_gn(axes_obj)
         update_axes(mod, size_px, pixel_size, scale)
+        axes_obj.location =   np.array(axes_obj.location)+ ( np.array(axes_obj.location)*(scale_factor - 1))
+        
         return axes_obj
 
     center_loc = np.array([0.5,0.5,0]) # offset of center (center in x, y, z of obj)

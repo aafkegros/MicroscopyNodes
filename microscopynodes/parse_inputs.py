@@ -67,25 +67,41 @@ def parse_unit(string):
         return 1
 
 def parse_scale(size_px, pixel_size, objs):
-    if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
-        try:
-            scale = get_previous_scale(objs[min_keys.AXES], size_px)
-        except Exception as e:
-            pass
+    scale = None
+    scale_factor = 1
+        
     world_scale = addon_preferences(bpy.context).import_scale
     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
     if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'PIXEL': # cm / px
-        return isotropic*0.01
-    
-    # physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size * size_px * isotropic
+        scale = isotropic*0.01
     physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
     if world_scale == "MOLECULAR_NODES": # cm / nm
-        return physical_size / 1e-7
+        scale = physical_size / 1e-7
     if "_SCALE" in world_scale:
-        return physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
+        scale = physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
+
+    if objs[min_keys.AXES] is not None:
+        old_size_px, old_scale = get_previous_scale(objs[min_keys.AXES], size_px)
+        if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
+            scale = (np.array(old_size_px) / np.array(size_px)) * old_scale
+        scale_factor = (np.array(size_px) / np.array(old_size_px)) * (scale / old_scale)
+    return scale, scale_factor
     
+
+def get_previous_scale(axes_obj, size_px):
+    try:
+        mod = get_min_gn(axes_obj)
+        nodes = mod.node_group.nodes
+        old_size_px = nodes['[Microscopy Nodes size_px]'].vector
+        old_scale = nodes['[Microscopy Nodes scale]'].vector
+        return old_size_px, old_scale
+    except KeyError as e:
+        print(e)
+        pass
+
+
 def parse_loc(scale, size_px, container):
-    if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
+    if not bpy.context.scene.MiN_update_settings:
         try:
             return container.location
         except Exception as e:
@@ -98,16 +114,6 @@ def parse_loc(scale, size_px, container):
     if prefloc == "ZERO":
         return [0, 0, 0] * np.array(size_px) * scale 
 
-def get_previous_scale(axes_obj, size_px):
-    try:
-        mod = get_min_gn(axes_obj)
-        nodes = mod.node_group.nodes
-        old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-        old_scale = nodes['[Microscopy Nodes scale]'].vector
-        return  (np.array(old_size_px) / np.array(size_px)) * old_scale
-    except KeyError as e:
-        print(e)
-        pass
 
 # def get_cache_subdir():
 #     # make sure 'With Project is at current fname'
