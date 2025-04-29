@@ -55,10 +55,7 @@ def load_blocking(params):
     container = scn.MiN_reload
     objs = parse_reload(container)
 
-    # read preference variables - or in certain cases read from prev
-    scale = parse_scale(size_px, pixel_size, objs) # reads from previous if only update data
-    loc = parse_loc(scale, size_px, container)
-    
+
     if container is None:
         bpy.ops.object.empty_add(type="PLAIN_AXES")
         container = bpy.context.view_layer.objects.active
@@ -70,13 +67,14 @@ def load_blocking(params):
         if ch[min_keys.LABELMASK] and scn.MiN_update_data:
             ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  scn.MiN_remake,  axes_order)
     
-    # -- load components --
-    axes_obj = load_axes(size_px, pixel_size, scale, axes_obj=objs[min_keys.AXES], container=container)
-    slice_cube = load_slice_cube(size_px, scale, container, slicecube=objs[min_keys.SLICECUBE])
-    
+    # -- axes, slice cube and scales -- 
+    scale, scale_factor = parse_scale(size_px, pixel_size, objs) 
+    loc = parse_loc(scale, size_px, container)
+    axes_obj = load_axes(size_px, pixel_size, scale, scale_factor, axes_obj=objs[min_keys.AXES], container=container)
+    slice_cube = load_slice_cube(size_px, scale, scale_factor, container, slicecube=objs[min_keys.SLICECUBE])
+
     for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
         if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
-            # don't create object if none exists or is required
             continue
         data_io = DataIOFactory(min_type)
         ch_obj = ChannelObjectFactory(min_type, objs[min_type])
@@ -91,8 +89,7 @@ def load_blocking(params):
                 ch_obj.update_ch_settings(ch)
             ch_obj.set_parent_and_slicer(container, slice_cube, ch)
 
-    if scn.MiN_update_data:
-        container.location = loc
+    container.location = loc
     
     # -- wrap up --
     collection_deactivate_by_name('cache')
