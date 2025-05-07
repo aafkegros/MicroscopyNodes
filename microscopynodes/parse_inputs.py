@@ -72,12 +72,14 @@ def parse_scale(size_px, pixel_size, objs):
         
     world_scale = addon_preferences(bpy.context).import_scale
     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
-    if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'PIXEL': # cm / px
+    if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'AU': # cm / px
         scale = isotropic*0.01
-    physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
+    
     if world_scale == "MOLECULAR_NODES": # cm / nm
+        physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
         scale = physical_size / 1e-7
     if "_SCALE" in world_scale:
+        physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
         scale = physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
 
     if objs[min_keys.AXES] is not None:
