@@ -41,14 +41,15 @@ required_packages = [
     # tif loading
     "tifffile==2023.4.12",
     "imagecodecs==2024.6.1", # allows LZW compressed tif loading
-
+    
     # "zarr==3.0.0b2"
     # dependencies of zarr:
     "fasteners==0.19",
     "numcodecs==0.13.0",
     "fsspec==2024.6.0",
     "aiohttp==3.10.3",
-    'cmap==0.6.0'
+    'cmap==0.6.0',
+    's3fs'
     # asciitree is permanently added
 
     # development

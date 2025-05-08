@@ -10,6 +10,7 @@ import bpy
 from pathlib import Path
 from urllib.parse import urljoin
 from .arrayoptions import copy_array_option
+import s3fs
 
 OME_ZARR_V_0_4_KWARGS = dict(dimension_separator="/", normalize_keys=False)
 OME_ZARR_V_0_1_KWARGS = dict(dimension_separator=".")
@@ -44,45 +45,45 @@ class ZarrLoader(ArrayLoader):
             copy_array_option(file_option)
 
     def load_array(self, input_file, array_option):
-        uncached_store = FSStore(append_uri(array_option.store, array_option.path), mode="r", **OME_ZARR_V_0_4_KWARGS)
-        store = LRUStoreCache(uncached_store, max_size=5*(10**9))
-        zarray = ZarrArray(store=store)
-        return zarray
+        return self.open_zarr(array_option.store)[array_option.path]
 
-    def parse_zattrs(self, uri):
+    def open_zarr(self, uri):
         if uri.startswith("file:"):
             # Primarily this is to deal with spaces in Windows paths (encoded as %20).
             uri = os.fsdecode(unquote_to_bytes(uri))
         uri = str(uri)
+        if uri.startswith("s3://"):
+            store = s3fs.S3Map(root=uri, s3=s3fs.S3FileSystem(anon=True), check=False)
+        else:
+            store = FSStore(uri, mode="r", **OME_ZARR_V_0_4_KWARGS)
+        return zarr.open(store)
+
+    def parse_zattrs(self, uri):
+        group = self.open_zarr(uri)
         
-        uncached_store = FSStore(uri, mode="r", **OME_ZARR_V_0_4_KWARGS)
-        ome_spec = json.loads(uncached_store[".zattrs"]) # this fails if .zattrs don't exist - intentionally
-        
-        if ome_spec.get("multiscales", [{}])[0].get("version") == "0.1":
-            uncached_store = FSStore(uri, mode="r", **OME_ZARR_V_0_1_KWARGS)
-        store = LRUStoreCache(uncached_store, max_size=10**9)
+        multiscale_spec = group.attrs['multiscales'][0]
+
         file_globals = {}
         array_options = []
-        file_globals['ch_names'] = [c.get('label') for c in ome_spec.get('omero', {}).get('channels', [])]
-        for multiscale_spec in ome_spec["multiscales"]: # technically supports multiple multiscales, but as this is uncommon, some stuff may break with it (e.g. axis order)
-            file_globals['axes_order'] =  _get_axes_order_from_spec(multiscale_spec)
-            axes_order = file_globals['axes_order']
-            datasets = multiscale_spec["datasets"]
-            file_globals['unit'] = next(iter([axis['unit'] for axis in multiscale_spec["axes"] if axis['type'] == 'space']), None)
-            for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
-                array_options.append({})
-                level  = array_options[-1]
-                level['store'] = uri
-                level['path'] =  scale['path']
-                if "coordinateTransformations" in scale:
-                    scaletransform = [transform for transform in scale['coordinateTransformations'] if transform['type'] == 'scale'][0]
-                    level['xy_size'] = scaletransform['scale'][axes_order.find('x')]
-                    if 'z' in axes_order:
-                        level['z_size'] = scaletransform['scale'][axes_order.find('z')]
-                zarray = ZarrArray(store=store, path=scale["path"])
-                level['shape'] = zarray.shape
-                if np.issubdtype(zarray.dtype,np.floating):
-                    log("Floating point arrays cannot be loaded lazily, will use a lot of RAM")
+        file_globals['ch_names'] = [c.get('label') for c in group.attrs.get('omero', {}).get('channels', [])]
+        file_globals['axes_order'] =  _get_axes_order_from_spec(multiscale_spec)
+        axes_order = file_globals['axes_order']
+        datasets = multiscale_spec["datasets"]
+        file_globals['unit'] = next(iter([axis['unit'] for axis in multiscale_spec["axes"] if axis['type'] == 'space']), None)
+        for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
+            array_options.append({})
+            level  = array_options[-1]
+            level['store'] = uri
+            level['path'] =  scale['path']
+            if "coordinateTransformations" in scale:
+                scaletransform = [transform for transform in scale['coordinateTransformations'] if transform['type'] == 'scale'][0]
+                level['xy_size'] = scaletransform['scale'][axes_order.find('x')]
+                if 'z' in axes_order:
+                    level['z_size'] = scaletransform['scale'][axes_order.find('z')]
+            zarray = ZarrArray(store=group.store, path=scale["path"])
+            level['shape'] = zarray.shape
+            if np.issubdtype(zarray.dtype,np.floating):
+                log("Floating point arrays cannot be loaded lazily, will use a lot of RAM")
         return file_globals, array_options
 
 
