@@ -147,7 +147,6 @@ class ArrayLoader():
         ix = 0
         for ix, ch in enumerate(ch_dicts):
             if ch['data'] is None:
-                print(ix, axes_order.find('c'), axes_order.find('t'))
                 ch['data'] = np.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
                 if np.issubdtype(ch['data'].dtype,np.floating):
                     ch['max_val'] = np.max(ch['data'])

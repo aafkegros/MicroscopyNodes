@@ -19,6 +19,7 @@ imagecodecs = "*"
 aiohttp = "*"
 fsspec = "*"
 cmap = "0.6.0"
+s3fs = "*"
 
 
 [tool.poetry.group.dev.dependencies]
