@@ -37,6 +37,8 @@ Check out the [video tutorial playlist](https://www.youtube.com/playlist?list=PL
 - Fluorescence & EM visualization
 - Making presentation-ready renders
 
+*youtube videos are now slightly updated but will be updated within May 2025*
+
 <p align="center"><img src="./figures/newprettyside.png" width="400"/></p>
 
 
