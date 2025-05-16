@@ -4,6 +4,7 @@
 
  For any type of microscopy: fluorescence, electron microscopy, or anything in between! This tool helps you turn complex 3D+ datasets into stunning, accurate, and animatable visualizations. 
 
+Usage questions are mainly answered on the [image.sc forum](https://forum.image.sc/tag/microscopy-nodes)
 
 ## <img src="./docs/grey_icons/blender_icon_settings.svg" width="20" style="vertical-align:-0.2em;"/>  What It Does
 
