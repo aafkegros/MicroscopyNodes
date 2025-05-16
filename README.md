@@ -1,33 +1,66 @@
-# Microscopy in Blender
-This is a project building bioimage support for the open source software blender. This currently exists as the Blender add-on `microscopynodes`, previously named `tif2blender`. This is able to easily load tif files as volumetric objects in Blender. 
+# <img src="./docs/grey_icons/icon_microscopy_nodes.svg" width="40" style="vertical-align:-0.4em;"/> Microscopy in Blender
 
-Please make some pretty figures with this add-on! 
+**Microscopy Nodes** is a Blender add-on for visualizing high-dimensional microscopy data—designed for scientists, or anyone working with biological images 😊.
 
-You can download and install the add-on on the [Blender extensions platform](https://extensions.blender.org/add-ons/microscopynodes/) or by searching for Microscopy Nodes in the Extensions in your Blender preferences. For installing with earlier Blender versions than 4.2, follow the [legacy install instructions]( https://oanegros.github.io/MicroscopyNodes/outdated).
+ For any type of microscopy: fluorescence, electron microscopy, or anything in between! This tool helps you turn complex 3D+ datasets into stunning, accurate, and animatable visualizations. 
 
-The add-on will then show up as a window in the `Scene Properties`.
 
-For usage questions please use the [image.sc forum](https://forum.image.sc/tag/microscopy-nodes) 😁
+## <img src="./docs/grey_icons/blender_icon_settings.svg" width="20" style="vertical-align:-0.2em;"/>  What It Does
 
-For bug reports/feature requests please [open an issue](https://github.com/oanegros/MicroscopyNodes/issues).
+Microscopy Nodes supports importing **up to 5D** microscopy datasets (XYZ + time + channels) from `.tif` and **OME-Zarr** files, setting easy and adaptable settings to start with visualizing your data.
 
-## Video tutorials
 
-See the [video introductions](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) to the microscopynodes add-on on youtube. There's multiple playlists on the account, and they'll show you how to go from installing to rendering a presentation-ready video for fluorescence and electron microscopy.
+| Feature | Description |
+|--------|-------------|
+| **5D Support** | Load `.tif` and `.zarr` files with any axis order 'tzcyx' or any subset |
+| **Channel Interface** | Define how to load each channel: <img src="./docs/grey_icons/blender_icon_outliner_data_volume.svg" width="15" style="vertical-align:-0.2em;"/> volume, <img src="./docs/grey_icons/blender_icon_outliner_data_surface.svg" width="15" style="vertical-align:-0.2em;"/> surface, <img src="./docs/grey_icons/blender_icon_outliner_data_pointcloud.svg" width="15" style="vertical-align:-0.2em;"/> label mask |
+| **Colors and LUTs** | Easy picking of colors per channel or non-linear LUT selection from [many colormaps](https://cmap-docs.readthedocs.io/en/stable/).  |
+| **Intuitive Slicing** | Slice any object by moving the Slicing Cube, as you would move any other Blender object |
+| **Scales** | 3D scale grid for accurate representation and physical Blender scales for easy registration.  |
+| **Large Volumes** | Build your animation and visualization on a downscaled version, render with your massive dataset! |
 
-<img src="./figures/newprettyside.png" width="600"/>
 
-## Current Features
-The `microscopynodes` Blender addon supports:
+## <img src="./docs/grey_icons/blender_icon_file.svg" width="20" style="vertical-align:-0.2em;"/> Installation
 
-- up to 5D (up to tzcyx in any axis order) tifs and OME-Zarr files can be loaded. 
-- Channel interface to define how to load data
-- Replacing a pyramidal dataset with it's higher resolution version
-- Accurate scale bars
-- Load per-index label masks
-- Lazy loading of giant files (no data is loaded in RAM outside what's rendered)
+You can grab the add-on on the [Blender Extensions Platform](https://extensions.blender.org/add-ons/microscopynodes/)  
+Or, search **Microscopy Nodes** in Blender Preferences → Get Extensions. (Blender 4.2+)
 
-## Citing this addon
+For earlier versions, check the [legacy install guide](https://oanegros.github.io/MicroscopyNodes/outdated).
+
+Once installed, find it under Scene Properties <img src="./docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> .
+
+## <img src="./docs/grey_icons/blender_icon_camera_data.svg" width="20" style="vertical-align:-0.2em;"/>  Video tutorials
+
+Check out the [video tutorial playlist](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) on YouTube for quick guides on:
+- Installation
+- Loading data
+- Fluorescence & EM visualization
+- Making presentation-ready renders
+
+*youtube videos are and tutorials are now slightly outdated but will be updated within May/June 2025*
+
+<p align="center"><img src="./figures/newprettyside.png" width="400"/></p>
+
+
+## First use
+
+1. Load your file (local path or URL) into the **Microscopy Nodes** panel in Scene Properties <img src="./docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> 
+2. The metadata will auto-load, and you can define how each channel is visualized
+3. Adjust per-channel options like:
+   - Volume or isosurface rendering
+   - Label masks
+   - Emission, resolution, and colors
+4. Customize dataset settings like:
+   - Axis order
+   - Physical pixel size
+   - Reload behavior & storage location
+
+More detail in the [full docs](https://oanegros.github.io/MicroscopyNodes/).
+
+## Show Off Your Vizualizations!
+
+If you create something cool using `Microscopy Nodes`, share it!  
+Tag me [@GrosOane on Bluesky](https://bsky.app/profile/grosoane.bsky.social) or use the hashtag `#microscopynodes`.
 
 If you publish with this add-on, please cite [the preprint](https://www.biorxiv.org/content/10.1101/2025.01.09.632153v1):
 ```
@@ -44,28 +77,3 @@ If you publish with this add-on, please cite [the preprint](https://www.biorxiv.
 } 
 ```
 
-## Using `microscopynodes`
-
-Please checkout the further documentation on the [website](https://oanegros.github.io/MicroscopyNodes/) or the youtube tutorials. 
-
-Load any tif or zarr file by inputting the path or URL in the appropriate window in the `Microscopy Nodes` panel. This will read out metadata and prompt you to define how you want to load the data.
-
-- generic options
-    - axis order
-    - pixel size in µm
-    - dataset (for pyramidal Zarr data)
-    - [reload data]( https://oanegros.github.io/MicroscopyNodes/settings#reload)
-
-- per-channel load options:
-    - load [volumetric data]( https://oanegros.github.io/MicroscopyNodes/objects#volumes)
-    - load [Blender isosurface]( https://oanegros.github.io/MicroscopyNodes/objects#surfaces)
-    - load [labelmask]( https://oanegros.github.io/MicroscopyNodes/objects#masks)
-
-- per-channel visuzalization options:
-    - [emission]( https://oanegros.github.io/MicroscopyNodes/settings#emission)
-    - [surface resolution]( https://oanegros.github.io/MicroscopyNodes/settings#surface-resolution)
-
-- extra options
-    - [data storage location]( https://oanegros.github.io/MicroscopyNodes/settings#resave-location)
-    - [overwrite existing local files]( https://oanegros.github.io/MicroscopyNodes/settings#overwrite)
-    - [preset environment]( https://oanegros.github.io/MicroscopyNodes/settings#preset-environment)
