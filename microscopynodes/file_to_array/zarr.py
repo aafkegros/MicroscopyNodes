@@ -1,9 +1,7 @@
 from .arrayloading import ArrayLoader
 from ..handle_blender_structs.progress_handling import log
 import numpy as np
-from zarr.core import Array as ZarrArray
 import zarr
-from zarr.storage import FSStore, LRUStoreCache
 import json
 import os
 import bpy
@@ -31,7 +29,8 @@ class ZarrLoader(ArrayLoader):
             print(f"key error: {e}")
             log(f"Could not parse .zattrs")
         self._set_axes_order(file_globals['axes_order'])
-        self._set_unit(file_globals['unit'])
+        if 'unit' in file_globals:
+            self._set_unit(file_globals['unit'])
         self._set_ch_names(file_globals['ch_names'])
         return
 
@@ -55,21 +54,28 @@ class ZarrLoader(ArrayLoader):
         if uri.startswith("s3://"):
             store = s3fs.S3Map(root=uri, s3=s3fs.S3FileSystem(anon=True), check=False)
         else:
-            store = FSStore(uri, mode="r", **OME_ZARR_V_0_4_KWARGS)
-        return zarr.open(store)
+            store=uri
+            # store = FSStore(uri, mode="r")
+        return zarr.open_group(store, mode='r')
 
     def parse_zattrs(self, uri):
         group = self.open_zarr(uri)
-        
-        multiscale_spec = group.attrs['multiscales'][0]
+        try:
+            multiscale_spec = group.attrs['multiscales'][0]
+        except:
+            multiscale_spec = group.attrs['ome']['multiscales'][0]
 
         file_globals = {}
         array_options = []
         file_globals['ch_names'] = [c.get('label') for c in group.attrs.get('omero', {}).get('channels', [])]
         file_globals['axes_order'] =  _get_axes_order_from_spec(multiscale_spec)
+        # print(file_globa)
         axes_order = file_globals['axes_order']
         datasets = multiscale_spec["datasets"]
-        file_globals['unit'] = next(iter([axis['unit'] for axis in multiscale_spec["axes"] if axis['type'] == 'space']), None)
+        try:
+            file_globals['unit'] = next(iter([axis['unit'] for axis in multiscale_spec["axes"] if axis['type'] == 'space']), None)
+        except:
+            pass
         for scale in datasets:  # OME-Zarr spec requires datasets ordered from high to low resolution
             array_options.append({})
             level  = array_options[-1]
@@ -80,7 +86,7 @@ class ZarrLoader(ArrayLoader):
                 level['xy_size'] = scaletransform['scale'][axes_order.find('x')]
                 if 'z' in axes_order:
                     level['z_size'] = scaletransform['scale'][axes_order.find('z')]
-            zarray = ZarrArray(store=group.store, path=scale["path"])
+            zarray = zarr.open_array(store=group.store, path=scale["path"])
             level['shape'] = zarray.shape
             if np.issubdtype(zarray.dtype,np.floating):
                 log("Floating point arrays cannot be loaded lazily, will use a lot of RAM")
