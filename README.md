@@ -32,13 +32,11 @@ Once installed, find it under Scene Properties <img src="./docs/grey_icons/blend
 
 ## <img src="./docs/grey_icons/blender_icon_camera_data.svg" width="20" style="vertical-align:-0.2em;"/>  Video tutorials
 
-Check out the [video tutorial playlist](https://www.youtube.com/playlist?list=PLAv6_GEMrbKdpje81juHowSCw-gWOJwy5) on YouTube for quick guides on:
+Check out the [video tutorials](https://www.youtube.com/@oanegros) on YouTube for quick guides on:
 - Installation
 - Loading data
 - Fluorescence & EM visualization
 - Making presentation-ready renders
-
-*youtube videos are and tutorials are now slightly outdated but will be updated within May/June 2025*
 
 <p align="center"><img src="./figures/newprettyside.png" width="400"/></p>
 
