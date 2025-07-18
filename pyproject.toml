@@ -9,7 +9,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "~=3.11.6"
-bpy = "==4.4.0"
+bpy = "==4.5.0"
 scipy = "1.15.2"
 scikit-image = "0.25.2"
 dask = "2025.5.1"
