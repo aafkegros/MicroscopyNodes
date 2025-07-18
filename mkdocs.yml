@@ -9,6 +9,9 @@ nav:
     - File types: file_types.md
     - Headless operation: background.md
   - FAQ: faq.md
+  - Tutorials:
+    - Main: tutorials/index.md
+
 theme:
   name: material
   font:
@@ -17,6 +20,22 @@ theme:
   favicon: figures/favicon.svg
   features:
     - navigation.tabs
-  
+
+plugins:
+  - include-markdown
+
+markdown_extensions:
+  - pymdownx.snippets
+  - attr_list
+  - admonition
+  - codehilite
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.emoji
+  - pymdownx.mark
+  - pymdownx.tabbed
+  - pymdownx.details
+
 extra_css:
   - stylesheets/extra_css.css

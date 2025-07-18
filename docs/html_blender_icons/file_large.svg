@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg6" viewBox="0 0 1250 1600" version="1.1"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview>
+  <defs id="defs1" />
+  <radialGradient id="radialGradient8857" cx="53.777058" cy="49.934776" gradientTransform="matrix(.50533351 .50984063 -.41565364 .41171796 50.120538 -5.918457)" gradientUnits="userSpaceOnUse" r="48.00967">
+    <stop id="stop8856" offset="0" stop-color="#ccc" />
+    <stop id="stop8857" offset="1" stop-color="#fff" />
+  </radialGradient>
+  <g id="g1">
+    <path id="path2" d="m127.66683 21.249712-50.285507.0047-41.137777 41.127306-.0034 82.253712c.02481 3.62233.910124 4.57924 4.579558 4.57134h86.854446c3.65746-.003 4.58534-1.11568 4.58534-4.56773v-118.790305c-.0177-3.68026-1.02803-4.599023-4.59266-4.599023z" opacity=".8" transform="matrix(10.937585 0 0 10.941054 -296.47228 -132.57805)" fill="currentColor" />
+    <path id="path1" d="m829.38255-290.75824-41.14703 41.15101 36.58921-.009c3.4623-.016 4.56033-1.2008 4.56052-4.5597z" transform="matrix(10.937585 0 0 10.941054 -8521.5362 3281.0308)" fill="currentColor" />
+  </g>
+</svg>

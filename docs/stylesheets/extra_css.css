@@ -1,5 +1,5 @@
 :root {
-    --md-primary-fg-color:        #ff8fe3;
+    --md-primary-fg-color:        #dc4eb9;
     --md-primary-fg-color--light: #FFAAEA;
     --md-primary-fg-color--dark:  #9D60BD;
   }
@@ -19,3 +19,33 @@
 .md-typeset .admonition-title:before, .md-typeset summary:before{
     background-color: #ff8fe3;
 }
+
+.md-typeset .admonition-title:before, .md-typeset summary:before{
+    background-color: #ff8fe3;
+}
+/* Targets the colored left border + icon background of all admonitions */
+.md-typeset .admonition > .admonition-title::before,
+.md-typeset details.admonition > summary::before {
+    background-color: #ff8fe3 !important;  /* icon background */
+}
+
+.icon-wrapper {
+    color: var(--md-primary-fg-color); /* or any custom value */
+}
+
+.icon {
+    vertical-align: -0.2em;
+    width: 19px;
+    height: auto;
+    color: #9D60BD;
+    display: inline-block;
+}
+
+.small-icon {
+    vertical-align: -0.2em;
+    width: 15px;
+    height: auto;
+    color: #9D60BD;
+    display: inline-block;
+}
+
