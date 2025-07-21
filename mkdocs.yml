@@ -3,14 +3,21 @@ repo_url: https://github.com/oanegros/MicroscopyNodes
 nav:
   - Home: index.md
   - Getting started: new_user.md
-  - Usage:
-    - Objects: objects.md
-    - Import settings: settings.md
-    - File types: file_types.md
-    - Headless operation: background.md
+  # - Usage:
+  #   - Objects: objects.md
+  #   - Import settings: settings.md
+  #   - File types: file_types.md
+  #   - Headless operation: background.md
   - FAQ: faq.md
   - Tutorials:
-    - Main: tutorials/index.md
+    - Starting with Microscopy Nodes:
+      - 1. First Use: tutorials/1_start.md
+      - 2. Loading data: tutorials/2_loading_data.md
+      - 3. Data objects: tutorials/3_objects.md
+    - Extra tutorials:
+      - Large datasets: tutorials/large_data.md
+      - Lighting: tutorials/lighting.md
+      - Surface : tutorials/surface.md
 
 theme:
   name: material
