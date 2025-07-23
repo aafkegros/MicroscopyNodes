@@ -1,5 +1,39 @@
 # Loading microscopy data 
 
+## Video tutorials
+
+The **Fluorescence** tutorial shows how to load *emissive* data, and the **EM** tutorial shows how to load *scattering data*, these settings can be good to interchange!
+
+{{ youtube("BFMX0Dk5rIw", 360, 200) }}
+
+<div class="yt-lazy" data-id="lroStEHiPV8" style="width:280px; height:158px;">
+  <div class="yt-thumbnail" style="background-image: url('https://img.youtube.com/vi/lroStEHiPV8/hqdefault.jpg');">
+    <div class="yt-play-button"></div>
+    <div class="yt-overlay-text">
+      Click to load video from YouTube.
+      <br />
+      By clicking, you agree to YouTube’s privacy policy.
+    </div>
+  </div>
+</div>
+<div class="yt-lazy" data-id="Rwq7Tu8Avss" style="width:280px; height:158px;">
+  <div class="yt-thumbnail" style="background-image: url('https://img.youtube.com/vi/Rwq7Tu8Avss/hqdefault.jpg');">
+    <div class="yt-play-button"></div>
+    <div class="yt-overlay-text">
+      Click to load video from YouTube.
+      <br />
+      By clicking, you agree to YouTube’s privacy policy.
+    </div>
+  </div>
+</div>
+
+<!-- <iframe width="280" height="158" src="https://www.youtube-nocookie.com/embed/lroStEHiPV8?si=QJugUoKoG2-7thbU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe  width="280" height="158" src="https://www.youtube-nocookie.com/embed/Rwq7Tu8Avss?si=xyEMpzSDL-S8opMY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe> -->
+
+The **labelmask/surface** tutorial is shown for EM data, but can be useful for any data type and binary or label masks:
+<!-- 
+<iframe width="280" height="158" src="https://www.youtube-nocookie.com/embed/YO3FxTFGH00?si=EdNXpLlSzx3pS1xZ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe> -->
+
 ## 1. Point to your data
 
 1.	[Delete](/tutorials/1_start#deleting-objects) everything in the scene with `A` and `X`
@@ -8,7 +42,7 @@
 --8<-- "./docs/html_blender_icons/scene_data.svg"
 </span>  Scene Properties panel, find the **Microscopy Nodes** panel. 
 1. Provide the path to your data set:
-   >  local TIFF file
+   >  local TIFF file (preferably imagej-tif, but others work)
 
     > OME-Zarr URL
 
@@ -25,7 +59,7 @@ For **local files**, you can use the file explorer <span class="icon">
 !!! example "Example OME-Zarr datasets:"
     - [https://s3.embl.de/microscopynodes/RPE1_4x.zarr](https://s3.embl.de/microscopynodes/RPE1_4x.zarr) ; Showing expansion microscopy of an RPE1 cell with cytoskeletal elements stained
     - [https://s3.embl.de/microscopynodes/FIBSEM_dino_masks.zarr](https://s3.embl.de/microscopynodes/FIBSEM_dino_masks.zarr) ; Showing a dinoflagellate FIB-SEM dataset with segmentations
-    - The [Image Data Resource OME-Zarr archive](https://idr.github.io/ome-ngff-samples/). Some may [not work](/docs/ome_zarr_troubleshooting).
+    - The [Image Data Resource OME-Zarr archive](https://idr.github.io/ome-ngff-samples/). Some may [not work](/docs/tutorials/ome_zarr_troubleshooting).
 
 ## 2. Select scale *(optional)*
 
@@ -37,12 +71,12 @@ Downscaled versions get created if the data is over 4 GiB per timepoint. For OME
 
 Any scale with a volume icon  <span class="icon">
 --8<-- "./docs/html_blender_icons/outliner_data_volume.svg"
-</span> will easily work in any part of Blender. The `1` icon is of a size where a single channel will definitely work. Going above? Check out the [large data tutorial](docs/tutorials/large_data.md).
+</span> will easily work in any part of Blender. The `1` icon is of a size where a single channel will definitely work. Going above? Check out the [large data tutorial](./large_data.md).
 
 ## 3. Check metadata
 
 The metadata populates **automatically** from the file:
-![metadata panel](<../figures/Screenshot 2025-07-04 at 11.57.17.png>)
+![metadata panel](../figures/panel_metadata.png)
 
 This contains:
 
@@ -115,7 +149,7 @@ Defaults can be changed in the [preferences](./preferences.md)
 ## 5. Extra import settings (optional)
 These settings are below the `Load` button as they are not essential to remap for your first load. They can be useful to change if you're using Microscopy Nodes more often, or have specific needs. Most of these will persist between sessions.
 
-![alt text](<../figures/Screenshot 2025-07-04 at 13.14.11.png>)
+![alt text](../figures/panel_extra.png)
 
 This includes the **Data Storage** - where the intermediate files get stored
 
@@ -128,7 +162,7 @@ This includes the **Data Storage** - where the intermediate files get stored
 
 <span class="icon">
 --8<-- "./docs/html_blender_icons/world.svg"
-</span> overwrite the world color upon loading. This is useful as the world color (white, black or grey) is used as default [lighting](./lighting.md).
+</span> overwrite the world color upon loading. This is useful as the world color (white, black or grey) is used as default lighting.
 
 <span class="icon">
 --8<-- "./docs/html_blender_icons/scene.svg"

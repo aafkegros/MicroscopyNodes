@@ -2,6 +2,8 @@
 
 ## **Installing Microscopy Nodes**
 
+{{ youtube("BFMX0Dk5rIw", 360, 200) }}
+
 1. Open Blender.
 2. Navigate to `Edit > Preferences`.
 3. In the Add-ons tab, search for `Microscopy Nodes`.
@@ -16,9 +18,9 @@ Further information and navigation can be found in the [Blender Manual](https://
 
 ![alt text](../figures/tutorials/Fig1.png)
 
-The Blender interface always contains:
+The Blender interface always contains: 
 
-1. <span class="icon">
+1. {{ svg("topbar") }} <span class="icon">
 --8<-- "./docs/html_blender_icons/topbar.svg"
 </span>	**The top bar**: contains the main menus and selection of the tabs, or *workspaces* (e.g. Layout, Shading, Geometry Nodes).
 2. <span class="icon">
@@ -116,3 +118,16 @@ From left to right:
 4.	<span class="icon">
 --8<-- "./docs/html_blender_icons/shading_rendered.svg"
 </span> **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](TODO). Often the best way to currently view microscopy data.
+
+## **Further UI instruction** 
+
+<div class="yt-lazy" data-id="enTid4aDC0Q" style="width:560px; height:315px;">
+  <div class="yt-thumbnail" style="background-image: url('https://img.youtube.com/vi/enTid4aDC0Q/hqdefault.jpg');">
+    <div class="yt-play-button"></div>
+    <div class="yt-overlay-text">
+      Click to load video from YouTube.
+      <br />
+      By clicking, you agree to YouTube’s privacy policy.
+    </div>
+  </div>
+</div>

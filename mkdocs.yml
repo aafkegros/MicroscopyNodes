@@ -8,16 +8,21 @@ nav:
   #   - Import settings: settings.md
   #   - File types: file_types.md
   #   - Headless operation: background.md
-  - FAQ: faq.md
+  - Help: faq.md
   - Tutorials:
     - Starting with Microscopy Nodes:
       - 1. First Use: tutorials/1_start.md
       - 2. Loading data: tutorials/2_loading_data.md
       - 3. Data objects: tutorials/3_objects.md
+      - 4. Shading: tutorials/4_shading.md
+
     - Extra tutorials:
       - Large datasets: tutorials/large_data.md
-      - Lighting: tutorials/lighting.md
-      - Surface : tutorials/surface.md
+      - OME-Zarr troubleshooting: tutorials/ome_zarr_troubleshooting.md
+      - Preferences: tutorials/preferences.md
+      - Render settings: tutorials/render_settings.md
+      - Surface smoothing: tutorials/surface_smoothing.md
+
 
 theme:
   name: material
@@ -30,6 +35,9 @@ theme:
 
 plugins:
   - include-markdown
+  - search
+  - macros:
+      module_name: mkdocs_macros
 
 markdown_extensions:
   - pymdownx.snippets
@@ -44,5 +52,9 @@ markdown_extensions:
   - pymdownx.tabbed
   - pymdownx.details
 
+
 extra_css:
   - stylesheets/extra_css.css
+
+extra_javascript:
+  - javascript/lazy_yt.js 
