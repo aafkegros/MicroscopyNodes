@@ -4,28 +4,12 @@ Microscopy Nodes loads your microscopy data as different types of **objects**, d
 
 ![mic nodes objects](../figures/outliner_objects.png)
 
-Each type of object is placed in a <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_empty.svg"
-</span>  **holder** collection. The **Axes** and **Slice Cube** are always present.
+Each type of object is placed in a {{ svg("outliner_ob_empty") }}  **holder** collection. The **Axes** and **Slice Cube** are always present.
 
-You can select an object by clicking on it in the <span class="icon">
---8<-- "./docs/html_blender_icons/outliner.svg"
-</span> outliner (as shown in the screenshot) and change its properties:
+You can select an object by clicking on it in the {{ svg("outliner") }} outliner (as shown in the screenshot) and change its properties:
 
-- Change **underlying data** in the <span class="icon">
---8<-- "./docs/html_blender_icons/modifier.svg"
-</span> modifier menu of the <span class="icon">
---8<-- "./docs/html_blender_icons/properties.svg"
-</span> properties or the (*advanced*) Geometry Nodes workspace <span class="icon">
---8<-- "./docs/html_blender_icons/workspace.svg"
-</span> 
-- Change **visualization** in the <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> material menu of the <span class="icon">
---8<-- "./docs/html_blender_icons/properties.svg"
-</span> properties or the Shader Nodes workspace <span class="icon">
---8<-- "./docs/html_blender_icons/workspace.svg"
-</span> 
+- Change **underlying data** in the {{ svg("modifier") }} modifier menu of the {{ svg("properties") }} properties or the (*advanced*) Geometry Nodes workspace {{ svg("workspace") }} 
+- Change **visualization** in the {{ svg("material") }} material menu of the {{ svg("properties") }} properties or the Shader Nodes workspace {{ svg("workspace") }} 
 
 The exact settings and where to change them change per object, so see below.
 
@@ -33,21 +17,15 @@ The exact settings and where to change them change per object, so see below.
 
 ## Holder 
 
-The <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_empty.svg"
-</span> **Holder** is an empty object which is the `parent` of the other Microscopy Nodes objects. 
+The {{ svg("outliner_ob_empty") }} **Holder** is an empty object which is the `parent` of the other Microscopy Nodes objects. 
 
 The holder can be **scaled**, **moved** and **rotated** and then **all of its objects** will be transformed along with it.
 
 ## Axes
 
-The  <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_mesh.svg"
-</span> **Axes** object is always loaded with your dataset. It draws a **scale grid** based on the number of pixels and pixel size, and pixel unit.
+The  {{ svg("outliner_ob_mesh") }} **Axes** object is always loaded with your dataset. It draws a **scale grid** based on the number of pixels and pixel size, and pixel unit.
 
--  <span class="icon">
---8<-- "./docs/html_blender_icons/modifier.svg"
-</span> Geometry options
+-  {{ svg("modifier") }} Geometry options
     - `pixel unit` per tick
       > The distance between grid lines
     - Grid
@@ -59,9 +37,7 @@ The  <span class="icon">
     - Separate planes
       > For each plane (xy bottom, top etc) you can check whether they will be drawn
 
--  <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> Shader options
+-  {{ svg("material") }} Shader options
     - Color 
 
 Scale grids can be **moved**, **scaled** and **rotated** independently of the holder without losing their accuracy.
@@ -73,58 +49,34 @@ Scale grids can be **moved**, **scaled** and **rotated** independently of the ho
 
 ## Volumes
 
-The <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_volume.svg"
-</span> **Volume** holds channels of **volumetric** data, which can be rendered either as emitting or scattering light. It is generated when you enable <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_volume.svg"
-</span>  **Volume** during loading.
+The {{ svg("outliner_ob_volume") }} **Volume** holds channels of **volumetric** data, which can be rendered either as emitting or scattering light. It is generated when you enable {{ svg("outliner_ob_volume") }}  **Volume** during loading.
 
--  <span class="icon">
---8<-- "./docs/html_blender_icons/modifier.svg"
-</span> Geometry options
+-  {{ svg("modifier") }} Geometry options
     - Included channels
       > If channels are not included, they are also not loaded into RAM 
--  <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> [Shader options](./4_shading.md#volume-shading)
+-  {{ svg("material") }} [Shader options](./4_shading.md#volume-shading)
     - Pixel intensities
     - Opacity calculation
     - Color LUT
 
-The easiest way to edit a volume shader is in the <span class="icon">
---8<-- "./docs/html_blender_icons/workspace.svg"
-</span> Shader Nodes workspace, where you can most easily switch between channels in the <span class="icon">
---8<-- "./docs/html_blender_icons/properties.svg"
-</span> properties.
+The easiest way to edit a volume shader is in the {{ svg("workspace") }} Shader Nodes workspace, where you can most easily switch between channels in the {{ svg("properties") }} properties.
 
-You can toggle between emission and scattering modes using the <span class="icon">
---8<-- "./docs/html_blender_icons/light.svg"
-</span> emission toggle in [loading](./2_loading_data.md).
+You can toggle between emission and scattering modes using the {{ svg("light") }} emission toggle in [loading](./2_loading_data.md).
 
 ---
 
 ## Surfaces
 
-The <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_mesh.svg"
-</span> **Surface** object is a mesh extracted from a volume using an **isosurface threshold**. It is generated when you enable <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_surface.svg"
-</span>  **Surface** during loading.
+The {{ svg("outliner_ob_mesh") }} **Surface** object is a mesh extracted from a volume using an **isosurface threshold**. It is generated when you enable {{ svg("outliner_ob_surface") }}  **Surface** during loading.
 
-- <span class="icon">
---8<-- "./docs/html_blender_icons/modifier.svg"
-</span> Geometry options
+- {{ svg("modifier") }} Geometry options
     - Included channels
     - Threshold
       > The intensity value above which the surface is extracted. 
-    - Voxel size *(only listed if <span class="icon">
---8<-- "./docs/html_blender_icons/preferences.svg"
-</span> [Mesh Resolution](./preferences.md) is not `Actual`)*
+    - Voxel size *(only listed if {{ svg("preferences") }} [Mesh Resolution](./preferences.md) is not `Actual`)*
       > Interactive scalable unit for mesh detail
 
-- <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> [Shader options](./4_shading.md#surface-shading)
+- {{ svg("material") }} [Shader options](./4_shading.md#surface-shading)
     - Standard mesh shading parameters (color, opacity etc)
 
 
@@ -133,22 +85,14 @@ The <span class="icon">
 
 ## Label Masks
 
-The <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_mesh.svg"
-</span> **Label Mask** object is a mesh generated from a **label image**, such as a segmentation channel. It is generated when you enable <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_pointcloud.svg"
-</span>  **Labelmask** during loading.
+The {{ svg("outliner_ob_mesh") }} **Label Mask** object is a mesh generated from a **label image**, such as a segmentation channel. It is generated when you enable {{ svg("outliner_ob_pointcloud") }}  **Labelmask** during loading.
 
 **Each value** in the volume is turned into a separate mesh.
 
-- <span class="icon">
---8<-- "./docs/html_blender_icons/modifier.svg"
-</span> Geometry options
+- {{ svg("modifier") }} Geometry options
     - Included channels
 
-- <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> [Shader options](./4_shading.md#labelmask-shading)
+- {{ svg("material") }} [Shader options](./4_shading.md#labelmask-shading)
     - Color per label 
     - Revolving colormap or linearly distributed among objects
     - Standard mesh shading parameters (color, opacity etc)
@@ -157,24 +101,14 @@ The <span class="icon">
 
 ## Slice Cube
 
-The <span class="icon">
---8<-- "./docs/html_blender_icons/outliner_ob_mesh.svg"
-</span> **Slice Cube** is a movable object that defines the visibility of other objects.
+The {{ svg("outliner_ob_mesh") }} **Slice Cube** is a movable object that defines the visibility of other objects.
 
-The slice cube is inherently nothing else than a Cube with a transparent shader. The linkage to its transparency is done from the <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> shader **of the sliced object**. This means you can also add a new cube and point to this instead.
+The slice cube is inherently nothing else than a Cube with a transparent shader. The linkage to its transparency is done from the {{ svg("material") }} shader **of the sliced object**. This means you can also add a new cube and point to this instead.
 
-This has no <span class="icon">
---8<-- "./docs/html_blender_icons/modifier.svg"
-</span> Geometry options or <span class="icon">
---8<-- "./docs/html_blender_icons/material.svg"
-</span> Shader options
+This has no {{ svg("modifier") }} Geometry options or {{ svg("material") }} Shader options
 
 
 ---
 
 ???+ info "How the **Microcopy Nodes** objects work"
-    The data objects are Geometry Nodes objects that reference preloaded data stored in the `cache` collection. In the **Geometry Nodes** workspace <span class="small-icon">
-    --8<-- "./docs/html_blender_icons/workspace.svg"
-    </span> you can add edit the loaded data and add modifiers.  
+    The data objects are Geometry Nodes objects that reference preloaded data stored in the `cache` collection. In the **Geometry Nodes** workspace {{ svg("workspace", "small-icon") }} you can add edit the loaded data and add modifiers.  
