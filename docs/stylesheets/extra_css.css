@@ -49,3 +49,60 @@
     display: inline-block;
 }
 
+.yt-lazy {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    aspect-ratio: 16 / 9;
+    background-color: #000;
+  }
+  .yt-thumbnail {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+  }
+  
+  .yt-play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+  }
+  
+  .yt-play-button::before {
+    content: '';
+    position: absolute;
+    border-style: solid;
+    border-width: 16px 0 16px 28px;
+    border-color: transparent transparent transparent black;
+    left: -1px;
+    top: -1px;
+    filter: drop-shadow(0 0 10px rgba(0, 0, 0, 1.0));
+    z-index: 0;
+  }
+  
+  .yt-play-button::after {
+    content: '';
+    position: absolute;
+    border-style: solid;
+    border-width: 15px 0 15px 26px;
+    border-color: transparent transparent transparent white;
+    z-index: 1;
+  }
+  
+  .yt-overlay-text {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    text-align: center;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1;
+    font-family: sans-serif;
+  }

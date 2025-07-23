@@ -2,7 +2,7 @@
 
 Microscopy Nodes loads your microscopy data as different types of **objects**, depending on how you loaded each channel.
 
-![mic nodes objects](<../figures/Screenshot 2025-07-10 at 14.34.22.png>)
+![mic nodes objects](../figures/outliner_objects.png)
 
 Each type of object is placed in a <span class="icon">
 --8<-- "./docs/html_blender_icons/outliner_ob_empty.svg"
@@ -86,12 +86,12 @@ The <span class="icon">
       > If channels are not included, they are also not loaded into RAM 
 -  <span class="icon">
 --8<-- "./docs/html_blender_icons/material.svg"
-</span> Shader options
+</span> [Shader options](./4_shading.md#volume-shading)
     - Pixel intensities
     - Opacity calculation
     - Color LUT
 
-More shader tricks and tools are available [here](./shading.md). The easiest way to edit a volume shader is in the <span class="icon">
+The easiest way to edit a volume shader is in the <span class="icon">
 --8<-- "./docs/html_blender_icons/workspace.svg"
 </span> Shader Nodes workspace, where you can most easily switch between channels in the <span class="icon">
 --8<-- "./docs/html_blender_icons/properties.svg"
@@ -124,7 +124,7 @@ The <span class="icon">
 
 - <span class="icon">
 --8<-- "./docs/html_blender_icons/material.svg"
-</span> Shader options
+</span> [Shader options](./4_shading.md#surface-shading)
     - Standard mesh shading parameters (color, opacity etc)
 
 
@@ -148,7 +148,7 @@ The <span class="icon">
 
 - <span class="icon">
 --8<-- "./docs/html_blender_icons/material.svg"
-</span> Shader options
+</span> [Shader options](./4_shading.md#labelmask-shading)
     - Color per label 
     - Revolving colormap or linearly distributed among objects
     - Standard mesh shading parameters (color, opacity etc)
