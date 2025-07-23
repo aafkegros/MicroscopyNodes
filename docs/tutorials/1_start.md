@@ -20,52 +20,28 @@ Further information and navigation can be found in the [Blender Manual](https://
 
 The Blender interface always contains: 
 
-1. {{ svg("topbar") }} <span class="icon">
---8<-- "./docs/html_blender_icons/topbar.svg"
-</span>	**The top bar**: contains the main menus and selection of the tabs, or *workspaces* (e.g. Layout, Shading, Geometry Nodes).
-2. <span class="icon">
---8<-- "./docs/html_blender_icons/workspace.svg"
-</span> **The main workspace**: Reconfigurable workspace. Contains different areas depending on the selected *workspace*.
-3. <span class="icon">
---8<-- "./docs/html_blender_icons/statusbar.svg"
-</span> **The status bar**: contains shortcuts suggestions
+1. {{ svg("topbar") }} {{ svg("topbar") }}	**The top bar**: contains the main menus and selection of the tabs, or *workspaces* (e.g. Layout, Shading, Geometry Nodes).
+2. {{ svg("workspace") }} **The main workspace**: Reconfigurable workspace. Contains different areas depending on the selected *workspace*.
+3. {{ svg("statusbar") }} **The status bar**: contains shortcuts suggestions
 
-But it can be configured much more with **workspaces** <span class="icon">
---8<-- "./docs/html_blender_icons/workspace.svg"
-</span>. Currently we're in the **Layout** workspace.
+But it can be configured much more with **workspaces** {{ svg("workspace") }}. Currently we're in the **Layout** workspace.
 
 ## Layout Workspace 
 
-The **Layout** workspace <span class="icon">
---8<-- "./docs/html_blender_icons/workspace.svg"
-</span>  (by default selected in the <span class="icon">
---8<-- "./docs/html_blender_icons/topbar.svg"
-</span> *topbar*) is our main workspace, made for assembling and seeing your 3D scene.
+The **Layout** workspace {{ svg("workspace") }}  (by default selected in the {{ svg("topbar") }} *topbar*) is our main workspace, made for assembling and seeing your 3D scene.
 
 ![alt text](<../figures/tutorials/Fig 2.png>)
 
-1. <span class="icon">
---8<-- "./docs/html_blender_icons/view3d.svg"
-</span> **3D Viewport**: Main 3D interaction area. 
-1. <span class="icon">
---8<-- "./docs/html_blender_icons/outliner.svg"
-</span> **Outliner**: Tree view of all objects in the *scene*. This is the easiest place to *select* objects.
-1. <span class="icon">
---8<-- "./docs/html_blender_icons/properties.svg"
-</span> **Properties Editor**: Edit properties of the scene and the selected object. Under <img src="../../docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> you can find *Microscopy Nodes*.
-1. <span class="icon">
---8<-- "./docs/html_blender_icons/time.svg"
-</span> **Timeline**: For animation.
+1. {{ svg("view3d") }} **3D Viewport**: Main 3D interaction area. 
+1. {{ svg("outliner") }} **Outliner**: Tree view of all objects in the *scene*. This is the easiest place to *select* objects.
+1. {{ svg("properties") }} **Properties Editor**: Edit properties of the scene and the selected object. Under <img src="../../docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> you can find *Microscopy Nodes*.
+1. {{ svg("time") }} **Timeline**: For animation.
 
 With Microscopy Nodes, we also use the [Shading]() workspace, and for advanced users, the [Geometry Nodes]() and [Scripting]() workspaces.
 
 ## Navigation in the 3D Viewport
 
-Annotated on the right in the image are widgets you can drag to **rotate** (axes), <span class="icon">
---8<-- "./docs/html_blender_icons/view_zoom.svg"
-</span> **scale** and <span class="icon">
---8<-- "./docs/html_blender_icons/view_pan.svg"
-</span> **move** the view.
+Annotated on the right in the image are widgets you can drag to **rotate** (axes), {{ svg("view_zoom") }} **scale** and {{ svg("view_pan") }} **move** the view.
 
 Mouse navigation is possible and configurable in the [Preferences](https://docs.blender.org/manual/en/latest/editors/preferences/input.html). This depends on which input device you use (2-button mouse, 3-button mouse, touchpad).
 
@@ -106,18 +82,10 @@ Microscopy Nodes volume data will only be visible in **Material Preview** and **
 
 From left to right:
 
-1.	<span class="icon">
---8<-- "./docs/html_blender_icons/shading_wire.svg"
-</span> **Wireframe** : Only the object skeleton, *No volumetric data shown.*
-2.	<span class="icon">
---8<-- "./docs/html_blender_icons/shading_solid.svg"
-</span> **Solid Mode**: Only the external surfaces are drawn 
-3.	<span class="icon">
---8<-- "./docs/html_blender_icons/shading_texture.svg"
-</span> **Material Preview**: Is meant for previewing your scene without full calculations. Defaults to [EEVEE](TODO). May be a fast view, but will be slow to open with microscopy data, and is data-dependent. 
-4.	<span class="icon">
---8<-- "./docs/html_blender_icons/shading_rendered.svg"
-</span> **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](TODO). Often the best way to currently view microscopy data.
+1.	{{ svg("shading_wire") }} **Wireframe** : Only the object skeleton, *No volumetric data shown.*
+2.	{{ svg("shading_solid") }} **Solid Mode**: Only the external surfaces are drawn 
+3.	{{ svg("shading_texture") }} **Material Preview**: Is meant for previewing your scene without full calculations. Defaults to [EEVEE](TODO). May be a fast view, but will be slow to open with microscopy data, and is data-dependent. 
+4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](TODO). Often the best way to currently view microscopy data.
 
 ## **Further UI instruction** 
 
