@@ -76,7 +76,7 @@ In the **Outliner**, an entire group can be deleted at once with  `Right Mouse B
 
 In the top right of the viewport you can change the way the contents are shown. 
 
-Microscopy Nodes volume data will only be visible in **Material Preview** and **Rendered** mode.
+{{ svg("microscopy_nodes") }} Microscopy Nodes volume data will only be visible in **Material Preview** and **Rendered** mode.
 
 ![alt text](../figures/tutorials/editors_3dview_display_shading.png)
 
@@ -85,7 +85,7 @@ From left to right:
 1.	{{ svg("shading_wire") }} **Wireframe** : Only the object skeleton, *No volumetric data shown.*
 2.	{{ svg("shading_solid") }} **Solid Mode**: Only the external surfaces are drawn 
 3.	{{ svg("shading_texture") }} **Material Preview**: Is meant for previewing your scene without full calculations. Defaults to [EEVEE](TODO). May be a fast view, but will be slow to open with microscopy data, and is data-dependent. 
-4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](TODO). Often the best way to currently view microscopy data.
+4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in Cycles. Often the best way to currently view microscopy data.
 
 ## **Further UI instruction** 
 

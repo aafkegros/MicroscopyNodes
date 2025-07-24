@@ -13,9 +13,9 @@ The **labelmask/surface** tutorial is shown for EM data, but can be useful for a
 
 ## 1. Point to your data
 
-1.	[Delete](/tutorials/1_start#deleting-objects) everything in the scene with `A` and `X`
+1.	[Delete](./1_start#deleting-objects) everything in the scene with `A` and `X`
 
-2.	In the {{ svg("scene_data") }}  Scene Properties panel, find the **Microscopy Nodes** panel. 
+2.	In the {{ svg("scene_data") }}  Scene Properties panel, find the **{{ svg("microscopy_nodes") }} {{ svg("microscopy_nodes") }} Microscopy Nodes** panel. 
 1. Provide the path to your data set:
    >  local TIFF file (preferably imagej-tif, but others work)
 
@@ -25,12 +25,12 @@ The **labelmask/surface** tutorial is shown for EM data, but can be useful for a
 
 For **local files**, you can use the file explorer {{ svg("file_folder") }}. 
 
-{{ svg("error") }} With OME-Zarr, **copy the address directly** into the field. OME-Zarr links are not clickable. If the metadata does not populate, check out our tips for [troubleshooting OME-Zarr](/docs/ome_zarr_troubleshooting).
+{{ svg("error") }} With OME-Zarr, **copy the address directly** into the field. OME-Zarr links are not clickable. If the metadata does not populate, check out our tips for [troubleshooting OME-Zarr](./ome_zarr_troubleshooting.md).
 
 !!! example "Example OME-Zarr datasets:"
     - [https://s3.embl.de/microscopynodes/RPE1_4x.zarr](https://s3.embl.de/microscopynodes/RPE1_4x.zarr) ; Showing expansion microscopy of an RPE1 cell with cytoskeletal elements stained
     - [https://s3.embl.de/microscopynodes/FIBSEM_dino_masks.zarr](https://s3.embl.de/microscopynodes/FIBSEM_dino_masks.zarr) ; Showing a dinoflagellate FIB-SEM dataset with segmentations
-    - The [Image Data Resource OME-Zarr archive](https://idr.github.io/ome-ngff-samples/). Some may [not work](/docs/tutorials/ome_zarr_troubleshooting).
+    - The [Image Data Resource OME-Zarr archive](https://idr.github.io/ome-ngff-samples/). Some may [not work](./ome_zarr_troubleshooting).
 
 ## 2. Select scale *(optional)*
 
@@ -71,8 +71,8 @@ From left to right:
     - Volume {{ svg("outliner_data_volume") }}    
     - Surface {{ svg("outliner_data_surface") }}    
     - Labelmask {{ svg("outliner_data_pointcloud") }} 
-
-- Emission on/off {{ svg("light") }}- Colormap type:
+- Emission on/off {{ svg("light") }}
+- Colormap type:
     - Single Color {{ svg("mesh_plane") }}    
     - Linear {{ svg("ipo_linear") }}
     - Diverging {{ svg("lincurve") }} 
@@ -80,7 +80,7 @@ From left to right:
 - Color Picker ( if {{ svg("mesh_plane") }} )
 
 
-The **Visualization type** defines which [objects](/docs/tutorials/3_objects) will be loaded. If **none** are clicked in a channel, this channel will not be loaded. 
+The **Visualization type** defines which [objects](./3_objects.md) will be loaded. If **none** are clicked in a channel, this channel will not be loaded. 
 
 When loading with **Emission** on, the objects of this channel will by default emit light. If this is off, they will reflect/scatter light from the scene or background.
 
@@ -108,8 +108,7 @@ This includes the **Data Storage** - where the intermediate files get stored
 
 {{ svg("world") }} overwrite the world color upon loading. This is useful as the world color (white, black or grey) is used as default lighting.
 
-{{ svg("scene") }} overwrite [render settings](./render_settings.md) upon loading. This turns itself off after the first load, to avoid overwriting custom settings.
-
+{{ svg("scene") }} overwrite [render settings](./rendering.md) upon loading. This turns itself off after the first load, to avoid overwriting custom settings.
 
 {{ svg("con_sizelike") }} defines the **input transform** - Blender works in meters, but *Microscopy Nodes* uses this as multiple optional coordinate spaces:
 
