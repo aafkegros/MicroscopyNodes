@@ -3,11 +3,6 @@ repo_url: https://github.com/oanegros/MicroscopyNodes
 nav:
   - Home: index.md
   - Getting started: new_user.md
-  # - Usage:
-  #   - Objects: objects.md
-  #   - Import settings: settings.md
-  #   - File types: file_types.md
-  #   - Headless operation: background.md
   - Help: faq.md
   - Tutorials:
     - Starting with Microscopy Nodes:
@@ -20,7 +15,7 @@ nav:
       - Large datasets: tutorials/large_data.md
       - OME-Zarr troubleshooting: tutorials/ome_zarr_troubleshooting.md
       - Preferences: tutorials/preferences.md
-      - Render settings: tutorials/render_settings.md
+      - Rendering: tutorials/rendering.md
       - Surface smoothing: tutorials/surface_smoothing.md
 
 
