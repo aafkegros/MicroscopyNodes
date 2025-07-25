@@ -27,7 +27,7 @@ This is where the data gets read out from the vdb grid (as handed over from the 
     
     Essentially, this means its best to **keep the normalization** of new data when you replace the rest. Hopefully this can be smoother in the future, but this depends on Blender/Geometry Nodes development in volume handling.
 
-    ![unfolded loading](<../figures/shader_input>) 
+    ![unfolded loading](../figures/shader_input.png) 
     
 ### Pixel Intensities
 
@@ -104,11 +104,11 @@ The object bounding box gets fed into the slicer, which sets all regions outside
 
 The {{ svg("outliner_data_surface") }} Surface object shader is more simple than the volumetric, as it can only have **one color**, although it can have many properties. The shader does not explicitly load the data, as the data interaction is all done through the threshold in the {{ svg("modifier") }} Geometry options.
 
-![surface shader overview](<../figures/Screenshot 2025-07-21 at 15.42.21.png>)
+![surface shader overview](../figures/surface_shader_regions.png)
 
 ### Color LUT
 
-![alt text](<../figures/Screenshot 2025-07-21 at 15.48.18.png>)
+![alt text](../figures/bw_lut.png)
 
 The color lookup table works similar to the [volume color LUT](#color-lut). However, the surface can only display one value, so the `Fac` value defines where along the lookup table the color is drawn from. 
 
@@ -116,7 +116,7 @@ This is done to more easily align different channels. For a regular **color pick
 
 ### Mesh shading
 
-![alt text](<../figures/Screenshot 2025-07-21 at 15.56.07.png>){: style="height:350px"}
+![alt text](../figures/principled_bsdf.png){: style="height:350px"}
 
 The **Principled BSDF** node is a combined node that combines features to create different material properties. The [Blender manual](https://docs.blender.org/manual/en/latest/render/shader_nodes/shader/principled.html) {{ svg("blender") }} gives a complete manual to its features. 
 
@@ -135,11 +135,11 @@ This is exactly similar to the [volume Slice Cube](#slice-cube).
 
 The {{ svg("outliner_data_pointcloud") }} label mask shader is very similar to the {{ svg("outliner_data_surface") }} Surface shader, but is able to read out and use the `object id` to color by.
 
-![alt text](<../figures/Screenshot 2025-07-21 at 16.26.38.png>)
+![alt text](../figures/labelmask_shader_regions.png)
 
 ### Object ID handling
 
-![id handling](<../figures/Screenshot 2025-07-22 at 11.30.24.png>)
+![id handling](../figures/labelmask_shader_input.png)
 
 The `object id` (the value in the label mask) is connected and retrievable from the vertices of the labelmask objects. 
 
@@ -152,3 +152,4 @@ The color lookup table works similar to the [volume color LUT](#color-lut). Ofte
 ### Slice cube
 
 This is exactly similar to the [volume Slice Cube](#slice-cube).
+

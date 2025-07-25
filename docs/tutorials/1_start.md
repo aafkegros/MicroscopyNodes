@@ -14,13 +14,13 @@
 ## **Blender Interface Overview**
 This tutorial gives an overview into the Blender interface, and highlight all the key things to know if you're only or mostly interacting with microscopy data. 
 
-Further information and navigation can be found in the [Blender Manual](https://docs.blender.org/manual/en/latest/editors/3dview/navigate/index.html)
+Further information and navigation can be found in the {{ svg("Blender") }} [Blender Manual](https://docs.blender.org/manual/en/latest/editors/3dview/navigate/index.html)
 
 ![alt text](../figures/tutorials/Fig1.png)
 
 The Blender interface always contains: 
 
-1. {{ svg("topbar") }} {{ svg("topbar") }}	**The top bar**: contains the main menus and selection of the tabs, or *workspaces* (e.g. Layout, Shading, Geometry Nodes).
+1. {{ svg("topbar") }}	**The top bar**: contains the main menus and selection of the tabs, or *workspaces* (e.g. Layout, Shading, Geometry Nodes).
 2. {{ svg("workspace") }} **The main workspace**: Reconfigurable workspace. Contains different areas depending on the selected *workspace*.
 3. {{ svg("statusbar") }} **The status bar**: contains shortcuts suggestions
 
@@ -34,8 +34,8 @@ The **Layout** workspace {{ svg("workspace") }}  (by default selected in the {{ 
 
 1. {{ svg("view3d") }} **3D Viewport**: Main 3D interaction area. 
 1. {{ svg("outliner") }} **Outliner**: Tree view of all objects in the *scene*. This is the easiest place to *select* objects.
-1. {{ svg("properties") }} **Properties Editor**: Edit properties of the scene and the selected object. Under <img src="../../docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> you can find *Microscopy Nodes*.
-1. {{ svg("time") }} **Timeline**: For animation.
+2. {{ svg("properties") }} **Properties Editor**: Edit properties of the scene and the selected object. Under {{ svg("scene_data") }} you can find *Microscopy Nodes*.
+3. {{ svg("time") }} **Timeline**: For animation.
 
 With Microscopy Nodes, we also use the [Shading]() workspace, and for advanced users, the [Geometry Nodes]() and [Scripting]() workspaces.
 
@@ -61,7 +61,7 @@ Transforms can also be done with hotkeys: `G` for grab/move, `R` for rotate, `S`
 
 At the top of the 3D viewport is an `Add` menu, from which you can add different primitive objects, such as a camera or lights. This is also findable under the key combination `Shift + A`
 
-To add microscopy data, there is a [separate loading window](docs/tutorials/2_loading_data.md).
+To add microscopy data, there is a [separate loading window](./2_loading_data.md).
 
 ### Deleting objects
 
@@ -84,8 +84,8 @@ From left to right:
 
 1.	{{ svg("shading_wire") }} **Wireframe** : Only the object skeleton, *No volumetric data shown.*
 2.	{{ svg("shading_solid") }} **Solid Mode**: Only the external surfaces are drawn 
-3.	{{ svg("shading_texture") }} **Material Preview**: Is meant for previewing your scene without full calculations. Defaults to [EEVEE](TODO). May be a fast view, but will be slow to open with microscopy data, and is data-dependent. 
-4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in Cycles. Often the best way to currently view microscopy data.
+3.	{{ svg("shading_texture") }} **Material Preview**: Is meant for previewing your scene without full calculations. Defaults to [EEVEE](./rendering.md#eevee). May be a fast view, but will be slow to open with microscopy data, and is data-dependent. 
+4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](./rendering.md#cycles). Often the best way to currently view microscopy data.
 
 ## **Further UI instruction** 
 

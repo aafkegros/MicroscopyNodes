@@ -30,10 +30,10 @@ Some {{ svg("workspace") }} workspaces will **automatically** be in {{ svg("shad
 The **reloading** workflow means that you first work on a smaller version of the data and later replace this with a larger one. 
 
 This is controlled mainly by the {{ svg("file_refresh") }} Reload field in the {{ svg("microscopy_nodes") }} Microscopy Nodes load panel:
-![alt text](<../figures/Screenshot 2025-07-24 at 10.45.50.png>)
+![alt text](../figures/reload_not_filled.png)
 
 This can be pointed to a previously loaded Microscopy Nodes [holder object](./3_objects.md#holder):
-![alt text](<../figures/Screenshot 2025-07-24 at 10.45.36.png>)
+![alt text](../figures/reload_filled.png)
 
 Which will make a new action **Reload** the data in the holder. This has two extra options:
 

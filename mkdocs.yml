@@ -2,7 +2,6 @@ site_name: Microscopy Nodes
 repo_url: https://github.com/oanegros/MicroscopyNodes
 nav:
   - Home: index.md
-  - Getting started: new_user.md
   - Help: faq.md
   - Tutorials:
     - Starting with Microscopy Nodes:
@@ -10,6 +9,7 @@ nav:
       - 2. Loading data: tutorials/2_loading_data.md
       - 3. Data objects: tutorials/3_objects.md
       - 4. Shading: tutorials/4_shading.md
+      - 5. Creating output: tutorials/5_creating_ouput.md
 
     - Extra tutorials:
       - Large datasets: tutorials/large_data.md
