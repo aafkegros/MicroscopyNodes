@@ -31,5 +31,5 @@ Microscopy Nodes supports:
 - Load per-index label masks
 - Lazy loading of giant files (no data is loaded in RAM outside what's rendered)
 
-### [Get Started!](./new_user.md)
+### [Get Started!](./tutorials/1_start.md)
 <img src="https://github.com/oanegros/MicroscopyNodes/blob/main/figures/newprettyside.png?raw=true" width="600"/>

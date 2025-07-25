@@ -13,7 +13,7 @@ The **labelmask/surface** tutorial is shown for EM data, but can be useful for a
 
 ## 1. Point to your data
 
-1.	[Delete](./1_start#deleting-objects) everything in the scene with `A` and `X`
+1.	[Delete](./1_start.md#deleting-objects) everything in the scene with `A` and `X`
 
 2.	In the {{ svg("scene_data") }}  Scene Properties panel, find the **{{ svg("microscopy_nodes") }} {{ svg("microscopy_nodes") }} Microscopy Nodes** panel. 
 1. Provide the path to your data set:
@@ -30,7 +30,7 @@ For **local files**, you can use the file explorer {{ svg("file_folder") }}.
 !!! example "Example OME-Zarr datasets:"
     - [https://s3.embl.de/microscopynodes/RPE1_4x.zarr](https://s3.embl.de/microscopynodes/RPE1_4x.zarr) ; Showing expansion microscopy of an RPE1 cell with cytoskeletal elements stained
     - [https://s3.embl.de/microscopynodes/FIBSEM_dino_masks.zarr](https://s3.embl.de/microscopynodes/FIBSEM_dino_masks.zarr) ; Showing a dinoflagellate FIB-SEM dataset with segmentations
-    - The [Image Data Resource OME-Zarr archive](https://idr.github.io/ome-ngff-samples/). Some may [not work](./ome_zarr_troubleshooting).
+    - The [Image Data Resource OME-Zarr archive](https://idr.github.io/ome-ngff-samples/). Some may [not work](./ome_zarr_troubleshooting.md).
 
 ## 2. Select scale *(optional)*
 

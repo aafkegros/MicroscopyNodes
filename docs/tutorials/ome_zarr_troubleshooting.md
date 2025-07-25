@@ -23,10 +23,3 @@ All of these images **can still be opened**, by pointing to the **specific path*
     For example, for the dataset [https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.3/idr0052A/5514375.zarr](https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.3/idr0052A/5514375.zarr) of the IDR, the labels are at [https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.3/idr0052A/5514375.zarr/labels/Cell](https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.3/idr0052A/5514375.zarr/Cell) and [https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.3/idr0052A/5514375.zarr/labels/Chromosomes](https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.3/idr0052A/5514375.zarr/Chromosomes). These are not auto-discovered, but can be loaded with the specific paths.
 
 Support for collections will come in the future, but this will wait for the planned reorganization OME-Zarr collection structure.
-
-## Writing OME-Zarr
-
-It is still often unknown how to write to OME-Zarr well. Some options:
-
-- Fiji "Save to" > "HDF5/N5/Zarr/OME-NGFF"
-- [OME-zarr batch convert](todo)
