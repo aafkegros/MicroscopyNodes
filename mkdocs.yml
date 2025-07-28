@@ -1,5 +1,5 @@
 site_name: Microscopy Nodes
-repo_url: https://github.com/oanegros/MicroscopyNodes
+repo_url: https://github.com/aafkegros/MicroscopyNodes
 nav:
   - Home: index.md
   - Help: faq.md
