@@ -1,6 +1,6 @@
 # Creating output
 
-Creating output from a scene in Blender is done by adding a {{ svg("view_camera") }} and pressing `Render > Render Image` or `Render > Render Animation` for the full animation
+Creating output from a scene in Blender is done by adding a {{ svg("view_camera") }} camera and pressing `Render > Render Image` or `Render > Render Animation` for the full animation. This writes images or movies to your [output folder](./rendering.md#output-location-and-format).
 
 {{ youtube("jcERgoBI1b8", 360, 200) }}
 
@@ -22,7 +22,7 @@ The view through the current **active** {{ svg("view_camera") }} **camera** can 
 
 ### Aligning view
 
-The **easiest** way for beginners to set the camera direction is by aligning it to the view. This means:
+The **easiest** way to set the camera direction is by aligning it to the view. This means:
 
 - Setting a nice view angle and position
 - Aligning the camera with `View > Align View > Align Active Camera To View`
@@ -31,13 +31,18 @@ The **easiest** way for beginners to set the camera direction is by aligning it 
 
 Camera properties can be found under the {{ svg("view_camera") }} camera icon in the {{ svg("properties") }} properties. This is where the camera can be switched between **perspective** and **orthographic** modes, or the focal length set for a perspective camera.
 
+!!! note "Perspective and orthographic cameras"
+    Perspective cameras are the default of Blender, and often the type of camera we are most used to in daily life. These cameras have a virtual lens, providing a perspective transform, making distant objects appear smaller than near objects.
+
+    In contrast to this, orthographic cameras show all objects as the same size, no matter the distance to the camera. This thus can be better for comparing scales of objects in data, although it is less intuitive to viewers.
+
 ## Setting up lighting
 
 Lighting can be very important for getting a good feeling of depth for the data, but it is not always necessary or essential.
 
-In {{ svg("light") }} emissive renders, it is often not necessary to set up light. 
+In {{ svg("outliner_ob_light") }} emissive renders, it is often not necessary to set up light. 
 
-In {{ svg("outliner_ob_light") }} non-emissive renders, the Microscopy Nodes default is to use the {{ svg("world") }} world color and brightness to light the scene. However, setting up specific lighting can give less flat-seeming renders.
+In {{ svg("light") }} non-emissive renders, the Microscopy Nodes default is to use the {{ svg("world") }} world color and brightness to light the scene. However, setting up specific lighting add depth to renders.
 
 You can set up lights by adding them from the `Add` menu, as objects, moving them and changing their `Power` and `Color` in the {{ svg("properties") }} properties.
 

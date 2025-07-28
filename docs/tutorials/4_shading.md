@@ -5,8 +5,7 @@
 - in the {{ svg("workspace") }} Shader Nodes workspace, find this in the {{ svg("topbar") }} topbar.
 - in the {{ svg("material") }} material tab of the {{ svg("properties") }} properties.
 
-These two locations contain the same information, laid out in different ways. Often it's easiest to **edit** in the {{ svg("workspace") }} Shader Nodes workspace. And use the {{ svg("properties") }} properties to **switch** between channels. Quick changes can be easier in the {{ svg("properties") }} properties as well.
-
+These two locations contain the same information, laid out in different ways. 
 
 The default Microscopy Nodes shaders are built from {{ svg("nodetree") }} nodes, and contains information on how the object interacts with **light** and its transparency. The defaults are listed here separately for the different [Microscopy Nodes data-objects](./3_objects.md).
 
@@ -25,7 +24,7 @@ This is where the data gets read out from the vdb grid (as handed over from the 
 ??? warning "Reusing shaders"
     The normalization that is done in **Normalize Data**  is dependent on the specific data, as it rescales the min and max value of the data to 0 and 1 - after it's already transformed to small floating point values for saving to .vdb files. 
     
-    Essentially, this means its best to **keep the normalization** of new data when you replace the rest. Hopefully this can be smoother in the future, but this depends on Blender/Geometry Nodes development in volume handling.
+    Essentially, this means its best to **keep the normalization** of new data when you replace the rest.
 
     ![unfolded loading](../figures/shader_input.png) 
     
@@ -112,7 +111,7 @@ The {{ svg("outliner_data_surface") }} Surface object shader is more simple than
 
 The color lookup table works similar to the [volume color LUT](#color-lut). However, the surface can only display one value, so the `Fac` value defines where along the lookup table the color is drawn from. 
 
-This is done to more easily align different channels. For a regular **color picker** you can leave the `Fac` at `1` and click the rightmost handle. The other way would be to replace this box with a color box (`Add > Input > RGB`)
+For a regular **color picker** you can leave the `Fac` at `1` and click the rightmost handle. The other way would be to replace this box with a color box (`Add > Input > RGB`)
 
 ### Mesh shading
 
@@ -129,7 +128,7 @@ The **Emission Strength** is set to 0 or 0.5 depending on whether this was loade
 
 ### Slice cube
 
-This is exactly similar to the [volume Slice Cube](#slice-cube).
+See [volume Slice Cube](#slice-cube).
 
 ## Labelmask shading
 
@@ -148,8 +147,3 @@ This is led into a group that maps it to values between 0 and 1 for the LUT. Thi
 ### Color LUT
 
 The color lookup table works similar to the [volume color LUT](#color-lut). Often categorical colormaps work best for labelmasks, if you have only one channel of masks.
-
-### Slice cube
-
-This is exactly similar to the [volume Slice Cube](#slice-cube).
-

@@ -1,6 +1,6 @@
 # Rendering
 
-There are a lot of extra parameters to tweak in regards to rendering in Blender and these could all be useful to figure out. They are explained in the {{ svg("blender") }} [Blender manual](https://docs.blender.org/manual/en/latest/render/cycles/render_settings/index.html). Some, however, are especially useful to know for microscopy data or as new user. These are covered here.
+There are a lot of extra parameters that can be adjusted to optimize rendering in Blender. All of these are explained in the {{ svg("blender") }} [Blender manual](https://docs.blender.org/manual/en/latest/render/cycles/render_settings/index.html). Some, however, are especially useful to know for microscopy data or for new users. These are covered here.
 
 ## Render Engines
 
@@ -8,20 +8,21 @@ There are two major render engines in Blender. **EEVEE**, a [rasterized](https:/
 
 ### EEVEE
 
-**EEVEE** is a render engine that is made to be fast, and powerful. It is less optimized for {{ svg("volume") }} volumetric data, especially for dense/scattering volumes. It also cannot handle volume data > 4 GiB, currently.
+**EEVEE** is a render engine that is made to be fast, and powerful. It is less optimized for {{ svg("volume") }} volumetric data, especially for dense/scattering volumes. Currently, it can only handle volume data < 4 GiB.
 
-However, it is still very strong, is usually able to combine semi-transparent masks and volumes, and is often way faster, especially with emissive time-lapses. 
+However, it is still very strong, is usually able to combine semi-transparent masks and volumes, and is often faster, especially for rendering emissive time-lapses. 
 
 It may take longer to open an EEVEE interface with volumes, and for larger data it can be slower in general than Cycles.
 
+
 ### Cycles
 
-**Cycles** is the ray-traced render engine, slower than EEVEE as it calculates a lot of light bouncing. This is best for scattering, and as the first passes only probe the data slightly, can be faster with bigger data. 
+**Cycles** is the ray-traced render engine, slower than EEVEE as it calculates light bouncing. This is best for scattering, and can be faster with bigger data. 
 
 
 ## Render Settings
 
-There are a lot of {{ svg("scene") }} Render settings (found in the {{ svg("properties") }} properties).
+The {{ svg("scene") }} render settings can be found in the {{ svg("properties") }} properties.
 
 ### Samples
 
@@ -40,6 +41,13 @@ This can be controlled with two parameters:
 - Light Paths > Max Bounces > Volume 
   > Total amount of volume scattering events
 
+In addition, the `Volumes > Step Rate` can be changed, but only if artefacts show up. This can often also be helped by downscaling the volume (through the [holder](./3_objects.md#holder)).
+
+### General scattering (Cycles)
+
+The number of light bounces can be relevant also outside of the volumes. Especially for `Light Paths > Max Bounces > Transparent` and `Light Paths > Max Bounces > Total`. This is relevant to avoid black artefacting when overlaying many (semi-)transparent meshes. 
+
+
 ### Transparent background
 
 This can be found under Film > Transparent. Note that a transparent background can and will still be able to light a scene, if the {{ svg("world") }} background color is not black.
@@ -56,7 +64,7 @@ The {{ svg("output") }} output settings can be found in the {{ svg("properties")
 
 The timing of output can be changed. The **Frame Rate** for output videos and previews can be changed under `Format > Frame Rate`.
 
-Also useful is the **Time Stretching** (under `Frame Range`). This is the best way to offset Blender-frame rate from your volume's frame rate. Stretching time here allows e.g. more frames of 
+**Time Stretching**, under `Frame Range`, is the best way to offset Blender-frame rate from your volume's frame rate. Stretching time here allows e.g. more frames of camera movement per timeframe of your biological sample.
 
 {{ youtube("jcERgoBI1b8", 280, 158) }}
 
@@ -64,4 +72,4 @@ Also useful is the **Time Stretching** (under `Frame Range`). This is the best w
 
 Under {{ svg("output") }} > Output, the output file location and format can be defined. Here it is useful to note that if the format is set to `PNG`, as default, you would still have to compile the frames to video later.
 
-Optionally, you can set the output format to `FFMPEG Video`, which will output a full video when you Render Animation. This does limit your capacity to edit the video encoding and you cannot stop the render halfway and still retain the first half output.
+Optionally, you can set the output format to `FFMPEG Video`, which will output a full video when you render an animation. This does limit your capacity to edit the video encoding and you cannot stop the render e.g. halfway and still retain the first half of the output.
