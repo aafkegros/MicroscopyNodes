@@ -34,3 +34,6 @@ Microscopy Nodes supports:
 
 ### [Get Started!](./tutorials/1_start.md)
 <img src="https://github.com/oanegros/MicroscopyNodes/blob/main/figures/newprettyside.png?raw=true" width="600"/>
+
+
+*All icons used except the Microscopy Nodes icon were designed for Blender by [@jenzdrich](https://blenderartists.org/t/new-icons-for-blender-2-8/1112701) under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.en)*
