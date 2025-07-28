@@ -5,7 +5,7 @@
 Please make some pretty figures with this add-on! 
 
 For usage questions please use the [image.sc forum](https://forum.image.sc/tag/microscopy-nodes) 😁
-For issues/bug reports/feature requests please [open an issue](https://github.com/oanegros/MicroscopyNodes/issues).
+For issues/bug reports/feature requests please [open an issue](https://github.com/aafkegros/MicroscopyNodes/issues).
 
 If you publish with this add-on, please cite [the preprint](https://www.biorxiv.org/content/10.1101/2025.01.09.632153v1):
 ```
@@ -33,7 +33,7 @@ Microscopy Nodes supports:
 - Lazy loading of giant files (no data is loaded in RAM outside what's rendered)
 
 ### [Get Started!](./tutorials/1_start.md)
-<img src="https://github.com/oanegros/MicroscopyNodes/blob/main/figures/newprettyside.png?raw=true" width="600"/>
+<img src="https://github.com/aafkegros/MicroscopyNodes/blob/main/figures/newprettyside.png?raw=true" width="600"/>
 
 
 *All icons used except the Microscopy Nodes icon were designed for Blender by [@jenzdrich](https://blenderartists.org/t/new-icons-for-blender-2-8/1112701) under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.en)*

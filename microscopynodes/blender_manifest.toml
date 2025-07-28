@@ -8,7 +8,7 @@ maintainer = "Oane Gros <oane.gros@embl.de>"
 type = "add-on"
 
 # Optional link to documentation, support, source files, etc
-website = "https://oanegros.github.io/MicroscopyNodes/"
+website = "https://aafkegros.github.io/MicroscopyNodes/"
 
 platforms = [
 	"windows-x64",
