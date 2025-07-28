@@ -23,7 +23,7 @@ The holder can be **scaled**, **moved** and **rotated** and then **all of its ob
 
 ## Axes
 
-The  {{ svg("outliner_ob_mesh") }} **Axes** object is always loaded with your dataset. It draws a **scale grid** based on the number of pixels and pixel size, and pixel unit.
+The  {{ svg("outliner_ob_mesh") }} **Axes** object is always loaded with your dataset. It draws a **scale grid** based on the number of pixels, pixel size, and pixel unit.
 
 -  {{ svg("modifier") }} Geometry options
     - `pixel unit` per tick
@@ -35,7 +35,7 @@ The  {{ svg("outliner_ob_mesh") }} **Axes** object is always loaded with your da
     - Frontface culling
       > If ticked, clips out the axes that are closest to the camera or viewpoint, so that they do not obstruct the view.
     - Separate planes
-      > For each plane (xy bottom, top etc) you can check whether they will be drawn
+      > For each plane (xy bottom, top etc) you can select whether they will be drawn
 
 -  {{ svg("material") }} Shader options
     - Color 
