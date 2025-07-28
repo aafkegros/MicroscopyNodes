@@ -26,13 +26,13 @@ Microscopy Nodes supports importing **up to 5D** microscopy datasets (XYZ + time
 You can grab the add-on on the [Blender Extensions Platform](https://extensions.blender.org/add-ons/microscopynodes/)  
 Or, search **Microscopy Nodes** in Blender Preferences → Get Extensions. (Blender 4.2+)
 
-For earlier versions, check the [legacy install guide](https://oanegros.github.io/MicroscopyNodes/outdated).
+For earlier versions, check the [legacy install guide](https://aafkegros.github.io/MicroscopyNodes/outdated).
 
 Once installed, find it under Scene Properties <img src="./docs/grey_icons/blender_icon_scene_data.svg" width="15" style="vertical-align:-0.2em;"/> .
 
 ## <img src="./docs/grey_icons/blender_icon_camera_data.svg" width="20" style="vertical-align:-0.2em;"/>  Video tutorials
 
-Check out the [video tutorials](https://www.youtube.com/@oanegros) on YouTube for quick guides on:
+Check out the [video tutorials](https://www.youtube.com/@aafkegros) on YouTube for quick guides on:
 - Installation
 - Loading data
 - Fluorescence & EM visualization
@@ -54,7 +54,7 @@ Check out the [video tutorials](https://www.youtube.com/@oanegros) on YouTube fo
    - Physical pixel size
    - Reload behavior & storage location
 
-More detail in the [full docs](https://oanegros.github.io/MicroscopyNodes/).
+More detail in the [full docs](https://aafkegros.github.io/MicroscopyNodes/).
 
 ## Show Off Your Vizualizations!
 
