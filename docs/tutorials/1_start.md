@@ -8,11 +8,10 @@
 2. Navigate to `Edit > Preferences`.
 3. In the Add-ons tab, search for `Microscopy Nodes`.
 4. Click **Install** to download and enable the add-on.
-5. (Optional) Adjust additional settings in Preferences.
 
 
 ## **Blender Interface Overview**
-This tutorial gives an overview into the Blender interface, and highlight all the key things to know if you're only or mostly interacting with microscopy data. 
+The Blender interface is very flexible and can be reconfigured in many ways. While this is a powerful feature, it also means that explaining the basics can be a bit technical, and some of the terms are Blender **jargon**. To make things easier, here is a quick overview of some **key terms** and where to find common functions.
 
 Further information and navigation can be found in the {{ svg("Blender") }} [Blender Manual](https://docs.blender.org/manual/en/latest/editors/3dview/navigate/index.html)
 
@@ -20,15 +19,15 @@ Further information and navigation can be found in the {{ svg("Blender") }} [Ble
 
 The Blender interface always contains: 
 
-1. {{ svg("topbar") }}	**The top bar**: contains the main menus and selection of the tabs, or *workspaces* (e.g. Layout, Shading, Geometry Nodes).
-2. {{ svg("workspace") }} **The main workspace**: Reconfigurable workspace. Contains different areas depending on the selected *workspace*.
-3. {{ svg("statusbar") }} **The status bar**: contains shortcuts suggestions
+1. {{ svg("topbar") }}	**Top bar**: contains the main menus and selection of the tabs, or  {{ svg("workspace") }} workspaces (e.g. Layout, Shading, Geometry Nodes).
+2. {{ svg("workspace") }} **Workspace**: Reconfigurable workspace. Contains different areas depending on the selection in the  {{ svg("topbar") }} topbar.
+3. {{ svg("statusbar") }} **Status bar**: contains shortcuts suggestions
 
 But it can be configured much more with **workspaces** {{ svg("workspace") }}. Currently we're in the **Layout** workspace.
 
 ## Layout Workspace 
 
-The **Layout** workspace {{ svg("workspace") }}  (by default selected in the {{ svg("topbar") }} *topbar*) is our main workspace, made for assembling and seeing your 3D scene.
+The **Layout** workspace {{ svg("workspace") }}  (by default selected in the {{ svg("topbar") }} *topbar*) is our main workspace, made for assembling and seeing your 3D scene. This contains multiple elements with Blender-specific names:
 
 ![alt text](<../figures/tutorials/Fig 2.png>)
 
@@ -39,16 +38,27 @@ The **Layout** workspace {{ svg("workspace") }}  (by default selected in the {{ 
 
 With Microscopy Nodes, we also use the [Shading]() workspace, and for advanced users, the [Geometry Nodes]() and [Scripting]() workspaces.
 
-## Navigation in the 3D Viewport
+## The 3D Viewport
 
 Annotated on the right in the image are widgets you can drag to **rotate** (axes), {{ svg("view_zoom") }} **scale** and {{ svg("view_pan") }} **move** the view.
 
-Mouse navigation is possible and configurable in the [Preferences](https://docs.blender.org/manual/en/latest/editors/preferences/input.html). This depends on which input device you use (2-button mouse, 3-button mouse, touchpad).
+Mouse navigation is possible and configurable in the {{ svg("blender") }} [Preferences](https://docs.blender.org/manual/en/latest/editors/preferences/input.html). This depends on which input device you use (2-button mouse, 3-button mouse, touchpad).
 
 ### The `View` menu
-At the top of the 3D viewport, there is a dropdown menu called `View` - this has shortcuts and other tools to align the view. 
+ 
+![alt text](../figures/view3d_viewmenu.png){: style="height:200px"}
 
-For example, if you lose all the objects in the scene, you can select an object in the **outliner** on the top right, and use the menu `View > Frame Selected` (or just `View > Frame All`) to see your scene again.
+At the top of the {{ svg("view3d") }} 3D viewport, there is a dropdown menu called `View` - this has shortcuts and other tools to align the view. 
+
+For example, if you lose all the objects in the scene, you can select an object in the {{ svg("outliner") }} outliner in the top right, and use the menu `View > Frame Selected` (or just `View > Frame All`) to see your scene again.
+
+## The outliner
+
+![alt text](../figures/outliner.png)
+
+The {{ svg("outliner") }} outliner lists all {{ svg("outliner_collection") }} collections and objects in the scene. Here you can **select** objects more easily.
+
+This also provides an interface for **visibility** in the {{ svg("hide_off") }}/{{ svg("hide_on") }} 3D viewport, and in the {{ svg("restrict_render_off") }}/{{ svg("restrict_render_on") }} final render. If objects are not visible, they are also not loaded into RAM, so it can speed up Blender to limit visibility.
 
 ## Manipulating Objects
 
@@ -65,11 +75,11 @@ To add microscopy data, there is a [separate loading window](./2_loading_data.md
 
 ### Deleting objects
 
-You can select any object in the Viewport or Outliner, and delete it by `Right Mouse Button > Delete Object` or pressing `X` and confirming.
+You can select any object in the {{ svg("view3d") }} viewport or {{ svg("outliner") }} outliner, and delete it by `Right Mouse Button > Delete Object` or pressing `X` and confirming.
 
 For deleting all objects in the scene, it is fastest to press `A` to select all objects and `X` to delete them. 
 
-In the **Outliner**, an entire group can be deleted at once with  `Right Mouse Button > Delete Hierarchy`
+In the {{ svg("outliner") }} **outliner**, an entire group can be deleted at once with  `Right Mouse Button > Delete Hierarchy`
 
 
 ## **Viewport rendering**
@@ -85,9 +95,9 @@ From left to right:
 1.	{{ svg("shading_wire") }} **Wireframe** : Only the object skeleton, *No volumetric data shown.*
 2.	{{ svg("shading_solid") }} **Solid Mode**: Only the external surfaces are drawn 
 3.	{{ svg("shading_texture") }} **Material Preview**: Is meant for previewing your scene without full calculations. Defaults to [EEVEE](./rendering.md#eevee). May be a fast view, but will be slow to open with microscopy data, and is data-dependent. 
-4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](./rendering.md#cycles). Often the best way to currently view microscopy data.
+4.	{{ svg("shading_rendered") }} **Rendered**: Shows the scene as it will appear in the final render. By default, Microscopy Nodes sets this to be in [Cycles](./rendering.md#cycles). Often the best way to view microscopy data.
 
-## **Further UI instruction** 
+## **Further UI instruction (video)** 
 
 <div class="yt-lazy" data-id="enTid4aDC0Q" style="width:560px; height:315px;">
   <div class="yt-thumbnail" style="background-image: url('https://img.youtube.com/vi/enTid4aDC0Q/hqdefault.jpg');">

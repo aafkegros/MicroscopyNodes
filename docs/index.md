@@ -1,5 +1,6 @@
 # Microscopy in Blender
-This is a project building bioimage support for the open source software blender. This currently exists as the Blender add-on `Microscopy Nodes`, previously named `tif2blender`. This is able to easily load tif files as volumetric objects in Blender. 
+
+`Microscopy Nodes` is a Blender add-on that incorporates bioimage support for the open-source software blender. {{ svg('microscopy_nodes') }} Microscopy Nodes simplifies loading bioimage (tif/zarr) files as volumetric objects in Blender. 
 
 Please make some pretty figures with this add-on! 
 
@@ -24,11 +25,11 @@ If you publish with this add-on, please cite [the preprint](https://www.biorxiv.
 ## Current Features
 Microscopy Nodes supports:
 
-- up to 5D (up to tzcyx in any axis order) tifs and OME-Zarr files can be loaded. 
+- up to 5D (tzcyx in any axis order) tifs and OME-Zarr files can be loaded. 
 - Channel interface to define how to load data
 - Replacing a pyramidal dataset with it's higher resolution version
-- Accurate scale bars
-- Load per-index label masks
+- Accurate scale bars and boxes
+- Loading of per-index label masks
 - Lazy loading of giant files (no data is loaded in RAM outside what's rendered)
 
 ### [Get Started!](./tutorials/1_start.md)

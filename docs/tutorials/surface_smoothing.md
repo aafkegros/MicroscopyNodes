@@ -3,6 +3,7 @@
 After loading a {{ svg("outliner_data_pointcloud") }} labelmask or {{ svg("outliner_data_surface") }} surface, the geometry is often still quite jagged. 
 
 This can be edited through two techniques:
+
 - changing the **mesh density** in the [preferences](./preferences.md) and reloading
 - adding smoothing modifiers
 - editing the mesh using sculpting or modeling
