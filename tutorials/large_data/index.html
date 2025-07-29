@@ -1,0 +1,1085 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../5_creating_ouput/">
+      
+      
+        <link rel="next" href="../ome_zarr_troubleshooting/">
+      
+      
+      <link rel="icon" href="../../figures/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>Large datasets - Microscopy Nodes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Rubik";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra_css.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#large-data" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Microscopy Nodes" class="md-header__button md-logo" aria-label="Microscopy Nodes" data-md-component="logo">
+      
+  <img src="../../figures/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Microscopy Nodes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Large datasets
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aafkegros/MicroscopyNodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../overview/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Help
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../1_start/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Microscopy Nodes" class="md-nav__button md-logo" aria-label="Microscopy Nodes" data-md-component="logo">
+      
+  <img src="../../figures/logo.svg" alt="logo">
+
+    </a>
+    Microscopy Nodes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aafkegros/MicroscopyNodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Help
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Starting with Microscopy Nodes
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            Starting with Microscopy Nodes
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    1. First Use
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2_loading_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2. Loading data
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3_objects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    3. Data objects
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../4_shading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    4. Shading
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../5_creating_ouput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    5. Creating output
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Extra tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            Extra tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Large datasets
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Large datasets
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#working-at-large-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Working at large scale
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reloading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reloading-on-workstation-or-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading on workstation or cluster
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reloading-from-the-command-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading from the command line
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ome_zarr_troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OME-Zarr troubleshooting
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preferences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Preferences
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Rendering
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../surface_smoothing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Surface smoothing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#working-at-large-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Working at large scale
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reloading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reloading-on-workstation-or-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading on workstation or cluster
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reloading-from-the-command-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading from the command line
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="large-data">Large data</h1>
+<p>Microscopy data is often very large, <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1500 1500">
+  <ns1:namedview pagecolor="#303030" showgrid="true">
+    <ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true"/>
+  </ns1:namedview>
+  <g fill="currentColor" opacity="0.6">
+    <polygon points="1069.4,1029.1 950.7,910.4 1062.2,801.4 1288.3,1027.6"/>
+  </g>
+  <g fill="currentColor">
+    <path d="M1394.8,1047.2v-0.3c0-10.8-8.7-19.6-19.6-19.6H971.9c-10.8,0-19.6,8.7-19.6,19.6v21.8
+      c0,10.8,8.7,19.6,19.6,19.6h240c-0.3,0.6-0.7,1.2-1,1.8c-6.1,10.9-12.6,21.5-19.4,32c-0.6,1-1.3,1.9-1.9,2.9
+      c-3.3,4.9-6.6,9.8-10,14.7c-0.2,0.2-0.3,0.5-0.5,0.7c-3.7,5.2-7.4,10.3-11.2,15.3c-0.6,0.8-1.2,1.6-1.8,2.3
+      c-3.4,4.5-6.9,8.9-10.5,13.3c-0.5,0.6-0.9,1.1-1.4,1.7c-4,4.9-8.1,9.7-12.2,14.5c-0.5,0.5-1,1.1-1.4,1.6c-3.7,4.2-7.5,8.4-11.4,12.6
+      c-0.7,0.7-1.3,1.4-2,2.1c-4.3,4.6-8.7,9.1-13.2,13.6c-0.2,0.2-0.4,0.4-0.6,0.6c-4.2,4.2-8.5,8.3-12.9,12.4c-0.8,0.7-1.6,1.5-2.4,2.2
+      c-9.2,8.5-18.6,16.6-28.3,24.5c-0.9,0.7-1.8,1.4-2.7,2.2c-4.8,3.8-9.6,7.6-14.5,11.3c-0.1,0-0.1,0.1-0.2,0.1
+      c-5,3.8-10.1,7.5-15.3,11.1c-0.9,0.6-1.9,1.3-2.8,1.9c-4.6,3.2-9.2,6.3-13.9,9.4c-0.6,0.4-1.2,0.8-1.8,1.2
+      c-5.2,3.4-10.5,6.7-15.9,9.9c-0.9,0.5-1.8,1-2.7,1.6c-4.6,2.8-9.3,5.5-14.1,8.1c-1,0.5-1.9,1.1-2.9,1.6c-5.4,3-10.9,5.9-16.5,8.7
+      c-0.7,0.4-1.4,0.7-2.1,1c-4.9,2.5-9.8,4.9-14.8,7.2c-1.2,0.6-2.4,1.1-3.6,1.7c-5.7,2.6-11.4,5.1-17.1,7.6c-0.2,0.1-0.5,0.2-0.7,0.3
+      c-5.4,2.3-10.9,4.5-16.5,6.6c-1.4,0.5-2.7,1-4.1,1.5c-5.6,2.1-11.3,4.2-17,6.1c-0.2,0.1-0.3,0.1-0.5,0.2c-5.9,2-11.8,3.9-17.8,5.7
+      c-1.4,0.4-2.9,0.9-4.3,1.3c-5.2,1.5-10.4,3-15.6,4.4c-0.9,0.2-1.8,0.5-2.7,0.7c-6,1.6-12,3-18.1,4.4c-1.4,0.3-2.8,0.6-4.2,0.9
+      c-5.1,1.1-10.1,2.1-15.2,3.1c-1.3,0.3-2.7,0.5-4,0.8c-6.1,1.1-12.3,2.1-18.5,3.1c-1.3,0.2-2.5,0.4-3.8,0.5c-5.2,0.7-10.4,1.4-15.6,2
+      c-1.6,0.2-3.1,0.4-4.7,0.5c-6.3,0.7-12.6,1.3-18.9,1.7c-0.9,0.1-1.8,0.1-2.6,0.2c-5.6,0.4-11.2,0.7-16.8,0.9
+      c-1.7,0.1-3.4,0.1-5.1,0.2c-6.4,0.2-12.9,0.4-19.4,0.4c-98.5,0-191.2-24.4-272.5-67.5l51.8-105.5c-146-77.8-245.7-231.6-245.7-408.3
+      c0-154.4,76.1-291.3,192.7-375.3l467.2,467.2c10,10,23.4,15.6,37.5,15.6c14.2,0,27.5-5.5,37.5-15.6l79.1-79.1
+      c10-10,15.6-23.4,15.6-37.5c0-14.2-5.5-27.5-15.6-37.5L549.2,241.8c49-13.4,100.6-20.5,153.8-20.5c321.9,0,582.8,260.9,582.8,582.8
+      c0,66.3-11.1,130-31.5,189.3l-0.1,0.2l10.4,10.4l0.3-0.9c22.1-62.3,34.2-129.2,34.2-199c0-328.6-267.3-595.9-595.9-595.9
+      c-56.7,0-111.5,8-163.4,22.8L424,115c-5.4-5.4-11.8-9.4-18.6-11.8c-19.4-8.4-42.9-4.7-58.7,11.1l-3.2,3.2
+      c-18.6-16-46.7-15.2-64.4,2.4c-9,9-13.9,20.8-13.9,33.5c0,11.4,4.1,22.3,11.5,30.9l-9.1,9.1c-10,10-15.6,23.4-15.6,37.5
+      s5.5,27.5,15.6,37.5L335,336C196.5,445.2,107.4,614.4,107.4,804.1c0,328.6,267.4,595.9,595.9,595.9c225.7,0,422.4-126.1,523.5-311.5
+      h148.4c10.8,0,19.6-8.7,19.6-19.6V1047.2C1394.8,1047.2,1394.8,1047.2,1394.8,1047.2z"/>
+  </g>
+</svg>
+</span> Microscopy Nodes has some strategies to deal with this. These depend on the size of the data, the shape of the data, and your computational resources (and skills). The key of this is working at a smaller scale, and then <strong>reloading</strong> to larger data.</p>
+<p>Here it is relevant to distinguish between two types of large data: </p>
+<ul>
+<li>
+<p>Time sequence/few channels (not loading all data in the same timeframe)</p>
+<blockquote>
+<p>This mostly has issues in storage, and is more a point of only loading the data you need at a certain point, but will always just work.</p>
+</blockquote>
+</li>
+<li>
+<p>Large data that's all concurrently loaded</p>
+<blockquote>
+<p>This becomes a bigger issue, especially with the current <strong>4 GiB limit of EEVEE</strong>.</p>
+</blockquote>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">EEVEE cannot handle large data</p>
+<p>EEVEE currently <strong>cannot handle</strong> <a href="https://projects.blender.org/blender/blender/issues/136263">volumetric data over 4 GiB</a>. This means that scaling up our data will be easier in Cycles. By default after loading, the render engine is set to Cycles. </p>
+<p><strong>Cycles is only applied</strong> to the view if the shading preview is set to <span class="small-icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg4" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g transform="matrix(100 0 0 100 -32000 -36700)" fill="currentColor"><path id="path2" d="m327.12891 369.9668a1.0001 1.0001 0 0 0 -.16797.0234c-2.00329.41569-3.57155 1.99062-3.97656 3.9961a1.0003053 1.0003053 0 1 0 1.96093.39648c.24758-1.22589 1.19732-2.17949 2.42188-2.43359a1.0001 1.0001 0 0 0 -.23828-1.98242z" /><path id="path1" d="m328 368c-3.86007 0-7 3.13993-7 7s3.13993 7 7 7 7-3.13993 7-7-3.13993-7-7-7zm0 1c3.11844 0 5.67234 2.36547 5.97049 5.40408l-1.18729-1.18728a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.75785 1.75785c-.04738.5324-.16265 1.04491-.33942 1.52778l-1.60203-1.60203a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.81672 1.81672c-.21383.39642-.47192.76494-.76606 1.10113l-1.73426-1.73425a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.73425 1.73426c-.33619.29414-.70471.55223-1.10113.76606l-1.81672-1.81672a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.60203 1.60203c-.41494.1519-.85204.25758-1.30449.31487a.40004001.40004001 0 0 0 -.00067-.00088l-2-1.75a.40004001.40004001 0 0 0 -.2539-.10352.40004001.40004001 0 0 0 -.27344.70508l1.35283 1.18373c-3.12694-.21058-5.58916-2.80315-5.58916-5.98451 0-3.31963 2.68037-6 6-6z" /></g></svg></span> Rendered preview.</p>
+</div>
+<p>There are a few strategies:</p>
+<h2 id="working-at-large-scale">Working at large scale</h2>
+<p>You can actually work at large scales, as long as you have enough and take care to work <strong>only in Cycles</strong>:</p>
+<p>Some <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m27.492188 598.99219a.50005.50005 0 0 0 -.5.5v9a.50005.50005 0 0 0 .5.5h13a.50005.50005 0 0 0 .5-.49805l.007812-3.49414-1-.002-.0059 2.99414h-12.001912v-8h8v3.5c.000029.27613.223869.49997.5.5h4c.44533-.00017.668305-.53852.353515-.85352l-4-4c-.09376-.0938-.22116-.14439-.353515-.14453v-.002h-.0078zm7.507812 11.00781-2 .004v1.98828h-2.507812c-.67616-.01-.67616 1.00956 0 1h7c.676159.01.676159-1.00956 0-1h-2.492188z" fill-rule="evenodd" transform="matrix(100 0 0 100 -2599.609 -59799.22200000001)" /></g></svg></span> workspaces will <strong>automatically</strong> be in <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg4" viewBox="0 0 1600 1600" version="1.1"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview>
+  <defs id="defs1" />
+  <g id="g1">
+    <path id="path1" d="m118 95c-3.86007 0-7 3.139929-7 7 0 3.86008 3.13992 7 7 7s7-3.13992 7-7c0-3.860071-3.13993-7-7-7zm0 1c3.31963 0 6 2.680368 6 6 0 .3613-.03354.71441-.09441 1.05793l-.23176-.23176a.60006002.60006002 0 0 0 -.42969-.18164.60006002.60006002 0 0 0 -.41797 1.0293l.5.5a.60006002.60006002 0 0 0 .21154.14279c-.13173.31543-.29051.61638-.47181.90162l-1.64207-1.64207a.60006002.60006002 0 0 0 -.42969-.18164.60006002.60006002 0 0 0 -.41797 1.0293l1.74305 1.74305c-.21402.22182-.44447.42754-.69039.61429l-2.705-2.705a.60006002.60006002 0 0 0 -.42969-.18164.60006002.60006002 0 0 0 -.41797 1.0293l2.49863 2.49863c-.30346.14399-.6214.26219-.95048.3542l-.70049-.70049a.60006002.60006002 0 0 0 -.42969-.18164.60006002.60006002 0 0 0 -.41797 1.0293l.07242.07242c-.04954.0012-.09875.00375-.14859.00375-3.31964 0-6-2.68036-6-6 0-.01348.00093-.02672.00102-.04018 1.11175.94327 3.00531 2.04018 5.99898 2.04018z" transform="matrix(100 0 0 100 -11000 -9400)" fill="currentColor" />
+  </g>
+</svg></span> Material preview mode. It is convenient to first go through the different <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m27.492188 598.99219a.50005.50005 0 0 0 -.5.5v9a.50005.50005 0 0 0 .5.5h13a.50005.50005 0 0 0 .5-.49805l.007812-3.49414-1-.002-.0059 2.99414h-12.001912v-8h8v3.5c.000029.27613.223869.49997.5.5h4c.44533-.00017.668305-.53852.353515-.85352l-4-4c-.09376-.0938-.22116-.14439-.353515-.14453v-.002h-.0078zm7.507812 11.00781-2 .004v1.98828h-2.507812c-.67616-.01-.67616 1.00956 0 1h7c.676159.01.676159-1.00956 0-1h-2.492188z" fill-rule="evenodd" transform="matrix(100 0 0 100 -2599.609 -59799.22200000001)" /></g></svg></span> workspaces and switch them all to <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg4" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g transform="matrix(100 0 0 100 -32000 -36700)" fill="currentColor"><path id="path2" d="m327.12891 369.9668a1.0001 1.0001 0 0 0 -.16797.0234c-2.00329.41569-3.57155 1.99062-3.97656 3.9961a1.0003053 1.0003053 0 1 0 1.96093.39648c.24758-1.22589 1.19732-2.17949 2.42188-2.43359a1.0001 1.0001 0 0 0 -.23828-1.98242z" /><path id="path1" d="m328 368c-3.86007 0-7 3.13993-7 7s3.13993 7 7 7 7-3.13993 7-7-3.13993-7-7-7zm0 1c3.11844 0 5.67234 2.36547 5.97049 5.40408l-1.18729-1.18728a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.75785 1.75785c-.04738.5324-.16265 1.04491-.33942 1.52778l-1.60203-1.60203a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.81672 1.81672c-.21383.39642-.47192.76494-.76606 1.10113l-1.73426-1.73425a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.73425 1.73426c-.33619.29414-.70471.55223-1.10113.76606l-1.81672-1.81672a.40004001.40004001 0 0 0 -.28711-.1211.40004001.40004001 0 0 0 -.27929.6875l1.60203 1.60203c-.41494.1519-.85204.25758-1.30449.31487a.40004001.40004001 0 0 0 -.00067-.00088l-2-1.75a.40004001.40004001 0 0 0 -.2539-.10352.40004001.40004001 0 0 0 -.27344.70508l1.35283 1.18373c-3.12694-.21058-5.58916-2.80315-5.58916-5.98451 0-3.31963 2.68037-6 6-6z" /></g></svg></span> Rendered preview.</p>
+<h2 id="reloading"><strong>Reloading</strong></h2>
+<p>The <strong>reloading</strong> workflow means that you first work on a smaller version of the data and later replace this with a larger one. </p>
+<p>This is controlled mainly by the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1500 1500"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" stroke="none" transform="matrix(0 -100.17897 100 0 -57795.1844 41972.0971)"><path d="m405.46978 579.95581c-.0786.005 1.01466.006 2.75112.002-2.39046 1.17179-3.76136 4.49271-2.99824 7.27846s3.11603 4.49155 5.7784 4.71875l-.00084-1c-2.59859-.27264-4.17102-1.63685-4.81356-3.98242s.50423-5.20147 2.81719-6.15552c.009.80023-.0108 2.01265.00093 2.69464-.008.60881 1.01884.5718.99185-.0157-.002-.49551.001-3.60295.007-4.5362-1.4729.00082-2.81924-.00048-4.52617-.008-.62523.0109-.61936.99943-.009 1.00441z" transform="matrix(-1 0 0 -1 822.986 1170.90388)" /><path d="m405.45285 579.95581c-.0786.005 1.05365-.002 2.79011-.006-2.39046 1.17179-3.8662 4.53149-2.99824 7.28627.8992 2.85391 3.08617 4.49155 5.74854 4.71875l-.00084-1c-2.49653-.35216-4.00508-1.56869-4.7837-3.98242-.74659-2.31444.47303-5.20147 2.78599-6.15552.009.80023-.0108 2.01265.00093 2.69464-.008.60881 1.01884.5718.99185-.0157-.002-.49551.001-3.60295.007-4.5362-1.4729.00082-2.82703-.00048-4.53396-.008-.62523.0109-.61936.99943-.009 1.00441z" /></g></g></svg></span> Reload field in the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1500 1500">
+  <ns1:namedview pagecolor="#303030" showgrid="true">
+    <ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true"/>
+  </ns1:namedview>
+  <g fill="currentColor" opacity="0.6">
+    <polygon points="1069.4,1029.1 950.7,910.4 1062.2,801.4 1288.3,1027.6"/>
+  </g>
+  <g fill="currentColor">
+    <path d="M1394.8,1047.2v-0.3c0-10.8-8.7-19.6-19.6-19.6H971.9c-10.8,0-19.6,8.7-19.6,19.6v21.8
+      c0,10.8,8.7,19.6,19.6,19.6h240c-0.3,0.6-0.7,1.2-1,1.8c-6.1,10.9-12.6,21.5-19.4,32c-0.6,1-1.3,1.9-1.9,2.9
+      c-3.3,4.9-6.6,9.8-10,14.7c-0.2,0.2-0.3,0.5-0.5,0.7c-3.7,5.2-7.4,10.3-11.2,15.3c-0.6,0.8-1.2,1.6-1.8,2.3
+      c-3.4,4.5-6.9,8.9-10.5,13.3c-0.5,0.6-0.9,1.1-1.4,1.7c-4,4.9-8.1,9.7-12.2,14.5c-0.5,0.5-1,1.1-1.4,1.6c-3.7,4.2-7.5,8.4-11.4,12.6
+      c-0.7,0.7-1.3,1.4-2,2.1c-4.3,4.6-8.7,9.1-13.2,13.6c-0.2,0.2-0.4,0.4-0.6,0.6c-4.2,4.2-8.5,8.3-12.9,12.4c-0.8,0.7-1.6,1.5-2.4,2.2
+      c-9.2,8.5-18.6,16.6-28.3,24.5c-0.9,0.7-1.8,1.4-2.7,2.2c-4.8,3.8-9.6,7.6-14.5,11.3c-0.1,0-0.1,0.1-0.2,0.1
+      c-5,3.8-10.1,7.5-15.3,11.1c-0.9,0.6-1.9,1.3-2.8,1.9c-4.6,3.2-9.2,6.3-13.9,9.4c-0.6,0.4-1.2,0.8-1.8,1.2
+      c-5.2,3.4-10.5,6.7-15.9,9.9c-0.9,0.5-1.8,1-2.7,1.6c-4.6,2.8-9.3,5.5-14.1,8.1c-1,0.5-1.9,1.1-2.9,1.6c-5.4,3-10.9,5.9-16.5,8.7
+      c-0.7,0.4-1.4,0.7-2.1,1c-4.9,2.5-9.8,4.9-14.8,7.2c-1.2,0.6-2.4,1.1-3.6,1.7c-5.7,2.6-11.4,5.1-17.1,7.6c-0.2,0.1-0.5,0.2-0.7,0.3
+      c-5.4,2.3-10.9,4.5-16.5,6.6c-1.4,0.5-2.7,1-4.1,1.5c-5.6,2.1-11.3,4.2-17,6.1c-0.2,0.1-0.3,0.1-0.5,0.2c-5.9,2-11.8,3.9-17.8,5.7
+      c-1.4,0.4-2.9,0.9-4.3,1.3c-5.2,1.5-10.4,3-15.6,4.4c-0.9,0.2-1.8,0.5-2.7,0.7c-6,1.6-12,3-18.1,4.4c-1.4,0.3-2.8,0.6-4.2,0.9
+      c-5.1,1.1-10.1,2.1-15.2,3.1c-1.3,0.3-2.7,0.5-4,0.8c-6.1,1.1-12.3,2.1-18.5,3.1c-1.3,0.2-2.5,0.4-3.8,0.5c-5.2,0.7-10.4,1.4-15.6,2
+      c-1.6,0.2-3.1,0.4-4.7,0.5c-6.3,0.7-12.6,1.3-18.9,1.7c-0.9,0.1-1.8,0.1-2.6,0.2c-5.6,0.4-11.2,0.7-16.8,0.9
+      c-1.7,0.1-3.4,0.1-5.1,0.2c-6.4,0.2-12.9,0.4-19.4,0.4c-98.5,0-191.2-24.4-272.5-67.5l51.8-105.5c-146-77.8-245.7-231.6-245.7-408.3
+      c0-154.4,76.1-291.3,192.7-375.3l467.2,467.2c10,10,23.4,15.6,37.5,15.6c14.2,0,27.5-5.5,37.5-15.6l79.1-79.1
+      c10-10,15.6-23.4,15.6-37.5c0-14.2-5.5-27.5-15.6-37.5L549.2,241.8c49-13.4,100.6-20.5,153.8-20.5c321.9,0,582.8,260.9,582.8,582.8
+      c0,66.3-11.1,130-31.5,189.3l-0.1,0.2l10.4,10.4l0.3-0.9c22.1-62.3,34.2-129.2,34.2-199c0-328.6-267.3-595.9-595.9-595.9
+      c-56.7,0-111.5,8-163.4,22.8L424,115c-5.4-5.4-11.8-9.4-18.6-11.8c-19.4-8.4-42.9-4.7-58.7,11.1l-3.2,3.2
+      c-18.6-16-46.7-15.2-64.4,2.4c-9,9-13.9,20.8-13.9,33.5c0,11.4,4.1,22.3,11.5,30.9l-9.1,9.1c-10,10-15.6,23.4-15.6,37.5
+      s5.5,27.5,15.6,37.5L335,336C196.5,445.2,107.4,614.4,107.4,804.1c0,328.6,267.4,595.9,595.9,595.9c225.7,0,422.4-126.1,523.5-311.5
+      h148.4c10.8,0,19.6-8.7,19.6-19.6V1047.2C1394.8,1047.2,1394.8,1047.2,1394.8,1047.2z"/>
+  </g>
+</svg>
+</span> Microscopy Nodes load panel:
+<img alt="alt text" src="../../figures/reload_not_filled.png" /></p>
+<p>This can be pointed to a previously loaded Microscopy Nodes <a href="../3_objects/#holder">holder object</a>:
+<img alt="alt text" src="../../figures/reload_filled.png" /></p>
+<p>Which will make a new action <strong>Reload</strong> the data in the holder. This has two extra options:</p>
+<ul>
+<li>
+<p><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m158.48048 492.99995c-.15153.004-.29304.0766-.38477.19727l-4.94922 4.94921c-.31479.315-.0918.85335.35352.85352h5c.27613-.00003.49997-.22387.5-.5v-4.5h5v12h-10v-6h-1v6.5c.00003.27613.22387.49997.5.5h11c.27613-.00003.49997-.22387.5-.5v-13c-.00003-.27613-.22387-.49997-.5-.5h-6c-.005-.00006-.009-.00006-.0137 0-.00067.00002-.001-.00002-.002 0-.001.00004-.003-.00005-.004 0z" fill-rule="evenodd" transform="matrix(100 0 0 100 -15199.958 -49199.9928)" /></g></svg></span> Overwrite data</p>
+<blockquote>
+<p>Changes out the underlying data (labelmasks are currently always regenerated)</p>
+</blockquote>
+</li>
+<li>
+<p><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m34 557c-3.860079 0-7 3.13992-7 7s3.139921 7 7 7 7-3.13992 7-7-3.139921-7-7-7zm0 1c3.305801 0 5.975833 2.65852 5.998047 5.95898-1.111503.94364-3.002682 2.04102-5.998047 2.04102v4c-3.319633 0-6-2.68037-6-6 0-.0145.0019-.0285.002-.043 1.111203.94401 3.000992 2.043 5.998 2.043z" transform="matrix(-99.999621 0 0 99.999621 4199.9875 -55599.786318)" /></g></svg></span> Overwrite settings</p>
+<blockquote>
+<p>Overwrites all settings from the load panel, but retains anything set by the user, this includes input location/transform, emission, and color</p>
+</blockquote>
+</li>
+</ul>
+<p>For reloading to deal with large data, it is usually best to reload only updating <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m158.48048 492.99995c-.15153.004-.29304.0766-.38477.19727l-4.94922 4.94921c-.31479.315-.0918.85335.35352.85352h5c.27613-.00003.49997-.22387.5-.5v-4.5h5v12h-10v-6h-1v6.5c.00003.27613.22387.49997.5.5h11c.27613-.00003.49997-.22387.5-.5v-13c-.00003-.27613-.22387-.49997-.5-.5h-6c-.005-.00006-.009-.00006-.0137 0-.00067.00002-.001-.00002-.002 0-.001.00004-.003-.00005-.004 0z" fill-rule="evenodd" transform="matrix(100 0 0 100 -15199.958 -49199.9928)" /></g></svg></span> the underlying data to the higher resolution.</p>
+<h3 id="reloading-on-workstation-or-cluster">Reloading on workstation or cluster</h3>
+<p>It is possible to make a project on a less capable computer, and then transfer it to a workstation or an HPC cluster. This can be done in multiple ways:</p>
+<ul>
+<li>Transfering with data<blockquote>
+<p>Easiest to do with your data loaded 'With Project' in the <a href="../2_loading_data/#5-extra-import-settings-optional">extra import settings</a>, then it is an easy matter of transferring the .blend file and the data folder next to it to this computer.</p>
+</blockquote>
+</li>
+<li>Reloading from a GUI</li>
+<li>Reloading from the command line</li>
+</ul>
+<h3 id="reloading-from-the-command-line">Reloading from the command line</h3>
+<p>To replace your data from the command line interface, you set up all the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1500 1500"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" stroke="none" transform="matrix(0 -100.17897 100 0 -57795.1844 41972.0971)"><path d="m405.46978 579.95581c-.0786.005 1.01466.006 2.75112.002-2.39046 1.17179-3.76136 4.49271-2.99824 7.27846s3.11603 4.49155 5.7784 4.71875l-.00084-1c-2.59859-.27264-4.17102-1.63685-4.81356-3.98242s.50423-5.20147 2.81719-6.15552c.009.80023-.0108 2.01265.00093 2.69464-.008.60881 1.01884.5718.99185-.0157-.002-.49551.001-3.60295.007-4.5362-1.4729.00082-2.81924-.00048-4.52617-.008-.62523.0109-.61936.99943-.009 1.00441z" transform="matrix(-1 0 0 -1 822.986 1170.90388)" /><path d="m405.45285 579.95581c-.0786.005 1.05365-.002 2.79011-.006-2.39046 1.17179-3.8662 4.53149-2.99824 7.28627.8992 2.85391 3.08617 4.49155 5.74854 4.71875l-.00084-1c-2.49653-.35216-4.00508-1.56869-4.7837-3.98242-.74659-2.31444.47303-5.20147 2.78599-6.15552.009.80023-.0108 2.01265.00093 2.69464-.008.60881 1.01884.5718.99185-.0157-.002-.49551.001-3.60295.007-4.5362-1.4729.00082-2.82703-.00048-4.53396-.008-.62523.0109-.61936.99943-.009 1.00441z" /></g></g></svg></span> reloading and import settings in the GUI (this currently works best with <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m34 557c-3.860079 0-7 3.13992-7 7s3.139921 7 7 7 7-3.13992 7-7-3.139921-7-7-7zm0 1c3.305801 0 5.975833 2.65852 5.998047 5.95898-1.111503.94364-3.002682 2.04102-5.998047 2.04102v4c-3.319633 0-6-2.68037-6-6 0-.0145.0019-.0285.002-.043 1.111203.94401 3.000992 2.043 5.998 2.043z" transform="matrix(-99.999621 0 0 99.999621 4199.9875 -55599.786318)" /></g></svg></span> Overwrite settings off) and run a headless python script that looks like this:
+<div class="highlight"><pre><span></span><code>import bpy
+bpy.ops.microscopynodes.load_background()
+bpy.ops.wm.save_mainfile()
+</code></pre></div>
+by running:
+<code>/path/to/Blender/executable -b /path/to/blendfile.blend -P /path/to/reload_script.py</code></p>
+<p>This will then load the data according to the Microscopy Nodes settings, and resave the .blend file. </p>
+<p>You can subsequently render headlessly as well, here you can follow the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg2" viewBox="0 0 1800 1499.9999"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g id="g2" clip-rule="evenodd" enable-background="new" stroke-linejoin="round" stroke-miterlimit="1.41421" transform="matrix(28.215572 0 0 28.232947 -5925.9322 10252.77)" fill="currentColor"><path id="path1" d="m243.08267-333.67977c.106-1.891 1.032-3.557 2.429-4.738 1.37-1.16 3.214-1.869 5.226-1.869 2.01 0 3.854.709 5.225 1.869 1.396 1.181 2.322 2.847 2.429 4.736.106 1.943-.675 3.748-2.045 5.086-1.397 1.361-3.384 2.215-5.609 2.215s-4.216-.854-5.612-2.215c-1.371-1.338-2.15-3.143-2.043-5.084z" fill="currentColor" /><path id="path2" d="m230.94-329.894c.013.74.249 2.178.603 3.301.744 2.377 2.006 4.576 3.762 6.514 1.802 1.992 4.021 3.592 6.584 4.728 2.694 1.193 5.613 1.801 8.645 1.796 3.027-.004 5.946-.624 8.64-1.826 2.563-1.147 4.78-2.754 6.579-4.747 1.755-1.946 3.015-4.149 3.761-6.526.375-1.201.612-2.42.707-3.643.093-1.205.054-2.412-.117-3.618-.334-2.35-1.147-4.555-2.399-6.565-1.145-1.847-2.621-3.464-4.376-4.825l.004-.003-17.711-13.599c-.016-.012-.029-.025-.046-.036-1.162-.892-3.116-.889-4.394.005-1.292.904-1.44 2.399-.29 3.342l-.005.005 7.387 6.01506-22.515.024h-.03c-1.861.002-3.65 1.21494-4.004 2.75794-.364 1.572.9 2.876 2.835 2.883l-.003.007 11.412-.022-20.364 15.631c-.026.019-.054.039-.078.058-1.921 1.471-2.542 3.917-1.332 5.465 1.228 1.574 3.839 1.577 5.78.009l11.114-9.096s-.162 1.228-.149 1.965zm28.79015 4.112c-2.29 2.333-5.496 3.656-8.965 3.663-3.474.006-6.68-1.305-8.97-3.634-1.119-1.135-1.941-2.441-2.448-3.832-.497-1.367-.69-2.818-.562-4.282.121-1.431.547-2.796 1.227-4.031.668-1.214 1.588-2.311 2.724-3.239 2.226-1.814 5.06-2.796 8.024-2.8 2.967-.004 5.799.969 8.027 2.777 1.134.924 2.053 2.017 2.721 3.229.683 1.234 1.106 2.594 1.232 4.029.126 1.462-.067 2.911-.564 4.279-.508 1.395-1.327 2.701-2.446 3.841z" /></g></svg></span> <a href="https://docs.blender.org/manual/en/latest/advanced/command_line/render.html">Blender documentation on this</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.50899def.min.js"></script>
+      
+        <script src="../../javascript/lazy_yt.js"></script>
+      
+    
+  </body>
+</html>

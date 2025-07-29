@@ -1,0 +1,1279 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../3_objects/">
+      
+      
+        <link rel="next" href="../5_creating_ouput/">
+      
+      
+      <link rel="icon" href="../../figures/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>4. Shading - Microscopy Nodes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Rubik";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra_css.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#shading" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Microscopy Nodes" class="md-header__button md-logo" aria-label="Microscopy Nodes" data-md-component="logo">
+      
+  <img src="../../figures/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Microscopy Nodes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              4. Shading
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aafkegros/MicroscopyNodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../overview/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Help
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../1_start/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Microscopy Nodes" class="md-nav__button md-logo" aria-label="Microscopy Nodes" data-md-component="logo">
+      
+  <img src="../../figures/logo.svg" alt="logo">
+
+    </a>
+    Microscopy Nodes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aafkegros/MicroscopyNodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Help
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Starting with Microscopy Nodes
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            Starting with Microscopy Nodes
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    1. First Use
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2_loading_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2. Loading data
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3_objects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    3. Data objects
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    4. Shading
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    4. Shading
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#volume-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Volume Shading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Volume Shading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Loading
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pixel-intensities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pixel Intensities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color-lut" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color LUT
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opacity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Opacity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shaders-emissionscatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shaders (emission/scatter)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-cube" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slice Cube
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#surface-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Surface shading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Surface shading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#color-lut_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color LUT
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mesh-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mesh shading
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-cube_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slice cube
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#labelmask-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Labelmask shading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Labelmask shading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#object-id-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Object ID handling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color-lut_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color LUT
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../5_creating_ouput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    5. Creating output
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Extra tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            Extra tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../large_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Large datasets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ome_zarr_troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OME-Zarr troubleshooting
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preferences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Preferences
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Rendering
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../surface_smoothing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Surface smoothing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#volume-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Volume Shading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Volume Shading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Loading
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pixel-intensities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pixel Intensities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color-lut" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color LUT
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opacity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Opacity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shaders-emissionscatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shaders (emission/scatter)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-cube" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slice Cube
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#surface-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Surface shading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Surface shading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#color-lut_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color LUT
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mesh-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mesh shading
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-cube_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slice cube
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#labelmask-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      Labelmask shading
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Labelmask shading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#object-id-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Object ID handling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color-lut_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color LUT
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="shading">Shading</h1>
+<p><strong>Shading</strong> encompasses the visualization of Blender's objects. The shading options can be found in two places:</p>
+<ul>
+<li>in the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m27.492188 598.99219a.50005.50005 0 0 0 -.5.5v9a.50005.50005 0 0 0 .5.5h13a.50005.50005 0 0 0 .5-.49805l.007812-3.49414-1-.002-.0059 2.99414h-12.001912v-8h8v3.5c.000029.27613.223869.49997.5.5h4c.44533-.00017.668305-.53852.353515-.85352l-4-4c-.09376-.0938-.22116-.14439-.353515-.14453v-.002h-.0078zm7.507812 11.00781-2 .004v1.98828h-2.507812c-.67616-.01-.67616 1.00956 0 1h7c.676159.01.676159-1.00956 0-1h-2.492188z" fill-rule="evenodd" transform="matrix(100 0 0 100 -2599.609 -59799.22200000001)" /></g></svg></span> Shader Nodes workspace, find this in the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -48799.99999999999 -59800)"><path d="m489 604v8c0 .54532.45468 1 1 1h12c.54532 0 1-.45468 1-1v-8h-1v8h-12v-8z" opacity=".6" /><path d="m490 599c-.54532 0-1 .45468-1 1v3h1 12 1v-3c0-.54532-.45468-1-1-1zm0 1h2v2h-2z" /></g></g></svg></span> topbar.</li>
+<li>in the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m34 557c-3.860079 0-7 3.13992-7 7s3.139921 7 7 7 7-3.13992 7-7-3.139921-7-7-7zm0 1c3.305801 0 5.975833 2.65852 5.998047 5.95898-1.111503.94364-3.002682 2.04102-5.998047 2.04102v4c-3.319633 0-6-2.68037-6-6 0-.0145.0019-.0285.002-.043 1.111203.94401 3.000992 2.043 5.998 2.043z" transform="matrix(-99.999621 0 0 99.999621 4199.9875 -55599.786318)" /></g></svg></span> material tab of the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m71.5 536c-1.3819 0-2.5 1.1181-2.5 2.5v1c0 1.3818 1.118 2.5 2.5 2.5h9c1.382 0 2.5-1.1182 2.5-2.5v-1c0-1.3857-1.13452-2.48443-2.51172-2.48633zm3.5 1.00586 5.48633.008c.8628 0 1.51367.63203 1.51367 1.48633v1c0 .8578-.642 1.5-1.5 1.5h-5.5zm-3.5 6.99414c-1.3819 0-2.5 1.1181-2.5 2.5v1c0 1.3818 1.118 2.5 2.5 2.5h9c1.382 0 2.5-1.1182 2.5-2.5v-1c0-1.3857-1.13452-2.48443-2.51172-2.48633zm6.50977 1.00977 2.47656.004c.8628 0 1.51367.63203 1.51367 1.48633v1c0 .8578-.642 1.5-1.5 1.5h-2.5z" transform="matrix(100 0 0 100 -6800 -53500)" /></g></svg></span> properties.</li>
+</ul>
+<p>These two locations contain the same information, laid out in different ways. </p>
+<p>The default Microscopy Nodes shaders are built from <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -32000 -53500)"><path d="m324.60938 536c-.8565 0-1.60938.6483-1.60938 1.5v3c0 .8517.75288 1.5 1.60938 1.5h4.78124c.8565 0 1.60938-.6483 1.60938-1.5v-3c0-.8517-.75287-1.5-1.60938-1.5zm7.39062 1v3c.56267 0 1-.50398 1-1.03125v-.9375c0-.52717-.43731-1.03125-1-1.03125zm-7.53516 3a.50005.50005 0 0 1 .0352 0h5a.50005.50005 0 1 1 0 1h-5a.50030966.50030966 0 0 1 -.0352-1zm-1.85546 4c-.8565 0-1.60938.6483-1.60938 1.5v3c0 .8517.75288 1.5 1.60938 1.5h4.78124c.8565 0 1.60938-.6483 1.60938-1.5v-3c0-.8517-.75287-1.5-1.60938-1.5zm7.39062 2v3c.56267 0 1-.50398 1-1.03125v-.9375c0-.52717-.43731-1.03125-1-1.03125zm-7.53516 2a.50005.50005 0 0 1 .0352 0h5a.50005.50005 0 1 1 0 1h-5a.50030966.50030966 0 0 1 -.0352-1z" /><path d="m332.5 307v1c.55917 0 .9084.14278 1.13281.36719s.36719.57364.36719 1.13281v5c0 .55917-.14278.9084-.36719 1.13281s-.57364.36719-1.13281.36719h-2v1h2c.73927 0 1.38886-.20918 1.83984-.66016s.66016-1.10057.66016-1.83984v-5c0-.73927-.20918-1.38886-.66016-1.83984s-1.10057-.66016-1.83984-.66016z" opacity=".7" transform="translate(0 231)" /></g></g></svg></span> nodes, and contains information on how the object interacts with <strong>light</strong> and its transparency. The defaults are listed here separately for the different <a href="../3_objects/">Microscopy Nodes data-objects</a>.</p>
+<h2 id="volume-shading">Volume Shading</h2>
+<p>The Shader Nodes workspace <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m27.492188 598.99219a.50005.50005 0 0 0 -.5.5v9a.50005.50005 0 0 0 .5.5h13a.50005.50005 0 0 0 .5-.49805l.007812-3.49414-1-.002-.0059 2.99414h-12.001912v-8h8v3.5c.000029.27613.223869.49997.5.5h4c.44533-.00017.668305-.53852.353515-.85352l-4-4c-.09376-.0938-.22116-.14439-.353515-.14453v-.002h-.0078zm7.507812 11.00781-2 .004v1.98828h-2.507812c-.67616-.01-.67616 1.00956 0 1h7c.676159.01.676159-1.00956 0-1h-2.492188z" fill-rule="evenodd" transform="matrix(100 0 0 100 -2599.609 -59799.22200000001)" /></g></svg></span> when selecting a Microscopy Nodes <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m160.47797 94.72823c-.39468.0302-.78775.12022-1.16797.27148-1.52086.60507-2.52148 2.07999-2.52148 3.716796a.50005.50005 0 0 0 .0156.13281c-.36518.0927-.72282.22834-1.05859.42774-1.4414.855954-2.17089 2.516884-1.87891 4.144534-.68714.57705-1.10816 1.44799-1.07617 2.39648.0502 1.48769 1.19214 2.71921 2.67187 2.88086 1.39818.15274 2.69975-.69789 3.15235-2.00781.89604.0388 1.76969-.22225 2.49804-.74609 1.07373.85551 2.55788 1.01607 3.78907.37695 1.30171-.67573 2.04374-2.09602 1.85742-3.55078-.16328-1.27499-1.01006-2.34261-2.17968-2.806644.45466-1.38242.13144-2.921096-.88477-3.996096-.56221-.59473-1.27727-.98709-2.04297-1.15625-.38285-.0846-.77915-.11418-1.17383-.084zm.52149.99609c.73445.0517 1.44053.37287 1.96875.93164.84514.89404 1.0593 2.208446.54101 3.324216a.50005.50005 0 0 0 -.0527.216804.50005.50005 0 0 0 .38672.58203c1.02426.23341 1.79232 1.07713 1.92578 2.11914.13345 1.04201-.39575 2.0531-1.32813 2.53711s-2.06444.33572-2.83984-.37305a.50005.50005 0 0 0 -.20313-.11914.50005.50005 0 0 0 -.28125-.0977.50005.50005 0 0 0 -.35156.1289c-.65771.57559-1.53314.83597-2.39844.71289a.50008765.50008765 0 0 0 -.54296.33008.50005.50005 0 0 0 -.0977.19727c-.24833.96717-1.16166 1.59867-2.1543 1.49023s-1.7476-.92195-1.78125-1.91992c-.0231-.68418.30371-1.29829.82422-1.67774a.50005.50005 0 0 0 .16601-.11718c.19833-.11547.41799-.19976.65625-.24219a.50005.50005 0 0 0 -.0898-.99414.50005.50005 0 0 0 -.084.01c-.16025.0285-.31331.0746-.46289.12695-.0646-1.10299.47775-2.17237 1.45703-2.75391 1.15771-.687484 2.62445-.520214 3.59961.4082a.5001015.5001015 0 0 0 .68946-.724604c-.64816-.6171-1.46288-.98259-2.3086-1.07813-.14875-.017-.29935-.0157-.44925-.0158a.50005.50005 0 0 0 0-.01c0-1.230266.7475-2.332316 1.89062-2.787106.42868-.17055.87964-.23611 1.32032-.20508z" transform="matrix(100 0 0 100 -15178.819 -9371.666)" /></g></svg></span> volume: </p>
+<p><img alt="workspace outtlined" src="../../figures/volume_shader_overview.png" style="height:130px" /></p>
+<h3 id="data-loading">Data Loading</h3>
+<p><img alt="alt text" src="../../figures/shader_input_folded.png" /></p>
+<p>This is where the data gets read out from the vdb grid (as handed over from the Geometry Nodes) and gets normalized. You will usually not need to edit this.</p>
+<details class="warning">
+<summary>Reusing shaders</summary>
+<p>The normalization that is done in <strong>Normalize Data</strong>  is dependent on the specific data, as it rescales the min and max value of the data to 0 and 1 - after it's already transformed to small floating point values for saving to .vdb files. </p>
+<p>Essentially, this means its best to <strong>keep the normalization</strong> of new data when you replace the rest.</p>
+<p><img alt="unfolded loading" src="../../figures/shader_input.png" /> </p>
+</details>
+<h3 id="pixel-intensities">Pixel Intensities</h3>
+<p>The pixel intensities rescale the min and max value, and thus the linear interpolation of the data. This is analogous to a Fiji <strong>Brightness &amp; Contrast</strong> window.</p>
+<p>You can move the two handles to move the <strong>min</strong> and <strong>max</strong>. </p>
+<p><img alt="alt text" src="../../figures/volume_shader_intensities.png" /></p>
+<details class="note">
+<summary>How this works</summary>
+<p>This is a Blender <code>Color Ramp</code> that only outputs Alpha, and not Color. We feed in normalized data between 0 and 1 (as represented in histogram) and map this to the color ramp. The color ramp is two nodes of alpha 0 (min) and 1 (max). </p>
+<p>This also means you can add extra nodes in here if you want nonlinearity in your pixel intensities, or flip the nodes to invert. However, it is often easier to just change the colormap.</p>
+</details>
+<h3 id="color-lut">Color LUT</h3>
+<p><img alt="alt text" src="../../figures/color_lut_bw.png" style="height:200px" />
+<img alt="alt text" src="../../figures/lut_viridis.png" style="height:200px" /></p>
+<p>The lookup tables are <code>Color Ramp</code> objects, LUTs can be edited:</p>
+<ul>
+<li><strong>Editing</strong> handles<ul>
+<li>You can drag to change its position and click on it to get a color picker. To change contrast, its recommended to change the <em>pixel intensities</em> instead of the color.</li>
+<li>The bottom fields are the <em>index</em>, <em>position</em> and <em>color</em> of the selected field - allowing editing of the handles with more precision</li>
+</ul>
+</li>
+<li><strong>Replacing</strong> the LUT by <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg1" viewBox="0 0 1800 1800"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g id="g1" fill="currentColor"><path id="path1" d="m57.512484 450.98438c.752 0 1.453818.239 2.023438.64453.88567.63055 1.460937 1.67061 1.460937 2.83985v4.03124c-.00003.27537-.222677.4989-.498047.5l-4.009765.008c-.27613-.00003-.49997-.22387-.5-.5l.0078-6.98846v-.002-.0352c.001-.27524.22466-.49793.5-.49796zm-2.515625 0v1h-2.512484c-1.38452 0-2.484375 1.09985-2.484375 2.48438v9.04686c0 1.38452 1.099855 2.48438 2.484375 2.48438h5.028109c1.38452 0 2.484375-1.09986 2.484375-2.48438v-3.51562h1v3.51562c0 1.92123-1.563145 3.48438-3.484375 3.48438h-5.028109c-1.92123 0-3.484375-1.56314-3.484375-3.48438v-9.04686c0-1.92123 1.563145-3.48438 3.484375-3.48438z" transform="matrix(100 0 0 100 -4799.843 -44999.219)" /></g></svg></span> right clicking the LUT and selecting <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -4599.611 -57700)"><path d="m48.5 578c-.276131.00003-.499972.22387-.5.5l-.0078 10.5c0 1.51667 1.219299 3 2.984374 3 1.765077 0 3.015625-1.475 3.015626-3l.0078-10.5c-.000028-.27613-.223869-.49997-.5-.5zm2.5 10c.546362 0 1 .45364 1 1s-.453638 1-1 1-1-.45364-1-1 .453638-1 1-1z" transform="translate(-.99998)" /><path d="m58.492188 586c-.132599.00002-.259759.0527-.353516.14648l-4.75 4.75c-.09377.0938-.14646.22092-.146484.35352v.25c.000028.27613.223869.49997.5.5h6.757812c.276131-.00003.499972-.22387.5-.5v-5c-.000028-.27613-.223869-.49997-.5-.5z" opacity=".5" /><path d="m56.486328 579c-.130565.002-.25534.0541-.347656.14648l-2 2c-.09377.0938-.14646.22092-.146484.35352v6c.000171.44532.538516.6683.853515.35352l5-5c.19519-.19527.19519-.51177 0-.70704l-3-3c-.095188-.09522-.224749-.14802-.359375-.14648z" opacity=".75" /></g></g></svg></span> LUTs. This lists multiple <a href="https://cmap-docs.readthedocs.io">colormaps</a>.<ul>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1400"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m144.5 201a.50005.50005 0 0 0 -.35352.14648l-10.85351 10.85352h-.79297a.50005.50005 0 1 0 0 1h1a.50005.50005 0 0 0 .35352-.14648l10.85351-10.85352h.79297a.50005.50005 0 1 0 0-1z" transform="matrix(100 0 0 100 -13100 -20000)" /></g></svg></span> Sequential, monotonic rising or falling, often good for microscopy</li>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1200"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m349.01758 181.25a.50005.50005 0 0 0 -.41992.20312l-6.48243 8.7461a.50005.50005 0 1 0 .80274.5957l6.08203-8.20508 6.07031 8.20313a.50005.50005 0 1 0 .80469-.59375l-6.47266-8.7461a.50005.50005 0 0 0 -.38476-.20312z" transform="matrix(100 0 0 102.26352 -34099.176 -18434.266)" /></g></svg></span> Diverging, distinctive middle of the colormap</li>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m55 389c-3.86012 0-7 3.13988-7 7s3.13988 7 7 7 7-3.13988 7-7-3.13988-7-7-7zm0 1c3.31968 0 6 2.68032 6 6s-2.68032 6-6 6-6-2.68032-6-6 2.68032-6 6-6z" fill-rule="evenodd" transform="matrix(100 0 0 100 -4700 -38800)" /></g></svg></span> Cyclical, start and end together</li>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(94.749902 0 0 100.99748 -8415.0689 -28548.536)"><path d="m92.893099 283.6795c1.65093 0 3 1.34907 3 3s-1.34907 3-3 3-3-1.34907-3-3 1.34907-3 3-3zm0 1c-1.11049 0-2 .88951-2 2s.88951 2 2 2 2-.88951 2-2-.88951-2-2-2z" /><path d="m101.62043 287.72696c1.65093 0 3 1.34907 3 3s-1.34907 3-3 3c-1.65092 0-2.999992-1.34907-2.999992-3s1.349072-3 2.999992-3zm0 1c-1.11049 0-1.999992.88951-1.999992 2s.889502 2 1.999992 2 2-.88951 2-2-.88951-2-2-2z" /><path d="m94.284412 291.52146c1.65093 0 3 1.34907 3 3s-1.34907 3-3 3-2.999998-1.34907-2.999998-3 1.349068-3 2.999998-3zm0 1c-1.11049 0-1.999998.88951-1.999998 2s.889508 2 1.999998 2 2-.88951 2-2-.88951-2-2-2z" /></g></g></svg></span> Qualitative, separates consecutive values, good for labelmasks</li>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1100 1100"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m118.51367 601a.50005001.50005001 0 0 0 -.50586.50586v3.50195h-3.50195a.50005001.50005001 0 1 0 0 .99805h3.50195v3.50195a.50005001.50005001 0 1 0 .99805 0v-3.50195h3.50195a.50005001.50005001 0 1 0 0-.99805h-3.50195v-3.50195a.50005001.50005001 0 0 0 -.49219-.50586z" transform="matrix(99.99975 0 0 99.99975 -11300.654 -60001.84)" /></g></svg></span> Miscellaneous</li>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m6.5 389a.50005.50005 0 0 0 -.5.5v13a.50005.50005 0 0 0 .5.5h13a.50005.50005 0 0 0 .5-.5v-13a.50005.50005 0 0 0 -.5-.5zm.5 1h12v12h-12z" transform="matrix(100 0 0 100 -500 -38800)" /></g></svg></span> Single Color, gives a new black-to-white colormap, to easily edit LUTs</li>
+</ul>
+</li>
+<li><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg2" viewBox="0 0 1600 900" version="1.1"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview>
+  <defs id="defs1" />
+  <g id="g1">
+    <path id="path2" d="m184.49609 623.99414a.50005.50005 0 0 0 -.34961.85938l2.14649 2.14648h-10.58594l2.14649-2.14648a.50005.50005 0 1 0 -.70704-.70704l-3 3a.50005.50005 0 0 0 0 .70704l3 3a.50005.50005 0 1 0 .70704-.70704l-2.14649-2.14648h10.58594l-2.14649 2.14648a.50005.50005 0 1 0 .70704.70704l3-3a.50005.50005 0 0 0 0-.70704l-3-3a.50005.50005 0 0 0 -.35743-.15234z" transform="matrix(100 0 0 100 -17300 -62300)" fill="currentColor" />
+  </g>
+</svg></span> Flipping the LUT<ul>
+<li>either under the down-carrot or under <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg1" viewBox="0 0 1800 1800"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g id="g1" fill="currentColor"><path id="path1" d="m57.512484 450.98438c.752 0 1.453818.239 2.023438.64453.88567.63055 1.460937 1.67061 1.460937 2.83985v4.03124c-.00003.27537-.222677.4989-.498047.5l-4.009765.008c-.27613-.00003-.49997-.22387-.5-.5l.0078-6.98846v-.002-.0352c.001-.27524.22466-.49793.5-.49796zm-2.515625 0v1h-2.512484c-1.38452 0-2.484375 1.09985-2.484375 2.48438v9.04686c0 1.38452 1.099855 2.48438 2.484375 2.48438h5.028109c1.38452 0 2.484375-1.09986 2.484375-2.48438v-3.51562h1v3.51562c0 1.92123-1.563145 3.48438-3.484375 3.48438h-5.028109c-1.92123 0-3.484375-1.56314-3.484375-3.48438v-9.04686c0-1.92123 1.563145-3.48438 3.484375-3.48438z" transform="matrix(100 0 0 100 -4799.843 -44999.219)" /></g></svg></span> right clicking the LUT</li>
+<li>Flipped LUTs can be <a href="../preferences/">loaded by default</a></li>
+</ul>
+</li>
+</ul>
+<h3 id="opacity">Opacity</h3>
+<p><img alt="opacity" src="../../figures/volume_shader_transparency.png" /></p>
+<p>The tranparency window describes the total contribution of each voxel to the image. If you are in an emission mode, this defines the volume <strong>brightness</strong>, in scattering mode, this describes the volume <strong>density</strong>.</p>
+<p>Here there are multiple options:</p>
+<ul>
+<li>Clip Min<ul>
+<li>Sets all values at 0 as transparent (left from the <strong>min</strong> in <em>Pixel Intensities</em>).</li>
+</ul>
+</li>
+<li>Clip Max<ul>
+<li>Sets all values at 1 to transparent (right from the <strong>max</strong> in <em>Pixel Intensities</em>).</li>
+</ul>
+</li>
+<li>Alpha Baseline<ul>
+<li>Constant alpha for all voxels that are not <em>Clipped</em>.</li>
+</ul>
+</li>
+<li>Alpha Multiplier<ul>
+<li>Alpha value that multiplies the input values, and thus linearly increases with intensity. Does not affect <em>Clipped</em> values. Adds onto <em>Alpha Baseline</em>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="shaders-emissionscatter">Shaders (emission/scatter)</h3>
+<p>This is where the <em>Microscopy Nodes</em> pre-processing hooks into the default Blender volume interfaces. This is split between an <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1700"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m115.5 442a.50004997.50004997 0 1 0 0 1h5a.50004997.50004997 0 1 0 0-1zm0 2a.50004997.50004997 0 1 0 0 1h1.5v.5a.50004997.50004997 0 0 0 .5.5h1a.50004997.50004997 0 0 0 .5-.5v-.5h1.5a.50004997.50004997 0 1 0 0-1zm2.5-13c-3.2833 0-6 2.4414-6 5.5 0 1.7222 1.0876 3.2946 2.1465 4.3535.094.094.2209.1465.3535.1465h7c.1326 0 .2598-.053.3535-.1465.7109-.7108 1.4222-1.6513 1.8262-2.7148.1979-.5208.3203-1.0727.3203-1.6387 0-3.0586-2.7167-5.5-6-5.5zm-2.5098 5.0059c.1351 0 .2662.047.3633.1406l.8535.8535h2.586l.8535-.8535c.4712-.4506 1.1576.2358.707.707l-.8535.8535v1.793.5h-1v-.5-1.5h-2v1.5.5h-1v-.5-1.793l-.8535-.8535c-.302-.3119-.09-.8341.3437-.8476z" transform="matrix(100 0 0 100 -11100 -43000)" /></g></svg></span> emissive and <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1700"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -102099.92 -155500.003)"><path d="m1028 1556c-3.2833 0-6 2.4414-6 5.5 0 1.7056.9046 3.146 2.1523 4.3594l.9942.9941a.50004997.50004997 0 0 0 .3027.1485.50004997.50004997 0 0 0 .051.998h5a.50004997.50004997 0 0 0 .045-.998.50004997.50004997 0 0 0 .3086-.1485l.9981-.998c1.2122-1.1985 2.1465-2.6518 2.1465-4.3535 0-3.0586-2.7167-5.5-6-5.5zm0 1c2.7919 0 5 2.0358 5 4.5 0 1.3342-.7428 2.5488-1.8516 3.6445l-1 1a.50004997.50004997 0 0 0 .2793.8535h-4.8594a.50004997.50004997 0 0 0 .2871-.8535l-1-1a.50004997.50004997 0 0 0 -.01-.01c-1.1397-1.1082-1.8477-2.2864-1.8477-3.6406 0-2.4642 2.2081-4.5 5-4.5zm-2.5 12a.50004997.50004997 0 1 0 0 1h1.5v.5a.50004997.50004997 0 0 0 .5.5h1a.50004997.50004997 0 0 0 .5-.5v-.5h1.5a.50004997.50004997 0 1 0 0-1z" /><path d="m1025.4902 1561.0059a.50005.50005 0 0 0 -.3437.8476l.8535.8535v1.543a.50005.50005 0 1 0 1 0v-1.25h2v1.25a.50005.50005 0 1 0 1 0v-1.543l.8535-.8535a.50005.50005 0 0 0 -.707-.707l-.8535.8535h-2.586l-.8535-.8535a.50005.50005 0 0 0 -.3633-.1406z" opacity=".6" /></g></g></svg></span> scattering setup. Currently the easiest way to switch between them is through <a href="../2_loading_data/">reloading</a>.
+<img alt="alt text" src="../../figures/volume_shader_emission.png" style="height:200px" />
+<img alt="alt text" src="../../figures/volume_shader_density.png" style="height:200px" /></p>
+<details class="note">
+<summary>Advanced</summary>
+<p>Some things are editable in here, such as the <strong>Anisotropy</strong> of the scattering, which defines whether there is more backward scattering (less penetrant) or more forward scattering. </p>
+<p>Additionally, by Adding nodes (from the <code>Add</code> menu or <code>Shift + A</code>), and connecting these together, it's possible to make combined setups for emissive and scattering shaders.</p>
+</details>
+<h3 id="slice-cube">Slice Cube</h3>
+<p><img alt="alt text" src="../../figures/shader_slice_cube.png" /></p>
+<p>The Slice Cube section allows slicing of the volume. This has an <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -2600 -34600)"><path d="m27.5 347a.50005.50005 0 0 0 -.5.5v3.5h1v-3h3v-1zm9.5 0v1h3v3h1v-3.5a.50005.50005 0 0 0 -.5-.5zm-10 10v3.5a.50005.50005 0 0 0 .5.5h3.5v-1h-3v-3zm13 0v3h-3v1h3.5a.50005.50005 0 0 0 .5-.5v-3.5z" opacity=".6" /><path d="m30.5 350c-.276131.00003-.499972.22387-.5.5v7c.000028.27613.223869.49997.5.5h7c.276131-.00003.499972-.22387.5-.5v-7c-.000028-.27613-.223869-.49997-.5-.5z" /></g></g></svg></span> Object pointer to a cube in the scene (by default the loaded slice cube).</p>
+<p>The object bounding box gets fed into the slicer, which sets all regions outside the bounding box to transparent. </p>
+<details class="note">
+<summary>How this works</summary>
+<p>As shown if you press the <span class="small-icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -32000 -53500)"><path d="m324.60938 536c-.8565 0-1.60938.6483-1.60938 1.5v3c0 .8517.75288 1.5 1.60938 1.5h4.78124c.8565 0 1.60938-.6483 1.60938-1.5v-3c0-.8517-.75287-1.5-1.60938-1.5zm7.39062 1v3c.56267 0 1-.50398 1-1.03125v-.9375c0-.52717-.43731-1.03125-1-1.03125zm-7.53516 3a.50005.50005 0 0 1 .0352 0h5a.50005.50005 0 1 1 0 1h-5a.50030966.50030966 0 0 1 -.0352-1zm-1.85546 4c-.8565 0-1.60938.6483-1.60938 1.5v3c0 .8517.75288 1.5 1.60938 1.5h4.78124c.8565 0 1.60938-.6483 1.60938-1.5v-3c0-.8517-.75287-1.5-1.60938-1.5zm7.39062 2v3c.56267 0 1-.50398 1-1.03125v-.9375c0-.52717-.43731-1.03125-1-1.03125zm-7.53516 2a.50005.50005 0 0 1 .0352 0h5a.50005.50005 0 1 1 0 1h-5a.50030966.50030966 0 0 1 -.0352-1z" /><path d="m332.5 307v1c.55917 0 .9084.14278 1.13281.36719s.36719.57364.36719 1.13281v5c0 .55917-.14278.9084-.36719 1.13281s-.57364.36719-1.13281.36719h-2v1h2c.73927 0 1.38886-.20918 1.83984-.66016s.66016-1.10057.66016-1.83984v-5c0-.73927-.20918-1.38886-.66016-1.83984s-1.10057-.66016-1.83984-.66016z" opacity=".7" transform="translate(0 231)" /></g></g></svg></span> icon at the top right of the group, how the slicing node works is to take the remapped locations as the <strong>Texture Coordinate</strong> input provides (mapping the data to the coordinates of the cube space) and compare these to the boundes (1, -1). If positions are not in the range of the cube space, the shader is set to a <em>Transparent Shader</em>.</p>
+</details>
+<h2 id="surface-shading">Surface shading</h2>
+<p>The <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m197.50977 409.99414c-.27613.00003-.49997.22387-.5.5v3c.00003.27613.22387.49997.5.5h1.5039c.0205.58311.0403 1.03618-.0488 1.24805-.22838.54301-.5609.82668-1.00781 1.10937s-1.00733.53131-1.53711.97461c-.52977.4433-1.00108 1.10059-1.22656 2.08789s-.2332 2.29903.0625 4.16406c.0385.24311.24801.42203.49414.42188h8.75586c.30739.00014.54213-.2745.49414-.57812-.36883-2.32606-.21493-3.6368.12305-4.40821.33798-.7714.85304-1.08606 1.49804-1.45508.645-.36901 1.43565-.7809 1.90821-1.70703.47255-.92613.59571-2.25921.21289-4.4375-.04179-.23922-.24938-.41386-.49222-.41406h-7.24023v-.50586c-.00003-.27613-.22387-.49997-.5-.5zm.5 1h2v2h-2zm3 1.00586h6.78125c.25456 1.74951.14487 2.81594-.15235 3.39844-.3247.63637-.84774.91198-1.51367 1.29297-.66593.38098-1.46183.87882-1.91797 1.91992-.41222.94085-.49675 2.35477-.23633 4.38867h-7.73437c-.19264-1.47462-.23076-2.65205-.0684-3.36328.18281-.80045.49635-1.21142.89258-1.54297.39622-.33155.90291-.56523 1.42968-.89844.52678-.33321 1.07351-.7985 1.39649-1.5664.22021-.52359.17686-1.05487.13867-1.63477h.48438c.27613-.00003.49997-.22387.5-.5z" transform="matrix(100 0 0 100 -19399.871 -40899.707)" /></g></svg></span> Surface object shader is more simple than the volumetric, as it can only have <strong>one color</strong>, although it can have many properties. The shader does not explicitly load the data, as the data interaction is all done through the threshold in the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m351.48242 557.01562-.96875.0156c-.0189.00026-.0378.002-.0566.004-2.58289.33067-4.57988 2.60038-4.45117 5.21484.0288.58487.23179 1.09854.44141 1.5957l-3.78516 3.78516c-.33708.30742-.60091.7293-.64063 1.23047-.0397.50117.17261 1.03979.625 1.49219.45357.45356.99596.65829 1.49219.61328.49624-.045.906-.30379 1.21485-.61328l3.80664-3.80664c.52791.22561 1.0693.4331 1.69336.45117 2.60313.0754 4.83493-1.87377 5.11328-4.46289.001-.0136.002-.0273.002-.041l.0215-.9668c.0105-.45102-.53451-.68424-.85351-.36523l-2.84386 2.83781h-1.58594l-1.70703-1.70703v-1.58594l2.84375-2.83789c.31756-.31766.0878-.86042-.36133-.85352z" transform="matrix(100 0 0 100 -34100.366 -55599.425)" /></g></svg></span> Geometry options.</p>
+<p><img alt="surface shader overview" src="../../figures/surface_shader_regions.png" /></p>
+<h3 id="color-lut_1">Color LUT</h3>
+<p><img alt="alt text" src="../../figures/bw_lut.png" /></p>
+<p>The color lookup table works similar to the <a href="#color-lut">volume color LUT</a>. However, the surface can only display one value, so the <code>Fac</code> value defines where along the lookup table the color is drawn from. </p>
+<p>For a regular <strong>color picker</strong> you can leave the <code>Fac</code> at <code>1</code> and click the rightmost handle. The other way would be to replace this box with a color box (<code>Add &gt; Input &gt; RGB</code>)</p>
+<h3 id="mesh-shading">Mesh shading</h3>
+<p><img alt="alt text" src="../../figures/principled_bsdf.png" style="height:350px" /></p>
+<p>The <strong>Principled BSDF</strong> node is a combined node that combines features to create different material properties. The <a href="https://docs.blender.org/manual/en/latest/render/shader_nodes/shader/principled.html">Blender manual</a> <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" id="svg2" viewBox="0 0 1800 1499.9999"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g id="g2" clip-rule="evenodd" enable-background="new" stroke-linejoin="round" stroke-miterlimit="1.41421" transform="matrix(28.215572 0 0 28.232947 -5925.9322 10252.77)" fill="currentColor"><path id="path1" d="m243.08267-333.67977c.106-1.891 1.032-3.557 2.429-4.738 1.37-1.16 3.214-1.869 5.226-1.869 2.01 0 3.854.709 5.225 1.869 1.396 1.181 2.322 2.847 2.429 4.736.106 1.943-.675 3.748-2.045 5.086-1.397 1.361-3.384 2.215-5.609 2.215s-4.216-.854-5.612-2.215c-1.371-1.338-2.15-3.143-2.043-5.084z" fill="currentColor" /><path id="path2" d="m230.94-329.894c.013.74.249 2.178.603 3.301.744 2.377 2.006 4.576 3.762 6.514 1.802 1.992 4.021 3.592 6.584 4.728 2.694 1.193 5.613 1.801 8.645 1.796 3.027-.004 5.946-.624 8.64-1.826 2.563-1.147 4.78-2.754 6.579-4.747 1.755-1.946 3.015-4.149 3.761-6.526.375-1.201.612-2.42.707-3.643.093-1.205.054-2.412-.117-3.618-.334-2.35-1.147-4.555-2.399-6.565-1.145-1.847-2.621-3.464-4.376-4.825l.004-.003-17.711-13.599c-.016-.012-.029-.025-.046-.036-1.162-.892-3.116-.889-4.394.005-1.292.904-1.44 2.399-.29 3.342l-.005.005 7.387 6.01506-22.515.024h-.03c-1.861.002-3.65 1.21494-4.004 2.75794-.364 1.572.9 2.876 2.835 2.883l-.003.007 11.412-.022-20.364 15.631c-.026.019-.054.039-.078.058-1.921 1.471-2.542 3.917-1.332 5.465 1.228 1.574 3.839 1.577 5.78.009l11.114-9.096s-.162 1.228-.149 1.965zm28.79015 4.112c-2.29 2.333-5.496 3.656-8.965 3.663-3.474.006-6.68-1.305-8.97-3.634-1.119-1.135-1.941-2.441-2.448-3.832-.497-1.367-.69-2.818-.562-4.282.121-1.431.547-2.796 1.227-4.031.668-1.214 1.588-2.311 2.724-3.239 2.226-1.814 5.06-2.796 8.024-2.8 2.967-.004 5.799.969 8.027 2.777 1.134.924 2.053 2.017 2.721 3.229.683 1.234 1.106 2.594 1.232 4.029.126 1.462-.067 2.911-.564 4.279-.508 1.395-1.327 2.701-2.446 3.841z" /></g></svg></span> gives a complete manual to its features. </p>
+<p>By default this has two inputs set differently from Blender default, the <strong>Base Color</strong> and <strong>Emission Color/Strength</strong>. These colors are set to link to the Color LUT. </p>
+<p>The <strong>Emission Strength</strong> is set to 0 or 0.5 depending on whether this was loaded with <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1700"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m115.5 442a.50004997.50004997 0 1 0 0 1h5a.50004997.50004997 0 1 0 0-1zm0 2a.50004997.50004997 0 1 0 0 1h1.5v.5a.50004997.50004997 0 0 0 .5.5h1a.50004997.50004997 0 0 0 .5-.5v-.5h1.5a.50004997.50004997 0 1 0 0-1zm2.5-13c-3.2833 0-6 2.4414-6 5.5 0 1.7222 1.0876 3.2946 2.1465 4.3535.094.094.2209.1465.3535.1465h7c.1326 0 .2598-.053.3535-.1465.7109-.7108 1.4222-1.6513 1.8262-2.7148.1979-.5208.3203-1.0727.3203-1.6387 0-3.0586-2.7167-5.5-6-5.5zm-2.5098 5.0059c.1351 0 .2662.047.3633.1406l.8535.8535h2.586l.8535-.8535c.4712-.4506 1.1576.2358.707.707l-.8535.8535v1.793.5h-1v-.5-1.5h-2v1.5.5h-1v-.5-1.793l-.8535-.8535c-.302-.3119-.09-.8341.3437-.8476z" transform="matrix(100 0 0 100 -11100 -43000)" /></g></svg></span> emission on or <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1700"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -102099.92 -155500.003)"><path d="m1028 1556c-3.2833 0-6 2.4414-6 5.5 0 1.7056.9046 3.146 2.1523 4.3594l.9942.9941a.50004997.50004997 0 0 0 .3027.1485.50004997.50004997 0 0 0 .051.998h5a.50004997.50004997 0 0 0 .045-.998.50004997.50004997 0 0 0 .3086-.1485l.9981-.998c1.2122-1.1985 2.1465-2.6518 2.1465-4.3535 0-3.0586-2.7167-5.5-6-5.5zm0 1c2.7919 0 5 2.0358 5 4.5 0 1.3342-.7428 2.5488-1.8516 3.6445l-1 1a.50004997.50004997 0 0 0 .2793.8535h-4.8594a.50004997.50004997 0 0 0 .2871-.8535l-1-1a.50004997.50004997 0 0 0 -.01-.01c-1.1397-1.1082-1.8477-2.2864-1.8477-3.6406 0-2.4642 2.2081-4.5 5-4.5zm-2.5 12a.50004997.50004997 0 1 0 0 1h1.5v.5a.50004997.50004997 0 0 0 .5.5h1a.50004997.50004997 0 0 0 .5-.5v-.5h1.5a.50004997.50004997 0 1 0 0-1z" /><path d="m1025.4902 1561.0059a.50005.50005 0 0 0 -.3437.8476l.8535.8535v1.543a.50005.50005 0 1 0 1 0v-1.25h2v1.25a.50005.50005 0 1 0 1 0v-1.543l.8535-.8535a.50005.50005 0 0 0 -.707-.707l-.8535.8535h-2.586l-.8535-.8535a.50005.50005 0 0 0 -.3633-.1406z" opacity=".6" /></g></g></svg></span> emission off. This is done for consistency, and that dark scenes have masks and surfaces as clearly visible as data, without setting up lighting.</p>
+<details class="warning">
+<summary>Emission can 'flatten' objects</summary>
+<p>The feeling of <strong>depth</strong> in 3D rendering is often due to the interaction of objects with light. When things are emitting light themselves, they can often look flat. For more feeling of depth, it might be better to load with <span class="small-icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1400 1700"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(100 0 0 100 -102099.92 -155500.003)"><path d="m1028 1556c-3.2833 0-6 2.4414-6 5.5 0 1.7056.9046 3.146 2.1523 4.3594l.9942.9941a.50004997.50004997 0 0 0 .3027.1485.50004997.50004997 0 0 0 .051.998h5a.50004997.50004997 0 0 0 .045-.998.50004997.50004997 0 0 0 .3086-.1485l.9981-.998c1.2122-1.1985 2.1465-2.6518 2.1465-4.3535 0-3.0586-2.7167-5.5-6-5.5zm0 1c2.7919 0 5 2.0358 5 4.5 0 1.3342-.7428 2.5488-1.8516 3.6445l-1 1a.50004997.50004997 0 0 0 .2793.8535h-4.8594a.50004997.50004997 0 0 0 .2871-.8535l-1-1a.50004997.50004997 0 0 0 -.01-.01c-1.1397-1.1082-1.8477-2.2864-1.8477-3.6406 0-2.4642 2.2081-4.5 5-4.5zm-2.5 12a.50004997.50004997 0 1 0 0 1h1.5v.5a.50004997.50004997 0 0 0 .5.5h1a.50004997.50004997 0 0 0 .5-.5v-.5h1.5a.50004997.50004997 0 1 0 0-1z" /><path d="m1025.4902 1561.0059a.50005.50005 0 0 0 -.3437.8476l.8535.8535v1.543a.50005.50005 0 1 0 1 0v-1.25h2v1.25a.50005.50005 0 1 0 1 0v-1.543l.8535-.8535a.50005.50005 0 0 0 -.707-.707l-.8535.8535h-2.586l-.8535-.8535a.50005.50005 0 0 0 -.3633-.1406z" opacity=".6" /></g></g></svg></span> emission off, and set up some form of lighting.</p>
+</details>
+<h3 id="slice-cube_1">Slice cube</h3>
+<p>See <a href="#slice-cube">volume Slice Cube</a>.</p>
+<h2 id="labelmask-shading">Labelmask shading</h2>
+<p>The <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><g enable-background="new" transform="matrix(94.749902 0 0 100.99748 -8415.0689 -28548.536)"><path d="m92.893099 283.6795c1.65093 0 3 1.34907 3 3s-1.34907 3-3 3-3-1.34907-3-3 1.34907-3 3-3zm0 1c-1.11049 0-2 .88951-2 2s.88951 2 2 2 2-.88951 2-2-.88951-2-2-2z" /><path d="m101.62043 287.72696c1.65093 0 3 1.34907 3 3s-1.34907 3-3 3c-1.65092 0-2.999992-1.34907-2.999992-3s1.349072-3 2.999992-3zm0 1c-1.11049 0-1.999992.88951-1.999992 2s.889502 2 1.999992 2 2-.88951 2-2-.88951-2-2-2z" /><path d="m94.284412 291.52146c1.65093 0 3 1.34907 3 3s-1.34907 3-3 3-2.999998-1.34907-2.999998-3 1.349068-3 2.999998-3zm0 1c-1.11049 0-1.999998.88951-1.999998 2s.889508 2 1.999998 2 2-.88951 2-2-.88951-2-2-2z" /></g></g></svg></span> label mask shader is very similar to the <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1600 1600"><ns1:namedview pagecolor="#303030" showgrid="true"><ns2:grid id="grid5" units="px" spacingx="100" spacingy="100" color="#4772b3" opacity="0.2" visible="true" /></ns1:namedview><g fill="currentColor"><path d="m197.50977 409.99414c-.27613.00003-.49997.22387-.5.5v3c.00003.27613.22387.49997.5.5h1.5039c.0205.58311.0403 1.03618-.0488 1.24805-.22838.54301-.5609.82668-1.00781 1.10937s-1.00733.53131-1.53711.97461c-.52977.4433-1.00108 1.10059-1.22656 2.08789s-.2332 2.29903.0625 4.16406c.0385.24311.24801.42203.49414.42188h8.75586c.30739.00014.54213-.2745.49414-.57812-.36883-2.32606-.21493-3.6368.12305-4.40821.33798-.7714.85304-1.08606 1.49804-1.45508.645-.36901 1.43565-.7809 1.90821-1.70703.47255-.92613.59571-2.25921.21289-4.4375-.04179-.23922-.24938-.41386-.49222-.41406h-7.24023v-.50586c-.00003-.27613-.22387-.49997-.5-.5zm.5 1h2v2h-2zm3 1.00586h6.78125c.25456 1.74951.14487 2.81594-.15235 3.39844-.3247.63637-.84774.91198-1.51367 1.29297-.66593.38098-1.46183.87882-1.91797 1.91992-.41222.94085-.49675 2.35477-.23633 4.38867h-7.73437c-.19264-1.47462-.23076-2.65205-.0684-3.36328.18281-.80045.49635-1.21142.89258-1.54297.39622-.33155.90291-.56523 1.42968-.89844.52678-.33321 1.07351-.7985 1.39649-1.5664.22021-.52359.17686-1.05487.13867-1.63477h.48438c.27613-.00003.49997-.22387.5-.5z" transform="matrix(100 0 0 100 -19399.871 -40899.707)" /></g></svg></span> Surface shader, but is able to read out and use the <code>object id</code> to color by.</p>
+<p><img alt="alt text" src="../../figures/labelmask_shader_regions.png" /></p>
+<h3 id="object-id-handling">Object ID handling</h3>
+<p><img alt="id handling" src="../../figures/labelmask_shader_input.png" /></p>
+<p>The <code>object id</code> (the value in the label mask) is connected and retrievable from the vertices of the labelmask objects. </p>
+<p>This is led into a group that maps it to values between 0 and 1 for the LUT. This has the option of a <strong>revolving sequence</strong>: ideal for a categorical colormap with distinct values, making the object ids loop through these values. Or a <strong>consecutive sequence</strong> scaling all values linearly along the <code>object id</code>s, ideal for linear colormaps.</p>
+<h3 id="color-lut_2">Color LUT</h3>
+<p>The color lookup table works similar to the <a href="#color-lut">volume color LUT</a>. Often categorical colormaps work best for labelmasks, if you have only one channel of masks.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.50899def.min.js"></script>
+      
+        <script src="../../javascript/lazy_yt.js"></script>
+      
+    
+  </body>
+</html>
