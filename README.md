@@ -59,7 +59,7 @@ More detail in the [full docs](https://aafkegros.github.io/MicroscopyNodes/).
 ## Show Off Your Vizualizations!
 
 If you create something cool using `Microscopy Nodes`, share it!  
-Tag me [@GrosOane on Bluesky](https://bsky.app/profile/grosoane.bsky.social) or use the hashtag `#microscopynodes`.
+Tag me [@aafkegros on Bluesky](https://bsky.app/profile/aafkegros.bsky.social) or use the hashtag `#microscopynodes`.
 
 If you publish with this add-on, please cite [the preprint](https://www.biorxiv.org/content/10.1101/2025.01.09.632153v1):
 ```
