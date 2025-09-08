@@ -27,7 +27,12 @@ def change_path(self, context):
     log("")
     context.scene.property_unset("MiN_reload")
     if get_loader() is not None:
-        get_loader().change_path(context)
+        try:
+            get_loader().change_path(context)
+        except Exception as e:
+            print(e)
+            log(f"Error loading file: {e}")
+            return
         bpy.context.scene.MiN_enable_ui = True
         return
     
