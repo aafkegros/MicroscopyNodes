@@ -26,8 +26,8 @@ class Platform:
 
 windows_x64 = Platform(pypi_suffix="win_amd64", metadata="windows-x64")
 linux_x64 = Platform(pypi_suffix="manylinux2014_x86_64", metadata="linux-x64")
-macos_arm = Platform(pypi_suffix="macosx_12_0_arm64", metadata="macos-x64")
-# macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
+macos_arm = Platform(pypi_suffix="macosx_12_0_arm64", metadata="macos-arm64")
+macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 
 required_packages = [
@@ -42,8 +42,8 @@ required_packages = [
     "zarr==3.0.8",
     "fsspec==2025.5.1",
     'cmap==0.6.0',
-    's3fs==2025.5.1'
-
+    's3fs==2025.5.1',
+    'pyyaml==6.0.2', # needed for preference yaml loading and writing
     # development
     # "ipycytoscape" # for visualizing dask trees
 ]
@@ -57,7 +57,7 @@ build_platforms = [
     windows_x64,
     linux_x64,
     macos_arm,
-    # macos_intel,
+    macos_intel,
 ]
 
 

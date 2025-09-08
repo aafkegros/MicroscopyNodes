@@ -69,16 +69,18 @@ def parse_unit(string):
 def parse_scale(size_px, pixel_size, objs):
     scale = None
     scale_factor = 1
-        
+    
     world_scale = addon_preferences(bpy.context).import_scale
+    print(bpy.context.scene.MiN_unit, world_scale)
+    print('hey')
     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
     if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'AU': # cm / px
         scale = isotropic*0.01
     
-    if world_scale == "MOLECULAR_NODES": # cm / nm
+    if world_scale == "MOLECULAR_NODES" and bpy.context.scene.MiN_unit != 'AU': # cm / nm
         physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
         scale = physical_size / 1e-7
-    if "_SCALE" in world_scale:
+    if "_SCALE" in world_scale and bpy.context.scene.MiN_unit != 'AU': # m / unit
         physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
         scale = physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
 

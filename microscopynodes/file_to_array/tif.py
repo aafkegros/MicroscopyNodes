@@ -8,8 +8,11 @@ class TifLoader(ArrayLoader):
     def set_file_globals(self, input_file):
         with tifffile.TiffFile(input_file) as ifstif:
             self._set_axes_order(ifstif.series[0].axes.lower().replace('s', 'c').replace('q','z'))
-            if 'unit' in dict(ifstif.imagej_metadata):
-                self._set_unit(dict(ifstif.imagej_metadata)['unit'])
+            try: # try for non imagej tif
+                if 'unit' in dict(ifstif.imagej_metadata):
+                    self._set_unit(dict(ifstif.imagej_metadata)['unit'])
+            except TypeError as e:
+                self._set_unit(None)
         return
 
     def fill_array_options(self, input_file):
