@@ -55,8 +55,8 @@ class ArrayLoader():
         try: 
             bpy.context.scene.MiN_unit = parse_unit(unit_str)
         except Exception as e:
-            print(f'did not parse unit ({unit_str})', e)
-            bpy.context.scene.property_unset("MiN_unit")
+            # print(f'did not parse unit ({unit_str})', e)
+            bpy.context.scene.MiN_unit = "AU"
         
     def _set_axes_order(self, axes_order):
         try: 
