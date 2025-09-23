@@ -72,7 +72,7 @@ def load_blocking(params):
     scale, scale_factor = parse_scale(size_px, pixel_size, objs) 
     loc = parse_loc(scale, size_px, container)
     axes_obj = load_axes(size_px, pixel_size, scale, scale_factor, axes_obj=objs[min_keys.AXES], container=container)
-    slice_cube = load_slice_cube(size_px, scale, scale_factor, container, slicecube=objs[min_keys.SLICECUBE])
+    # slice_cube = load_slice_cube(size_px, scale, scale_factor, container, slicecube=objs[min_keys.SLICECUBE])
 
     for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
         if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
@@ -137,7 +137,7 @@ def set_render_settings():
 
     bpy.context.scene.render.engine = 'CYCLES'
     bpy.context.scene.cycles.transparent_max_bounces = 40 # less slicing artefacts
-    bpy.context.scene.cycles.volume_bounces = 32
-    bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
+    # bpy.context.scene.cycles.volume_bounces = 32
+    # bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
     bpy.context.scene.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
     return
