@@ -1,4 +1,4 @@
-import bpy, bpy_types
+import bpy
 from ..handle_blender_structs import *
 import numpy as np
 
