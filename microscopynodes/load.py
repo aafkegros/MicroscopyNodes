@@ -72,7 +72,7 @@ def load_blocking(params):
     scale, scale_factor = parse_scale(size_px, pixel_size, objs) 
     loc = parse_loc(scale, size_px, container)
     axes_obj = load_axes(size_px, pixel_size, scale, scale_factor, axes_obj=objs[min_keys.AXES], container=container)
-    # slice_cube = load_slice_cube(size_px, scale, scale_factor, container, slicecube=objs[min_keys.SLICECUBE])
+    slice_cube = load_slice_cube(size_px, scale, scale_factor, container, slicecube=objs[min_keys.SLICECUBE])
 
     for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
         if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
