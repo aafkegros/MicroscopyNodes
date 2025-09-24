@@ -170,7 +170,8 @@ def init_material_axes():
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
 
-    nodes.remove(nodes.get("Principled BSDF"))
+    if nodes.get("Principled BSDF") is not None:
+        nodes.remove(nodes.get("Principled BSDF"))
 
     gridnormal =  nodes.new("ShaderNodeAttribute")
     gridnormal.attribute_name = 'orig_normal'
