@@ -200,6 +200,7 @@ class LabelmaskObject(ChannelObject):
                 nodes.remove(nodes.get("Principled Volume"))
             except Exception as e:
                 print(e)
+                pass
             princ = nodes.new("ShaderNodeBsdfPrincipled")
             if nodes.get("Material Output") is None:
                 outnode = nodes.new(type='ShaderNodeOutputMaterial')
