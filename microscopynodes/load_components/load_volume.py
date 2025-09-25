@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import math
 import itertools
-import scipy
 
 from .load_generic import *
 from ..handle_blender_structs import *
@@ -188,7 +187,7 @@ class VolumeObject(ChannelObject):
 
         histnorm = hist / np.max(hist)
         if len(histnorm) > 150:
-            histnorm = scipy.stats.binned_statistic(np.arange(len(histnorm)), histnorm, bins=150,statistic='sum')[0]
+            histnorm = binned_statistic_sum(np.arange(len(histnorm)), histnorm, bins=150)
             histnorm /= np.max(histnorm) 
         for ix, val in enumerate(histnorm):
             if ix == 0:
@@ -410,3 +409,15 @@ def threshold_isodata(image=None, nbins=256, return_all=False, hist=None):
     distances = all_mean - bin_centers[:-1]
     thresholds = bin_centers[:-1][(distances >= 0) & (distances < bin_width)]
     return thresholds if return_all else thresholds[0]
+
+
+def binned_statistic_sum(x, values, bins):
+    x = np.asarray(x)
+    values = np.asarray(values)
+    bins = np.linspace(x.min(), x.max(), bins + 1)  # bin edges
+    bin_indices = np.searchsorted(bins, x, side='right') - 1
+    bin_indices = np.clip(bin_indices, 0, bins.size - 2)
+    
+    sums = np.zeros(bins.size - 1, dtype=values.dtype)
+    np.add.at(sums, bin_indices, values)  # sum values in each bin
+    return sums
