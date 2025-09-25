@@ -20,6 +20,7 @@ zarr = "3.0.8"
 fsspec = "2025.5.1"
 cmap = "0.6.0"
 s3fs = "2025.5.1"
+zmesh = "1.9.0"
 
 
 [tool.poetry.group.dev.dependencies]

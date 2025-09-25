@@ -23,8 +23,7 @@ class LabelmaskIO(DataIO):
         return
 
     def export_ch(self, ch, cache_dir, remake, axes_order):
-        from skimage.measure import marching_cubes
-        from scipy.ndimage import find_objects, label
+        import zmesh
         axes_order = axes_order.replace('c', '') # only gets a single channel
         abcfiles = []
         mask = ch['data']
@@ -33,6 +32,9 @@ class LabelmaskIO(DataIO):
         tmp_collection, _ = collection_by_name('tmp')
 
         mask_objects = {}  
+
+        # mesher = zmesh.Mesher([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
+        mesher = zmesh.Mesher((1,1,1))
         for timestep in range(0,bpy.context.scene.MiN_load_end_frame+1):
             bpy.ops.object.select_all(action='DESELECT')
 
@@ -57,25 +59,31 @@ class LabelmaskIO(DataIO):
             
             timeframe_arr = take_index(mask, timestep, 't', axes_order).compute()
             timeframe_arr = expand_to_xyz(timeframe_arr, axes_order.replace('t', ''))
-
-            for obj_id, objslice in enumerate(find_objects(timeframe_arr)):
-                if objslice is None:
-                    continue
-
+            
+            mesher.mesh(timeframe_arr, close=True)
+            for obj_id in mesher.ids():
+                zmeshed = mesher.get(obj_id, 
+                    normals=False,
+                    reduction_factor=0, 
+                    voxel_centered=False, 
+                    )
+                mesher.erase(obj_id) 
                 obj_id_val = obj_id + 1
-                objarray = np.pad(timeframe_arr[objslice], 1, constant_values=0)
+                # objarray = np.pad(timeframe_arr[objslice], 1, constant_values=0)
                 
-                size = objarray.shape[0]-2 * objarray.shape[1]-2 * objarray.shape[0]-2
+                # size = objarray.shape[0]-2 * objarray.shape[1]-2 * objarray.shape[0]-2
 
-                step_size = [1,2,4,8][ch['surf_resolution']]
-                try:
-                    verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=step_size)
-                    verts = verts + np.array([objslice[0].start, objslice[1].start, objslice[2].start])
-                except Exception as e:
-                    print(f'excepted {e} in meshing')
-                    if ch['surf_resolution'] != 0: # march throws with too small objects
-                        continue
+                # step_size = [1,2,4,8][ch['surf_resolution']]
+                # try:
+                #     verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=step_size)
+                #     verts = verts + np.array([objslice[0].start, objslice[1].start, objslice[2].start])
+                # except Exception as e:
+                #     print(f'excepted {e} in meshing')
+                #     if ch['surf_resolution'] != 0: # march throws with too small objects
+                #         continue
                 
+                # This is a clunky workaround for keeping objects around and using the blender alembic exporter
+                # breakpoint()
                 if obj_id_val in mask_objects:
                     obj = mask_objects[obj_id_val]
                 else: 
@@ -88,15 +96,15 @@ class LabelmaskIO(DataIO):
 
                 mesh = obj.data
                 mesh.clear_geometry()
-                mesh.from_pydata(verts,[], faces)
+                mesh.from_pydata(zmeshed.vertices,[], zmeshed.faces)
                 bpy.ops.object.mode_set(mode = 'OBJECT')
                 self.dissolve(obj, obj_id)
                 # obj.select_set(True) #TODO see if this works
-            
+            mesher.clear()
             for obj in tmp_collection.all_objects: 
                 obj.select_set(True)
             
-           
+            
             bpy.ops.wm.alembic_export(filepath=fname,
                             visible_objects_only=False,
                             selected=True,

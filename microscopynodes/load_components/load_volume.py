@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import math
 import itertools
-import skimage
 import scipy
 
 from .load_generic import *
@@ -157,7 +156,7 @@ class VolumeIO(DataIO):
         if np.sum(histtotal)> 0:
             metadata['range'] = get_leading_trailing_zero_float(histtotal)
             metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
-            threshold = skimage.filters.threshold_isodata(hist=metadata['histogram'] )
+            threshold = threshold_isodata(hist=metadata['histogram'] )
             metadata['threshold'] = threshold/len(metadata['histogram'] )  
             cs = np.cumsum(metadata['histogram'])
             percentile = np.searchsorted(cs, np.percentile(cs, 90))
@@ -383,3 +382,31 @@ class VolumeObject(ChannelObject):
         nodes.get("Material Output").location = (700,00)
 
         return mat
+
+# Simplified rewrite of skimage.filters.threshold_isodata from
+# https://github.com/scikit-image/scikit-image/blob/v0.25.2/skimage/filters/thresholding.py
+# avoids packaging all of skimage for just this function
+def threshold_isodata(image=None, nbins=256, return_all=False, hist=None):
+    if hist is None:
+        hist, edges = np.histogram(image.ravel(), bins=nbins)
+        bin_centers = (edges[:-1] + edges[1:]) / 2
+    else:
+        if isinstance(hist, tuple):
+            hist, bin_centers = hist
+        else:
+            bin_centers = np.arange(len(hist))
+    if len(bin_centers) == 1:
+        return bin_centers if return_all else bin_centers[0]
+
+    counts = hist.astype(float)
+    csuml = np.cumsum(counts)
+    csumh = csuml[-1] - csuml
+    intensity_sum = counts * bin_centers
+    csum_intensity = np.cumsum(intensity_sum)
+    lower = csum_intensity[:-1] / csuml[:-1]
+    higher = (csum_intensity[-1] - csum_intensity[:-1]) / csumh[:-1]
+    all_mean = (lower + higher) / 2.0
+    bin_width = bin_centers[1] - bin_centers[0]
+    distances = all_mean - bin_centers[:-1]
+    thresholds = bin_centers[:-1][(distances >= 0) & (distances < bin_width)]
+    return thresholds if return_all else thresholds[0]

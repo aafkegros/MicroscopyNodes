@@ -10,7 +10,7 @@ import tomlkit
 
 toml_path = "microscopynodes/blender_manifest.toml"
 whl_path = "./microscopynodes/wheels"
-blender_path ="/Applications/Blender_430.app/Contents/MacOS/Blender"
+blender_path ="/Users/oanegros/Documents/blenderBuilds/stable/blender-4.5.3-macos-arm64+lts.67807e1800cc/Blender/Blender.app/Contents/MacOS/Blender"
 
 # permanent_whls = ["./microscopynodes/wheels/asciitree-0.3.4.dev1-py3-none-any.whl"]
 
@@ -32,9 +32,8 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 required_packages = [
     # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm, or the fast find_objects
-    # optional -> move skimage to vtk to do flying edges? - would be nice.
     "scipy==1.15.2",
-    "scikit-image==0.25.2", 
+    # "scikit-image==0.25.2", 
     "dask==2025.5.1",
     "importlib-metadata==8.7.0", # this seemed to no longer be standard included since Blender 4.3?
     "tifffile==2025.6.11",
@@ -44,6 +43,7 @@ required_packages = [
     'cmap==0.6.0',
     's3fs==2025.5.1',
     'pyyaml==6.0.2', # needed for preference yaml loading and writing
+    'zmesh==1.8.0', # for fast mesh generation from labeled data
     # development
     # "ipycytoscape" # for visualizing dask trees
 ]
