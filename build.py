@@ -32,10 +32,9 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 required_packages = [
     # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm, or the fast find_objects
-    "scipy==1.15.2",
-    # "scikit-image==0.25.2", 
+    # "scipy==1.15.2",
     "dask==2025.5.1",
-    "importlib-metadata==8.7.0", # this seemed to no longer be standard included since Blender 4.3?
+    "importlib-metadata==8.7.0", # this seemed to no longer be standard included since Blender 4.3? People had bugs with this but it's confusing
     "tifffile==2025.6.11",
     "imagecodecs==2025.3.30", # allows LZW compressed tif loading
     "zarr==3.0.8",
@@ -44,13 +43,9 @@ required_packages = [
     's3fs==2025.5.1',
     'pyyaml==6.0.2', # needed for preference yaml loading and writing
     'zmesh==1.8.0', # for fast mesh generation from labeled data
-    # development
-    # "ipycytoscape" # for visualizing dask trees
 ]
 # this is deprecated - for non buildable wheels, will remove in the future
 nodeps_packages = [ 
-    # zarr 2 relies on one package without .whl (asciitree)
-    # "zarr==3.0.0b2"
 ]
 
 build_platforms = [
