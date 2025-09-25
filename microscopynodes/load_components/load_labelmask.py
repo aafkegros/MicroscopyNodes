@@ -52,38 +52,22 @@ class LabelmaskIO(DataIO):
                 if remake:
                     Path(fname).unlink()
                 else: 
-                    # Allowing reloading of abc files could be done here, but this can cause strange issues
-                    # That still need triage - for now, files are always overwritten.
-                    pass
-                    # continue
+                    continue
             
             timeframe_arr = take_index(mask, timestep, 't', axes_order).compute()
-            timeframe_arr = expand_to_xyz(timeframe_arr, axes_order.replace('t', ''))
-            
+
             mesher.mesh(timeframe_arr, close=True)
             for obj_id in mesher.ids():
                 zmeshed = mesher.get(obj_id, 
                     normals=False,
-                    reduction_factor=0, 
+                    reduction_factor=ch['surf_resolution']*30, 
+                    max_error=ch['surf_resolution']*3,
                     voxel_centered=False, 
                     )
+
                 mesher.erase(obj_id) 
                 obj_id_val = obj_id + 1
-                # objarray = np.pad(timeframe_arr[objslice], 1, constant_values=0)
                 
-                # size = objarray.shape[0]-2 * objarray.shape[1]-2 * objarray.shape[0]-2
-
-                # step_size = [1,2,4,8][ch['surf_resolution']]
-                # try:
-                #     verts, faces, normals, values = marching_cubes(objarray==obj_id+1, step_size=step_size)
-                #     verts = verts + np.array([objslice[0].start, objslice[1].start, objslice[2].start])
-                # except Exception as e:
-                #     print(f'excepted {e} in meshing')
-                #     if ch['surf_resolution'] != 0: # march throws with too small objects
-                #         continue
-                
-                # This is a clunky workaround for keeping objects around and using the blender alembic exporter
-                # breakpoint()
                 if obj_id_val in mask_objects:
                     obj = mask_objects[obj_id_val]
                 else: 
@@ -124,6 +108,10 @@ class LabelmaskIO(DataIO):
         bpy.ops.object.delete(use_global=False)
         bpy.data.collections.remove(tmp_collection)
         collection_activate(*parentcoll)
+        for files in Path(abcfiles[0]).parent.glob('*.abc'):
+            # handles remapping of time series 
+            if files.name not in [Path(f).name for f in abcfiles]:
+                files.unlink()
         return [{'abcfiles':abcfiles}]
     
 
