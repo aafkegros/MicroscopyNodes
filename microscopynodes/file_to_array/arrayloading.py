@@ -136,7 +136,8 @@ class ArrayLoader():
         axes_order = bpy.context.scene.MiN_axes_order
         
         chunks = ['auto' if dim in 'xyz' else 1 for dim in axes_order] # time and channels are always loadable as separate chunks as they go to separate vdbs
-        imgdata = da.from_array(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks) 
+        imgdata = da.from_zarr(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks)
+        #  imgdata = da.from_array(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks) 
         
         if len(axes_order) != len(imgdata.shape):
             raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
@@ -144,6 +145,7 @@ class ArrayLoader():
         if selected_array_option().is_rescaled:
             imgdata = map_resize(imgdata)
             # imgdata = imgdata.compute_chunk_sizes()
+
         ix = 0
         for ix, ch in enumerate(ch_dicts):
             if ch['data'] is None:
@@ -152,6 +154,7 @@ class ArrayLoader():
                     ch['max_val'] = np.max(ch['data'])
             if ix >= selected_array_option().len_axis('c'): 
                 break
+
         return 
 
 def parse_unit(unit_str):

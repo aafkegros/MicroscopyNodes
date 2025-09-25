@@ -14,7 +14,7 @@ import tifffile
 import platform
 import imageio.v3 as iio
 from pathlib import Path
-
+import dask.array as da
 
 test_folder = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp_test_data"))
 test_folder.mkdir(exist_ok=True)
@@ -28,7 +28,7 @@ def len_axis(dim, axes_order, shape):
 
 def take_index(imgdata, indices, dim, axes_order):
     if dim in axes_order:
-        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
+        return da.take(imgdata, indices=indices, axis=axes_order.find(dim))
     return imgdata
 
 def make_tif(path, arrtype):
