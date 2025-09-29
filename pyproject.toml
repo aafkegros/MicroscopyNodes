@@ -9,7 +9,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "~=3.11.6"
-bpy = "==4.4.0"
+bpy = "==4.5.3"
 dask = "2025.5.1"
 importlib-metadata = "8.7.0"
 tifffile = "2025.6.11"
@@ -25,6 +25,7 @@ zmesh = "1.8.0"
 pytest = "*"
 pytest-cov = "*"
 pytest-snapshot = "*"
+imageio = "*"
 
 [build-system]
 requires = ["poetry-core>=1.1.0"]
