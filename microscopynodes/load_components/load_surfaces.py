@@ -30,6 +30,9 @@ class SurfaceObject(ChannelObject):
                 print(e)
                 pass
             princ = nodes.new("ShaderNodeBsdfPrincipled")
+            if nodes.get("Material Output") is None:
+                out = nodes.new(type="ShaderNodeOutputMaterial")
+                out.location = (400,0)
             links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
         
         princ = nodes.get("Principled BSDF")
@@ -90,10 +93,10 @@ class SurfaceObject(ChannelObject):
         v2m = self.node_group.nodes[f"VOL_TO_MESH_{ch['identifier']}"]
 
         if ch['surf_resolution'] == 0:
-            v2m.resolution_mode='GRID'
+            v2m.inputs[1].default_value='Grid'
             return
         else:
-            v2m.resolution_mode='VOXEL_SIZE'
+            v2m.inputs[1].default_value='Size'
         
         for i in range(4):
             socket = get_socket(self.node_group, ch, min_type='VOXEL_SIZE', internal_append=str(i))
