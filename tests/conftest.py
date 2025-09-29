@@ -9,7 +9,7 @@ microscopynodes._test_register()
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session, exitstatus):
     import microscopynodes
-    regrettably necessary, pytest segfaults if properties
+    # regrettably necessary, pytest segfaults if properties
     # with callback functions stay alive
 
     UPDATE_PROPS = [
