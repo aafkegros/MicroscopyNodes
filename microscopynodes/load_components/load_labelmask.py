@@ -46,7 +46,7 @@ class LabelmaskIO(DataIO):
                 if not Path(fname).exists(): #make dummy file for sequencing
                     open(fname, 'a').close()
                 continue
-            
+
             abcfiles.append(fname)
             if (Path(fname).exists() and os.path.getsize(fname) > 0):
                 if remake:
@@ -55,6 +55,7 @@ class LabelmaskIO(DataIO):
                     continue
             
             timeframe_arr = take_index(mask, timestep, 't', axes_order).compute()
+            timeframe_arr = expand_to_xyz(timeframe_arr, axes_order.replace('t', ''))
 
             mesher.mesh(timeframe_arr, close=True)
             for obj_id in mesher.ids():
@@ -108,7 +109,7 @@ class LabelmaskIO(DataIO):
         bpy.ops.object.delete(use_global=False)
         bpy.data.collections.remove(tmp_collection)
         collection_activate(*parentcoll)
-        for files in Path(abcfiles[0]).parent.glob('*.abc'):
+        for files in Path(abcfiles[0]).parent.glob("*_ch{ch['ix']}_*.abc"):
             # handles remapping of time series 
             if files.name not in [Path(f).name for f in abcfiles]:
                 files.unlink()

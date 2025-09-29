@@ -410,7 +410,7 @@ def threshold_isodata(image=None, nbins=256, return_all=False, hist=None):
     thresholds = bin_centers[:-1][(distances >= 0) & (distances < bin_width)]
     return thresholds if return_all else thresholds[0]
 
-
+# simplified version of https://github.com/scipy/scipy/blob/v1.16.2/scipy/stats/_binned_statistic.py
 def binned_statistic_sum(x, values, bins):
     x = np.asarray(x)
     values = np.asarray(values)
