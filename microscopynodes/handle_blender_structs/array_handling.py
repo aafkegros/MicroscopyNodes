@@ -1,8 +1,9 @@
 import numpy as np
+import dask.array as da
 
 def take_index(imgdata, indices, dim, axes_order):
     if dim in axes_order:
-        return np.take(imgdata, indices=indices, axis=axes_order.find(dim))
+        return da.take(imgdata, indices=indices, axis=axes_order.find(dim))
     return imgdata
 
 def len_axis(dim, axes_order, shape):

@@ -136,22 +136,25 @@ class ArrayLoader():
         axes_order = bpy.context.scene.MiN_axes_order
         
         chunks = ['auto' if dim in 'xyz' else 1 for dim in axes_order] # time and channels are always loadable as separate chunks as they go to separate vdbs
-        imgdata = da.from_array(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks) 
+        imgdata = da.from_zarr(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks)
+        #  imgdata = da.from_array(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks) 
         
         if len(axes_order) != len(imgdata.shape):
             raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
 
         if selected_array_option().is_rescaled:
             imgdata = map_resize(imgdata)
-            imgdata = imgdata.compute_chunk_sizes()
+            # imgdata = imgdata.compute_chunk_sizes()
+
         ix = 0
         for ix, ch in enumerate(ch_dicts):
             if ch['data'] is None:
-                ch['data'] = np.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
+                ch['data'] = da.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
                 if np.issubdtype(ch['data'].dtype,np.floating):
                     ch['max_val'] = np.max(ch['data'])
             if ix >= selected_array_option().len_axis('c'): 
                 break
+
         return 
 
 def parse_unit(unit_str):
@@ -167,24 +170,29 @@ def parse_unit(unit_str):
         return "METER"
     return "AU"
 
-def map_resize(dask_arr):
-    import scipy.ndimage as ndi
-    scale = np.array(dask_arr.shape)/np.array(selected_array_option().shape())
-    return dask_arr.map_blocks(lambda block: ndi.zoom(block,1/scale, order=0))  
-    # return resampled
-    # Resize whole array in one go (requires rechunked single chunk array)
-    # resampled = dask_arr.map_blocks(
-    #     lambda block: skimage.transform.resize(block, output_shape, preserve_range=True, anti_aliasing=False),
-    #     chunks=tuple(output_chunkshape),
-    #     dtype=dask_arr.dtype
-    # )
-    # fullchunks = [selected_array_option().len_axis(dim) if dim in 'xyz' else 1 for dim in bpy.context.scene.MiN_axes_order]
-    # print(bpy.context.scene.MiN_axes_order)
-   
-    # output_chunkshape = [output_axlen if dim in 'xyz' else 1 for dim, output_axlen in zip(bpy.context.scene.MiN_axes_order, output_shape)]
-    # print(dask_arr, output_shape, fullchunks, output_chunkshape)
-    # return dask
-    # output_shape = [output_shape[axes_] if dim in 'xyz' else 1 for dim in bpy.context.scene.MiN_axes_order]
-    # resampled = dask_arr.map_blocks(lambda block: skimage.transform.resize(block,output_shape, preserve_range=True), chunks)
 
-    # return resampled
+def map_resize(dask_arr):
+    target_shape = np.array(selected_array_option().shape())
+    scale = np.array(dask_arr.shape) / target_shape
+
+    # Compute the target chunks per block
+    target_chunks = tuple(
+        tuple(int(np.floor(c / s)) for c, s in zip(block_chunk, scale))
+        for block_chunk in dask_arr.chunks
+    )
+
+    # Flatten target_chunks (map_blocks expects tuple of ints per dim)
+    target_chunks_flat = tuple(max(c) for c in target_chunks)
+
+    def resize_block(block):
+        in_shape = np.array(block.shape)
+        out_shape = np.floor(in_shape / scale).astype(int)
+
+        coords = [np.floor(np.arange(o) * s).astype(int)
+                  for o, s in zip(out_shape, in_shape / out_shape)]
+        grid = np.ix_(*coords)
+        return block[grid]
+
+    return dask_arr.map_blocks(resize_block,
+                               dtype=dask_arr.dtype,
+                               chunks=target_chunks_flat)
