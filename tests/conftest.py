@@ -2,6 +2,7 @@ import pytest
 import bpy
 import microscopynodes
 import shutil, os
+import gc, time
 
 microscopynodes._test_register()
 
@@ -25,9 +26,17 @@ def pytest_sessionfinish(session, exitstatus):
         except:
             print(f"{prop} not found")
 
-    microscopynodes.unregister()
+    try:
+        microscopynodes.unregister()
+    except Exception as e:
+        print(f"Warning during unregister: {e}")
     test_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp_test_data")
-    if os.path.isdir(test_folder):
-        shutil.rmtree(test_folder)
+    try:
+        if os.path.isdir(test_folder):
+            gc.collect()
+            time.sleep(0.1)  # give Windows a moment
+            shutil.rmtree(test_folder, ignore_errors=True)
+    except Exception as e:
+        print(e)
     # print(f'called session finish, {deleted} properties deleted')
     # raise ValueError

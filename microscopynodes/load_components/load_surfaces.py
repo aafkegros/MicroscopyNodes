@@ -28,6 +28,7 @@ class SurfaceObject(ChannelObject):
                 nodes.remove(nodes.get("Principled Volume"))
             except Exception as e:
                 print(e)
+                pass
             princ = nodes.new("ShaderNodeBsdfPrincipled")
             links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
         

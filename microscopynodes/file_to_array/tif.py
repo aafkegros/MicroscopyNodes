@@ -25,8 +25,10 @@ class TifLoader(ArrayLoader):
 
     def load_array(self, input_file, array_option):
         # return tifffile.imread(input_file, aszarr=True) # this can be tried in the future
+        return  tifffile.imread(input_file, aszarr=True)
         with tifffile.TiffFile(input_file) as ifstif:
-            return ifstif.asarray()
+            
+            return ifstif.asarray(out='memmap')
 
     def _xy_size(self, input_file):
         try:
