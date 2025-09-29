@@ -31,6 +31,6 @@ def pytest_sessionfinish(session, exitstatus):
     if os.path.isdir(test_folder):
         gc.collect()
         time.sleep(0.1)  # give Windows a moment
-        shutil.rmtree(test_folder)
+        shutil.rmtree(test_folder, ignore_errors=True)
     # print(f'called session finish, {deleted} properties deleted')
     # raise ValueError
