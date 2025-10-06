@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "microscopynodes"
-version = "2.2.5"
+version = "2.2.6"
 name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Aafke Gros <aafke.gros@embl.de>"
@@ -42,7 +42,7 @@ wheels = [
 	"./wheels/aiohttp-3.12.15-cp311-cp311-win_amd64.whl",
 	"./wheels/aioitertools-0.12.0-py3-none-any.whl",
 	"./wheels/aiosignal-1.4.0-py3-none-any.whl",
-	"./wheels/attrs-25.3.0-py3-none-any.whl",
+	"./wheels/attrs-25.4.0-py3-none-any.whl",
 	"./wheels/botocore-1.40.18-py3-none-any.whl",
 	"./wheels/click-8.3.0-py3-none-any.whl",
 	"./wheels/cloudpickle-3.1.1-py3-none-any.whl",
