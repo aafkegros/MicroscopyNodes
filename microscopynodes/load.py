@@ -78,7 +78,7 @@ def load_blocking(params):
         if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
             continue
         data_io = DataIOFactory(min_type)
-        ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+        ch_obj = ChannelObjectFactory(min_type, objs[min_type], scale)
 
         for ch in ch_dicts:
             if ch[min_type] and scn.MiN_update_data:
