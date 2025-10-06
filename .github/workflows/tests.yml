@@ -29,7 +29,9 @@ jobs:
             
       - name: Install poetry
         run: pip install poetry
+        
       - name: Install with retries
+        shell: bash
         run: |
             for i in 1 2 3; do
                 poetry install --with=dev && break
