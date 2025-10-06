@@ -32,8 +32,8 @@ jobs:
       - name: Install with retries
         run: |
             for i in 1 2 3; do
-            poetry install --with=dev && break
-            sleep 10
+                poetry install --with=dev && break
+                sleep 10
             done
       - name: install
         run: pip install -r requirements.txt
