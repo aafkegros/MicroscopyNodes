@@ -29,14 +29,18 @@ jobs:
             
       - name: Install poetry
         run: pip install poetry
-      - name: Install
-        run: poetry install --with=dev
+      - name: Install with retries
+        run: |
+            for i in 1 2 3; do
+            poetry install --with=dev && break
+            sleep 10
+            done
       - name: install
         run: pip install -r requirements.txt
       
       - name: Install microscopy nodes
         run: pip install .
-
+ 
      
       - name: Run Tests
         run: pytest --verbose 
