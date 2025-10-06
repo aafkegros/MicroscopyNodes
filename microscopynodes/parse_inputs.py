@@ -8,6 +8,11 @@ from .file_to_array import load_array, selected_array_option
 from .ui.preferences import addon_preferences
 
 
+def hash_path(path):
+    import hashlib
+    h = hashlib.sha1(path.encode()).digest()
+    return str(int.from_bytes(h[:4], "big") % 10**8)
+
 def get_cache_dir():
     if addon_preferences().cache_option == 'TEMPORARY':
         path = tempfile.gettempdir()
@@ -15,7 +20,8 @@ def get_cache_dir():
         path = addon_preferences().cache_path
     if addon_preferences().cache_option == 'WITH_PROJECT':
         path = bpy.path.abspath('//')
-    path = Path(path) / Path(bpy.context.scene.MiN_input_file).stem 
+    # path = Path(path) / Path(bpy.context.scene.MiN_input_file).stem 
+    path = Path(path) / hash_path(bpy.context.scene.MiN_input_file)
     path = path / str(bpy.context.scene.MiN_selected_array_option)
     path.mkdir(parents=True, exist_ok=True)
     return path
