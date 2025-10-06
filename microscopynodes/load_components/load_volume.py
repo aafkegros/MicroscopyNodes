@@ -8,9 +8,20 @@ import itertools
 from .load_generic import *
 from ..handle_blender_structs import *
 from .. import min_nodes
+from databpy.nodes import append_from_blend
 
 NR_HIST_BINS = 2**16
 
+## HOW VDBS ARE WRITTEN AND READ
+def vdb_path(base_path, dataset_name, scale, **coords):
+    template = Path("{base_path}") / "{dataset_name}" / "{scale}" / "x{x}y{y}z{z}_c{channel_number}_t{time:04}.vdb"
+    formatted = Path(str(template).format(
+        base_path=base_path,
+        dataset_name=dataset_name,
+        scale=scale,
+        **coords
+    ))
+    return formatted, template
 
 def get_leading_trailing_zero_float(arr):
         min_val = max(np.argmax(arr > 0)-1, 0) / len(arr)
@@ -34,6 +45,7 @@ class VolumeIO(DataIO):
                 chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
             directory, time_vdbs, time_hists = self.make_vdbs(chunk, block, axes_order, remake, cache_dir, ch)
             file_meta.append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0].start, block[1].start, block[2].start)})
+        print(file_meta)
         return file_meta
 
     def split_axis_to_chunks(self, length, ch_ix, maxlen):
@@ -122,58 +134,66 @@ class VolumeIO(DataIO):
         vdb.write(str(vdbfname), grids=[grid])
         return
 
-    def import_data(self, ch, scale):
-        vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
-        metadata = {}
-        collection_activate(vol_collection, vol_lcoll)
-        histtotal = np.zeros(NR_HIST_BINS)
-        for chunk in ch['local_files'][self.min_type]:
-            bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
-            vol = bpy.context.active_object
-            pos = chunk['pos']
-            strpos = f"{pos[0]}{pos[1]}{pos[2]}"
+    # def import_data(self, ch, scale):
+    #     vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
+    #     metadata = {}
+    #     collection_activate(vol_collection, vol_lcoll)
+    #     histtotal = np.zeros(NR_HIST_BINS)
+    #     for chunk in ch['local_files'][self.min_type]:
+    #         bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
+    #         vol = bpy.context.active_object
+    #         pos = chunk['pos']
+    #         strpos = f"{pos[0]}{pos[1]}{pos[2]}"
         
-            vol.scale = scale
-            vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
-            vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
-            vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
-            vol.data.render.clipping =0
-            # vol.data.display.density = 1e-5
-            # vol.data.display.interpolation_method = 'CLOSEST'
+    #         vol.scale = scale
+    #         vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
+    #         vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
+    #         vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
+    #         vol.data.render.clipping =0
+    #         # vol.data.display.density = 1e-5
+    #         # vol.data.display.interpolation_method = 'CLOSEST'
 
             
-            vol.location = tuple((np.array(chunk['pos']) * scale))  
+    #         vol.location = tuple((np.array(chunk['pos']) * scale))  
         
-            for hist in chunk['histfiles']:
-                histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
+    #         for hist in chunk['histfiles']:
+    #             histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
         
-        # defaults
-        metadata['range'] = (0, 1)
-        metadata['histogram'] = np.zeros(NR_HIST_BINS)
-        metadata['datapointer'] = vol.data
+    #     # defaults
+    #     metadata['range'] = (0, 1)
+    #     metadata['histogram'] = np.zeros(NR_HIST_BINS)
+    #     metadata['datapointer'] = vol.data
 
-        if np.sum(histtotal)> 0:
-            metadata['range'] = get_leading_trailing_zero_float(histtotal)
-            metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
-            threshold = threshold_isodata(hist=metadata['histogram'] )
-            metadata['threshold'] = threshold/len(metadata['histogram'] )  
-            cs = np.cumsum(metadata['histogram'])
-            percentile = np.searchsorted(cs, np.percentile(cs, 90))
-            if percentile > threshold:
-                metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
-        elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
-            metadata['threshold'] = ch['threshold']
-        else:
-            # this is for 0,1 range int32 data
-            metadata['range'] = (0, 1e-9)
-            metadata['threshold'] = 0.3
-            metadata['threshold_upper'] = 1
-        return vol_collection, metadata
+    #     if np.sum(histtotal)> 0:
+    #         metadata['range'] = get_leading_trailing_zero_float(histtotal)
+    #         metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
+    #         threshold = threshold_isodata(hist=metadata['histogram'] )
+    #         metadata['threshold'] = threshold/len(metadata['histogram'] )  
+    #         cs = np.cumsum(metadata['histogram'])
+    #         percentile = np.searchsorted(cs, np.percentile(cs, 90))
+    #         if percentile > threshold:
+    #             metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
+    #     elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
+    #         metadata['threshold'] = ch['threshold']
+    #     else:
+    #         # this is for 0,1 range int32 data
+    #         metadata['range'] = (0, 1e-9)
+    #         metadata['threshold'] = 0.3
+    #         metadata['threshold_upper'] = 1
+    #     return vol_collection, metadata
 
 
 class VolumeObject(ChannelObject):
     min_type = min_keys.VOLUME
     
+    def import_node(self, ch):
+        import_node = self.node_group.nodes.new("GeometryNodeGroup")  # type: ignore
+        import_node.node_tree = append_from_blend("Import Microscopy Volume", filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=True)
+        import_node.location = (-600, 0)
+        import_node.base_path = ch['local_files'][self.min_type][0]['directory']
+        return
+
+
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
         histnode.location = loc

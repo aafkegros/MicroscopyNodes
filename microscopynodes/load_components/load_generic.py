@@ -3,16 +3,16 @@ from ..handle_blender_structs import *
 import numpy as np
 
 
-def ChannelObjectFactory(min_key, obj):
+def ChannelObjectFactory(min_key, obj, scale):
     if min_key == min_keys.VOLUME:
         from .load_volume import VolumeObject
-        return VolumeObject(obj)
+        return VolumeObject(obj, scale)
     elif min_key == min_keys.SURFACE:
         from .load_surfaces import SurfaceObject
-        return SurfaceObject(obj)
+        return SurfaceObject(obj, scale)
     elif min_key == min_keys.LABELMASK:
         from .load_labelmask import LabelmaskObject
-        return LabelmaskObject(obj)
+        return LabelmaskObject(obj, scale)
 
 def DataIOFactory(min_key):
     if min_key == min_keys.VOLUME:
@@ -43,15 +43,15 @@ class ChannelObject():
     gn_mod = None
     node_group = None
 
-    def __init__(self, obj):
+    def __init__(self, obj, scale):
         if obj is None:
-            obj = self.init_obj()
+            obj = self.init_obj(scale)
         self.obj = obj
         self.gn_mod = get_min_gn(obj)
         self.node_group =self.gn_mod.node_group
 
 
-    def init_obj(self):
+    def init_obj(self, scale):
         if self.min_type == min_keys.VOLUME: # makes the icon show up
             bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         else:
@@ -59,6 +59,7 @@ class ChannelObject():
         obj = bpy.context.view_layer.objects.active
         name = self.min_type.name.lower()
         obj.name = name
+        obj.scale = scale
 
         bpy.ops.object.modifier_add(type='NODES')
 
@@ -159,6 +160,8 @@ class ChannelObject():
         links = self.node_group.links
         interface = self.node_group.interface
         
+        importnode = self.import_node(ch)
+
         loadnode = nodes.new('GeometryNodeCollectionInfo')
         loadnode.location = (x , y + 100)
         loadnode.hide = True
