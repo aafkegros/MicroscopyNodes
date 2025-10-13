@@ -3,7 +3,7 @@ import dask.array as da
 
 def take_index(imgdata, indices, dim, axes_order):
     if dim in axes_order:
-        return da.take(imgdata, indices=indices, axis=axes_order.find(dim))
+        return da.take(imgdata, indices=indices, axis=axes_order.index(dim))
     return imgdata
 
 def len_axis(dim, axes_order, shape):
@@ -11,10 +11,13 @@ def len_axis(dim, axes_order, shape):
             return shape[axes_order.find(dim)]
         return 1
 
-def expand_to_xyz(arr, axes_order):
+def to_xyz(arr, axes_order):
     # should only be called after computing dask, with no more t/c in the axes order
     # handles 1D, 2D, and ordering of data
     new_axes_order = axes_order
+    if 't' in axes_order:
+        new_axes_order = new_axes_order.replace('t','')
+        arr = np.squeeze(arr, axis=axes_order.index('t'))
     for dim in 'xyz':
         if dim not in axes_order:
             arr = np.expand_dims(arr,axis=0)

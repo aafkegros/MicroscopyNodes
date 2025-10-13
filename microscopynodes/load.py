@@ -24,16 +24,11 @@ def load_threaded(params):
         axes_order = axes_order.replace('c', "") # channels are separated
         
         for ch in ch_dicts:
-            if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]:
-                ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir, scn.MiN_remake,  axes_order)
+            if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]: #TODO Maybe put axes order in ch
+                file_constructors = VolumeIO().generate_file_constructors(ch, cache_dir)
+                VolumeIO().export_ch(ch, file_constructors, scn.MiN_remake)
 
-
-        progress = 'Loading objects to Blender'
-        if any([ch['surface'] for ch in ch_dicts]):
-            progress = 'Meshing surfaces, ' + progress.lower()
-        if any([ch['labelmask'] for ch in ch_dicts]):
-            progress = 'Making labelmasks, ' + progress.lower()
-        log(progress)
+        log('Loading objects to Blender')
     except Exception as e: # hacky way to track exceptions across threaded process
         params[0][0]['EXCEPTION'] = e
     return params
@@ -55,7 +50,6 @@ def load_blocking(params):
     # --- Prepare  container ---
     container = scn.MiN_reload
     objs = parse_reload(container)
-
 
     if container is None:
         bpy.ops.object.empty_add(type="PLAIN_AXES")
@@ -82,10 +76,8 @@ def load_blocking(params):
 
         for ch in ch_dicts:
             if ch[min_type] and scn.MiN_update_data:
-                collection_activate(*cache_coll)
-                ch['collections'][min_type], ch['metadata'][min_type] = data_io.import_data(ch, scale)
-                collection_activate(*base_coll)
-                ch_obj.update_ch_data(ch)
+                file_constructors = data_io.generate_file_constructors(ch, cache_dir)
+                ch_obj.update_ch_data(ch, file_constructors)
             if scn.MiN_update_settings:
                 ch_obj.update_ch_settings(ch)
             ch_obj.set_parent_and_slicer(container, slice_cube, ch)
