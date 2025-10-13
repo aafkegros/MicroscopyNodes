@@ -28,7 +28,10 @@ def DataIOFactory(min_key):
 class DataIO():
     min_type = min_keys.NONE
 
-    def export_ch(self, ch, axes_order, remake, cache_dir):
+    def generate_file_constructors(self, ch, cache_dir):
+        return []
+
+    def export_ch(self, ch, file_constructors, remake):
         # return paths to local files with metadata in list of dcts
         return []
     
@@ -84,16 +87,16 @@ class ChannelObject():
         self.obj.data.materials.append(mat)
         return mat
 
-    def update_ch_data(self, ch):
-        if self.min_type in ch['collections'] and not self.ch_present(ch): 
-            self.append_channel_to_holder(ch)
+    def update_ch_data(self, ch, file_constructors):
+        if not self.ch_present(ch): 
+            self.append_channel_to_holder(ch, file_constructors)
             
-        loadnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
-        loadnode.label = ch['name']
-        if loadnode.parent is not None:
-            loadnode.parent.label = f"{ch['name']} data"
-        clear_collection(loadnode.inputs[0].default_value)
-        loadnode.inputs[0].default_value = ch['collections'][self.min_type]
+        # loadnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
+        # loadnode.label = ch['name']
+        # if loadnode.parent is not None:
+        #     loadnode.parent.label = f"{ch['name']} data"
+        # clear_collection(loadnode.inputs[0].default_value)
+        # loadnode.inputs[0].default_value = ch['collections'][self.min_type]
         return
 
     def update_ch_settings(self, ch):

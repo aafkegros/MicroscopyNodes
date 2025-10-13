@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import math
 import itertools
+import string
 
 from .load_generic import *
 from ..handle_blender_structs import *
@@ -12,16 +13,20 @@ from databpy.nodes import append_from_blend
 
 NR_HIST_BINS = 2**16
 
-## HOW VDBS ARE WRITTEN AND READ
-def vdb_path(base_path, dataset_name, scale, **coords):
-    template = Path("{base_path}") / "{dataset_name}" / "{scale}" / "x{x}y{y}z{z}_c{channel_number}_t{time:04}.vdb"
-    formatted = Path(str(template).format(
-        base_path=base_path,
-        dataset_name=dataset_name,
-        scale=scale,
-        **coords
-    ))
-    return formatted, template
+from pathlib import Path
+import string
+
+def vdb_path(hist=False, **kwargs):
+    template = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
+    if hist:
+        template = template.with_suffix('.npy')
+    keywords = [kw for _, kw, _, _ in string.Formatter().parse(str(template)) if kw]
+    # try:
+    formatted = Path(str(template).format(**kwargs))
+    # except KeyError:
+    #     formatted = None  
+    return {"formatted": formatted, "template": template, "keywords": keywords}
+
 
 def get_leading_trailing_zero_float(arr):
         min_val = max(np.argmax(arr > 0)-1, 0) / len(arr)
@@ -31,22 +36,62 @@ def get_leading_trailing_zero_float(arr):
 class VolumeIO(DataIO):
     min_type = min_keys.VOLUME
 
-    def export_ch(self, ch, cache_dir, remake, axes_order):
-        file_meta = []
+    def generate_file_constructors(self, ch, cache_dir):
+        """Purely generates file path metadata without writing."""
+        file_constructors = []
 
-        xyz_shape = [len_axis(dim, axes_order, ch['data'].shape) for dim in 'xyz']
+        xyz_shape = [len_axis(dim, ch['axes_order'], ch['data'].shape) for dim in 'xyz']
         maxlen = np.inf
         if bpy.context.scene.MiN_chunk:
             maxlen = 2048
-        slices = [self.split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
-        for block in itertools.product(*slices):
-            chunk = ch['data']
-            for dim, sl in zip('xyz', block): 
-                chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
-            directory, time_vdbs, time_hists = self.make_vdbs(chunk, block, axes_order, remake, cache_dir, ch)
-            file_meta.append({"directory" : directory, "vdbfiles": time_vdbs, 'histfiles' : time_hists, 'pos':(block[0].start, block[1].start, block[2].start)})
-        print(file_meta)
-        return file_meta
+        slices_xyz = [self.split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
+        time_slices = [slice(t, t+1) for t in range(bpy.context.scene.MiN_load_start_frame, min(bpy.context.scene.MiN_load_end_frame + 1, len_axis('t', ch['axes_order'], ch['data'].shape)))]
+        slices_xyzt = slices_xyz + [time_slices]
+
+        for block in itertools.product(*slices_xyzt):
+            file_constructors.append( {
+                "cache_dir": cache_dir,
+                "dataset_hash": ch['dataset_hash'],
+                "scale": ch['dataset_scale'],
+                'x': block[0].start, 'y': block[1].start, 'z': block[2].start,
+                "x_end": block[0].stop, "y_end": block[1].stop, "z_end": block[2].stop,
+                "t": block[3].start, "t_end": block[3].stop,
+                "channel_ix": ch['ix'],
+            })
+        return file_constructors
+
+    def export_ch(self, ch, file_constructors, remake):
+        vdb_info = []
+        for constructor in file_constructors:
+            print(vdb_path(hist=False, **constructor)["formatted"])
+            vdbfname = vdb_path(hist=False, **constructor)["formatted"]
+            histfname = vdb_path(hist=True, **constructor)["formatted"]
+            vdbfname.parent.mkdir(parents=True, exist_ok=True)
+            
+            if( not vdbfname.exists() or not histfname.exists()) or remake :
+                vdbfname.unlink(missing_ok=True)
+                histfname.unlink(missing_ok=True)
+                log(f"loading chunk {Path(vdbfname).stem}")
+                arr = ch['data'][tuple(
+                    slice(constructor[dim], constructor[f"{dim}_end"]) for dim in ch['axes_order']
+                )].compute()
+
+
+                arr = to_xyz(arr, ch['axes_order']) # for 1D and 2D data, expand to 3D, squeeze the single time frame
+                try:
+                    arr = arr.astype(np.float32) / min(np.iinfo(ch['data'].dtype).max, np.iinfo(np.int32).max) # scale between 0 and 1, capped to allow uint32 to at least not break
+                except ValueError as e:
+                    arr = arr.astype(np.float32) / ch['max_val'].compute()
+
+                # hists could be done better with bincount, but this doesnqt work with floats and seems harder to maintain
+                histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
+                histogram[0] = 0
+                np.save(histfname, histogram, allow_pickle=False)
+                log(f"write vdb {vdbfname.name}")
+                self.make_vdb(vdbfname, arr)   
+        return vdb_info
+
+
 
     def split_axis_to_chunks(self, length, ch_ix, maxlen):
         # chunks to max 2048 length, with ch_ix dependent offsets
@@ -65,61 +110,8 @@ class VolumeIO(DataIO):
         slices = [slice(start, end) for start, end in zip(splits[:-1], splits[1:])]
         return slices
 
-    
-    def make_vdbs(self, imgdata, block, axes_order, remake, cache_dir, ch):
-        # non-lazy functions are allowed on only single time-frames
-        x_ix, y_ix, z_ix = [sl.start for sl in block]
 
-        # imgdata = imgdata.compute()
-        time_vdbs = [] 
-        time_hists = []
-
-        identifier3d = f"x{x_ix}y{y_ix}z{z_ix}"
-        dirpath = Path(cache_dir)/f"{identifier3d}"
-        dirpath.mkdir(exist_ok=True,parents=True)
-        for t in range(0, bpy.context.scene.MiN_load_end_frame+1):
-            if t >= len_axis('t', axes_order, imgdata.shape):
-                break
-
-            identifier5d = f"{identifier3d}c{ch['ix']}t{t:04}"
-            frame = take_index(imgdata, t, 't', axes_order)
-            frame_axes_order = axes_order.replace('t',"")
-
-            vdbfname = dirpath / f"{identifier5d}.vdb"
-            histfname = dirpath / f"{identifier5d}_hist.npy"
-
-            if t < bpy.context.scene.MiN_load_start_frame and not vdbfname.exists():
-                # Makes dummy vdb files to keep sequence reading of Blender correct if the loaded frames are offset
-                # existence of histogram file is then used to see if this is a dummy
-                open(vdbfname, 'a').close()
-                continue
-            
-            time_vdbs.append({"name":str(vdbfname.name)})
-            time_hists.append({"name":str(histfname.name)})
-            if( not vdbfname.exists() or not histfname.exists()) or remake :
-                if vdbfname.exists():
-                    vdbfname.unlink()
-                if histfname.exists():
-                    histfname.unlink()
-                log(f"loading chunk {identifier5d}")
-                arr = frame.compute()
-                
-                arr = expand_to_xyz(arr, frame_axes_order) 
-                try:
-                    arr = arr.astype(np.float32) / min(np.iinfo(imgdata.dtype).max, np.iinfo(np.int32).max) # scale between 0 and 1, capped to allow uint32 to at least not break
-                except ValueError as e:
-                    arr = arr.astype(np.float32) / ch['max_val'].compute()
-
-                # hists could be done better with bincount, but this doesnt work with floats and seems harder to maintain
-                histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
-                histogram[0] = 0
-                np.save(histfname, histogram, allow_pickle=False)
-                log(f"write vdb {identifier5d}")
-                self.make_vdb(vdbfname, arr, f"c{ch['ix']}")   
-
-        return str(dirpath), time_vdbs, time_hists
-
-    def make_vdb(self, vdbfname, arr, gridname):
+    def make_vdb(self, vdbfname, arr):
         try:
             import openvdb as vdb
         except:
@@ -134,53 +126,6 @@ class VolumeIO(DataIO):
         vdb.write(str(vdbfname), grids=[grid])
         return
 
-    # def import_data(self, ch, scale):
-    #     vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
-    #     metadata = {}
-    #     collection_activate(vol_collection, vol_lcoll)
-    #     histtotal = np.zeros(NR_HIST_BINS)
-    #     for chunk in ch['local_files'][self.min_type]:
-    #         bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
-    #         vol = bpy.context.active_object
-    #         pos = chunk['pos']
-    #         strpos = f"{pos[0]}{pos[1]}{pos[2]}"
-        
-    #         vol.scale = scale
-    #         vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
-    #         vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
-    #         vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
-    #         vol.data.render.clipping =0
-    #         # vol.data.display.density = 1e-5
-    #         # vol.data.display.interpolation_method = 'CLOSEST'
-
-            
-    #         vol.location = tuple((np.array(chunk['pos']) * scale))  
-        
-    #         for hist in chunk['histfiles']:
-    #             histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
-        
-    #     # defaults
-    #     metadata['range'] = (0, 1)
-    #     metadata['histogram'] = np.zeros(NR_HIST_BINS)
-    #     metadata['datapointer'] = vol.data
-
-    #     if np.sum(histtotal)> 0:
-    #         metadata['range'] = get_leading_trailing_zero_float(histtotal)
-    #         metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
-    #         threshold = threshold_isodata(hist=metadata['histogram'] )
-    #         metadata['threshold'] = threshold/len(metadata['histogram'] )  
-    #         cs = np.cumsum(metadata['histogram'])
-    #         percentile = np.searchsorted(cs, np.percentile(cs, 90))
-    #         if percentile > threshold:
-    #             metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
-    #     elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
-    #         metadata['threshold'] = ch['threshold']
-    #     else:
-    #         # this is for 0,1 range int32 data
-    #         metadata['range'] = (0, 1e-9)
-    #         metadata['threshold'] = 0.3
-    #         metadata['threshold_upper'] = 1
-    #     return vol_collection, metadata
 
 
 class VolumeObject(ChannelObject):
@@ -188,11 +133,31 @@ class VolumeObject(ChannelObject):
     
     def import_node(self, ch):
         import_node = self.node_group.nodes.new("GeometryNodeGroup")  # type: ignore
-        import_node.node_tree = append_from_blend("Import Microscopy Volume", filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=True)
+        node_group = bpy.data.node_groups.get("Import Microscopy Volume")
+        if node_group:
+            import_node.node_tree = node_group
+        else:
+            import_node.node_tree = append_from_blend("Import Microscopy Volume", filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=True)
+            min_nodes.generate_format_string(import_node.node_tree, str(vdb_path()['template']), ch['data_info'][self.min_type])
+        node_group = import_node.node_tree
+        
         import_node.location = (-600, 0)
-        import_node.base_path = ch['local_files'][self.min_type][0]['directory']
-        return
+        for key in ch['data_info'][self.min_type][0]:
+            try:
+                import_node.inputs.get(key).default_value = int(ch['data_info'][self.min_type][0][key])
+            except Exception:
+                import_node.inputs.get(key).default_value = ch['data_info'][self.min_type][0][key]
 
+
+        for input_field in import_node.inputs: 
+            if input_field.name not in ['Include', 'Channel Name', 'Normalized']:
+                input_field.hide = True
+        # Explicit setting
+        ch_to_node = {"VDB Minimum":"vdb_min", "VDB Maximum":"vdb_max", "Original Minimum":"data_min", "Original Maximum":"data_max", "Channel Name":"name"}
+        for key in ch_to_node:
+            import_node.inputs[ch_to_node[key]].default_value = ch[key]
+            
+        return
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
@@ -441,3 +406,116 @@ def binned_statistic_sum(x, values, bins):
     sums = np.zeros(bins.size - 1, dtype=values.dtype)
     np.add.at(sums, bin_indices, values)  # sum values in each bin
     return sums
+
+  # TODO REWORK ALL OF THIS TO SEPARATE WRITING AND FILEPATH GENERATION
+    # def export_ch(self, ch, cache_dir, remake, axes_order, write):
+    #     vdb_info = []
+    #     axes_order = axes_order.replace('c', '') 
+    #     xyz_shape = [len_axis(dim, axes_order, ch['data'].shape) for dim in 'xyz']
+    #     maxlen = np.inf
+    #     if bpy.context.scene.MiN_chunk:
+    #         maxlen = 2048
+    #     slices = [self.split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
+    #     for block in itertools.product(*slices):
+    #         chunk = ch['data']
+    #         for dim, sl in zip('xyz', block): 
+    #             chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
+    #         chunk_vdb_infos = self.make_vdbs(chunk, block, axes_order, remake, cache_dir, ch, write)
+    #         vdb_info.extend(chunk_vdb_infos)
+    #     return [vdb_info, ]
+
+
+    
+    # def make_vdbs(self, imgdata, block, axes_order, remake, cache_dir, ch, write):
+    #     # non-lazy functions are allowed on only single time-frames
+    #     x, y, z = [sl.start for sl in block]
+        
+
+    #     vdb_infos = [] 
+    #     for t in range(bpy.context.scene.MiN_load_start_frame, bpy.context.scene.MiN_load_end_frame+1):
+    #         if t >= len_axis('t', axes_order, imgdata.shape):
+    #             break
+    #         frame = take_index(imgdata, t, 't', axes_order)
+    #         frame_axes_order = axes_order.replace('t',"")
+
+    #         # generate distinguishing paths
+    #         vdb_info = {"cache_dir": cache_dir, "dataset_hash": ch['dataset_hash'], "scale": ch['dataset_scale'], "x": x, "y": y, "z": z, "channel_ix": ch['ix'], "time": t}
+    #         vdbfname = vdb_path(hist=False, **vdb_info)["formatted"]
+    #         histfname = vdb_path(hist=True, **vdb_info)["formatted"]
+    #         vdbfname.parent.mkdir(parents=True, exist_ok=True)
+
+    #         vdb_infos.append(vdb_info)
+            
+    #         if( not vdbfname.exists() or not histfname.exists()) or remake :
+    #             if write == False:
+    #                 print(vdbfname, " would be written", vdbfname.exists(), histfname.exists(), remake, write, ch['name'])
+    #                 raise ValueError("Files do not exist locally")
+    #             if vdbfname.exists():
+    #                 vdbfname.unlink()
+    #             if histfname.exists():
+    #                 histfname.unlink()
+    #             log(f"loading chunk {Path(vdbfname).stem}")
+    #             arr = frame.compute()
+                
+    #             arr = expand_to_xyz(arr, frame_axes_order) # for 1D and 2D data, expand to 3D
+    #             try:
+    #                 arr = arr.astype(np.float32) / min(np.iinfo(imgdata.dtype).max, np.iinfo(np.int32).max) # scale between 0 and 1, capped to allow uint32 to at least not break
+    #             except ValueError as e:
+    #                 arr = arr.astype(np.float32) / ch['max_val'].compute()
+
+    #             # hists could be done better with bincount, but this doesnqt work with floats and seems harder to maintain
+    #             histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
+    #             histogram[0] = 0
+    #             np.save(histfname, histogram, allow_pickle=False)
+    #             log(f"write vdb {vdbfname.name}")
+    #             self.make_vdb(vdbfname, arr)   
+
+    #     return vdb_infos\
+
+        # def import_data(self, ch, scale):
+    #     vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
+    #     metadata = {}
+    #     collection_activate(vol_collection, vol_lcoll)
+    #     histtotal = np.zeros(NR_HIST_BINS)
+    #     for chunk in ch['local_files'][self.min_type]:
+    #         bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
+    #         vol = bpy.context.active_object
+    #         pos = chunk['pos']
+    #         strpos = f"{pos[0]}{pos[1]}{pos[2]}"
+        
+    #         vol.scale = scale
+    #         vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
+    #         vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
+    #         vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
+    #         vol.data.render.clipping =0
+    #         # vol.data.display.density = 1e-5
+    #         # vol.data.display.interpolation_method = 'CLOSEST'
+
+            
+    #         vol.location = tuple((np.array(chunk['pos']) * scale))  
+        
+    #         for hist in chunk['histfiles']:
+    #             histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
+        
+    #     # defaults
+    #     metadata['range'] = (0, 1)
+    #     metadata['histogram'] = np.zeros(NR_HIST_BINS)
+    #     metadata['datapointer'] = vol.data
+
+    #     if np.sum(histtotal)> 0:
+    #         metadata['range'] = get_leading_trailing_zero_float(histtotal)
+    #         metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
+    #         threshold = threshold_isodata(hist=metadata['histogram'] )
+    #         metadata['threshold'] = threshold/len(metadata['histogram'] )  
+    #         cs = np.cumsum(metadata['histogram'])
+    #         percentile = np.searchsorted(cs, np.percentile(cs, 90))
+    #         if percentile > threshold:
+    #             metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
+    #     elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
+    #         metadata['threshold'] = ch['threshold']
+    #     else:
+    #         # this is for 0,1 range int32 data
+    #         metadata['range'] = (0, 1e-9)
+    #         metadata['threshold'] = 0.3
+    #         metadata['threshold_upper'] = 1
+    #     return vol_collection, metadata

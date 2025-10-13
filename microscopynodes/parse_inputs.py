@@ -15,9 +15,7 @@ def get_cache_dir():
         path = addon_preferences().cache_path
     if addon_preferences().cache_option == 'WITH_PROJECT':
         path = bpy.path.abspath('//')
-    path = Path(path) / Path(bpy.context.scene.MiN_input_file).stem 
-    path = path / str(bpy.context.scene.MiN_selected_array_option)
-    path.mkdir(parents=True, exist_ok=True)
+    # path.mkdir(parents=True, exist_ok=True)
     return path
 
 def parse_initial():
@@ -50,7 +48,7 @@ def parse_channellist(channellist):
         ch_dicts[-1]['data'] = None
         ch_dicts[-1]['collections'] = {}
         ch_dicts[-1]['metadata'] = {}
-        ch_dicts[-1]['local_files'] = {}
+        ch_dicts[-1]['data_info'] = {}
         ch_dicts[-1]['surf_resolution'] = int(addon_preferences(bpy.context).surf_resolution)
     return ch_dicts
 
