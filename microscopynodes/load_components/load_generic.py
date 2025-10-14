@@ -89,14 +89,9 @@ class ChannelObject():
 
     def update_ch_data(self, ch, file_constructors):
         if not self.ch_present(ch): 
-            self.append_channel_to_holder(ch, file_constructors)
-            
-        # loadnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
-        # loadnode.label = ch['name']
-        # if loadnode.parent is not None:
-        #     loadnode.parent.label = f"{ch['name']} data"
-        # clear_collection(loadnode.inputs[0].default_value)
-        # loadnode.inputs[0].default_value = ch['collections'][self.min_type]
+            self.append_channel_to_holder(ch)
+        importnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
+        self.update_import_node(importnode, file_constructors)  
         return
 
     def update_ch_settings(self, ch):
