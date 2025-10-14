@@ -21,10 +21,11 @@ def vdb_path(hist=False, **kwargs):
     if hist:
         template = template.with_suffix('.npy')
     keywords = [kw for _, kw, _, _ in string.Formatter().parse(str(template)) if kw]
-    # try:
-    formatted = Path(str(template).format(**kwargs))
-    # except KeyError:
-    #     formatted = None  
+    try:
+        formatted = Path(str(template).format(**kwargs))
+    except KeyError as e:
+        print(e)
+        formatted = None  
     return {"formatted": formatted, "template": template, "keywords": keywords}
 
 
@@ -63,7 +64,7 @@ class VolumeIO(DataIO):
     def export_ch(self, ch, file_constructors, remake):
         vdb_info = []
         for constructor in file_constructors:
-            print(vdb_path(hist=False, **constructor)["formatted"])
+            print("writing to ",vdb_path(hist=False, **constructor)["formatted"])
             vdbfname = vdb_path(hist=False, **constructor)["formatted"]
             histfname = vdb_path(hist=True, **constructor)["formatted"]
             vdbfname.parent.mkdir(parents=True, exist_ok=True)
@@ -91,7 +92,8 @@ class VolumeIO(DataIO):
                 self.make_vdb(vdbfname, arr)   
         return vdb_info
 
-
+    def get_metdata():
+        return {}
 
     def split_axis_to_chunks(self, length, ch_ix, maxlen):
         # chunks to max 2048 length, with ch_ix dependent offsets
@@ -138,24 +140,29 @@ class VolumeObject(ChannelObject):
             import_node.node_tree = node_group
         else:
             import_node.node_tree = append_from_blend("Import Microscopy Volume", filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=True)
-            min_nodes.generate_format_string(import_node.node_tree, str(vdb_path()['template']), ch['data_info'][self.min_type])
+            min_nodes.generate_format_string(import_node.node_tree, str(vdb_path()['template']))
         node_group = import_node.node_tree
         
         import_node.location = (-600, 0)
-        for key in ch['data_info'][self.min_type][0]:
-            try:
-                import_node.inputs.get(key).default_value = int(ch['data_info'][self.min_type][0][key])
-            except Exception:
-                import_node.inputs.get(key).default_value = ch['data_info'][self.min_type][0][key]
-
 
         for input_field in import_node.inputs: 
             if input_field.name not in ['Include', 'Channel Name', 'Normalized']:
                 input_field.hide = True
         # Explicit setting
+        return
+    
+    def update_import_node(self, importnode, file_constructors):
+        if importnode.parent is not None:
+            importnode.parent.label = f"{importnode.inputs['Channel Name'].default_value} data"
+        for key in file_constructors[0]:
+            try:
+                import_node.inputs.get(key).default_value = int(ch['data_info'][self.min_type][0][key])
+            except Exception:
+                import_node.inputs.get(key).default_value = ch['data_info'][self.min_type][0][key]
         ch_to_node = {"VDB Minimum":"vdb_min", "VDB Maximum":"vdb_max", "Original Minimum":"data_min", "Original Maximum":"data_max", "Channel Name":"name"}
         for key in ch_to_node:
             import_node.inputs[ch_to_node[key]].default_value = ch[key]
+        # if 't' in ch['axes_order']:
             
         return
 
