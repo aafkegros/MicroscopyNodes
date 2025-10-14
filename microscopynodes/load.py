@@ -79,6 +79,9 @@ def load_blocking(params):
             continue
         data_io = DataIOFactory(min_type)
         ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+        # print(ch_obj.scale, scale)
+        ch_obj.obj.scale = scale
+        # print(ch_obj.scale, scale)
 
         for ch in ch_dicts:
             if ch[min_type] and scn.MiN_update_data:
