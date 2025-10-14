@@ -164,6 +164,8 @@ class ChannelObject():
         loadnode.hide = True
         loadnode.label = ch['name']
         loadnode.transform_space='RELATIVE'
+        loadnode.inputs.get('Reset Children').default_value = True
+        loadnode.inputs.get('Separate Children').default_value = True
 
         # reload-func:
         loadnode.name = f"channel_load_{ch['identifier']}"
