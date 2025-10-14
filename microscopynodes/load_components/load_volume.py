@@ -103,7 +103,7 @@ class VolumeIO(DataIO):
                 histogram[0] = 0
                 np.save(histfname, histogram, allow_pickle=False)
                 log(f"write vdb {identifier5d}")
-                self.make_vdb(vdbfname, arr, f"c{ch['ix']}")   
+                self.make_vdb(vdbfname, arr, f"data")   
 
         return str(dirpath), time_vdbs, time_hists
 
@@ -115,7 +115,7 @@ class VolumeIO(DataIO):
             import openvdb as vdb
             pass
         grid = vdb.FloatGrid()
-        grid.name = f"data"
+        grid.name = gridname
         grid.copyFromArray(arr)
         # For future OME-Zarr transforms - something like this:
         # grid.transform = vdb.createLinearTransform(np.array([[ 2. ,  0. ,  0. , 8.5],[ 0. ,  2. ,  0. ,  8.5],[ 0. ,  0. ,  2. ,  10.5],[ 0. ,  0. ,  0. ,  1. ]]).T)
