@@ -19,8 +19,8 @@ channels:
 cache_option: TEMPORARY # out of PATH, TEMPORARY, WITH_PROJECT
 cache_path: /example/path # only used if cache_option == PATH - gets replaced in tests 
 
-def load_microscopy(blend_path, import_loc, import_scale, channels : list[Channel], 
-         surf_resolution, invert_color, cache_option, cache_path):
-    pass
+# def load_microscopy(blend_path, import_loc, import_scale, channels : list[Channel], 
+#          surf_resolution, invert_color, cache_option, cache_path):
+#     pass
 
-def clear_scene():bpy.data.materials["Chromosomes volume.003"].node_tree.nodes["[alpha_ramp]"].color_ramp
+# def clear_scene():bpy.data.materials["Chromosomes volume.003"].node_tree.nodes["[alpha_ramp]"].color_ramp
