@@ -12,10 +12,22 @@ class SurfaceIO(DataIO):
         from .load_volume import VolumeIO
         return VolumeIO().import_data(ch, scale)
 
-
 class SurfaceObject(ChannelObject):
     min_type = min_keys.SURFACE
-    import_node_name = "Import Microscopy Volume"    
+    import_node_name = "Import Microscopy Volume"   
+
+    # identical to VolumeObject but annoyign to import
+    def update_import_node(self, import_node, file_constructors, ch):
+        super().update_import_node(import_node, file_constructors, ch)
+        ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
+        for key, val in ch_to_node.items():
+            import_node.inputs.get(key).default_value = ch['metadata'][self.min_type][val]
+        import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
+
+        for input_field in import_node.inputs: 
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+                input_field.hide = True
+        return 
 
     def add_material(self, ch):
         mat = super().add_material(ch)
@@ -54,13 +66,14 @@ class SurfaceObject(ChannelObject):
 
     def channel_nodes(self, x, y, ch, in_ch, out_ch):
         mat_in, mat_out = super().channel_nodes(x, y, ch, in_ch, out_ch)
+        nodes = self.node_group.nodes
+        links = self.node_group.links
 
         v2m = nodes.new('GeometryNodeVolumeToMesh')
         v2m.name = f"VOL_TO_MESH_{ch['identifier']}"
         v2m.location = (x + 400, y)
-        v2m.parent = editframe
-        links.new(ch_in, v2m.inputs.get('Volume'))
-        links.new(mat_in, edit_out.inputs[0])
+        links.new(in_ch, v2m.inputs.get('Volume'))
+        links.new(v2m.outputs.get('Mesh'), mat_in)
         
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
@@ -68,16 +81,8 @@ class SurfaceObject(ChannelObject):
         threshold_socket.max_value = 1.001
         threshold_socket.attribute_domain = 'POINT'
 
-        self.gn_mod[threshold_socket.identifier] =  ch['metadata'][self.min_type]['threshold']
-
-        normnode = self.node_group.nodes.new(type="ShaderNodeMapRange")
-        normnode.location =(edit_in.location[0] + 200, edit_in.location[1]-150)
-        normnode.label = "Normalize data"
-        normnode.inputs[3].default_value = ch['metadata'][self.min_type]['range'][0]       
-        normnode.inputs[4].default_value = ch['metadata'][self.min_type]['range'][1]       
-        links.new(in_node.outputs.get(threshold_socket.name), normnode.inputs[0])  
-        links.new(normnode.outputs[0], v2m.inputs.get("Threshold"))  
-        normnode.hide = True
+        self.gn_mod[threshold_socket.identifier] =  ch['metadata'][self.min_type]['threshold']      
+        links.new(self.node_group.nodes.get('Group Input').outputs.get(threshold_socket.name), v2m.inputs.get("Threshold"))  
         return
 
     def update_gn(self, ch):
