@@ -9,24 +9,12 @@ import string
 from .load_generic import *
 from ..handle_blender_structs import *
 from .. import min_nodes
-from databpy.nodes import append_from_blend
+
 
 NR_HIST_BINS = 2**16
 
 from pathlib import Path
 import string
-
-def vdb_path(hist=False, **kwargs):
-    template = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
-    if hist:
-        template = template.with_suffix('.npy')
-    keywords = [kw for _, kw, _, _ in string.Formatter().parse(str(template)) if kw]
-    try:
-        formatted = Path(str(template).format(**kwargs))
-    except KeyError as e:
-        print(e)
-        formatted = None  
-    return {"formatted": formatted, "template": template, "keywords": keywords}
 
 
 def get_leading_trailing_zero_float(arr):
@@ -36,6 +24,7 @@ def get_leading_trailing_zero_float(arr):
 
 class VolumeIO(DataIO):
     min_type = min_keys.VOLUME
+    VDB_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
 
     def generate_file_constructors(self, ch, cache_dir):
         """Purely generates file path metadata without writing."""
@@ -58,15 +47,15 @@ class VolumeIO(DataIO):
                 "x_end": block[0].stop, "y_end": block[1].stop, "z_end": block[2].stop,
                 "t": block[3].start, "t_end": block[3].stop,
                 "channel_ix": ch['ix'],
+                "template_str" : str(self.VDB_TEMPLATE),
             })
         return file_constructors
 
     def export_ch(self, ch, file_constructors, remake):
         vdb_info = []
         for constructor in file_constructors:
-            print("writing to ",vdb_path(hist=False, **constructor)["formatted"])
-            vdbfname = vdb_path(hist=False, **constructor)["formatted"]
-            histfname = vdb_path(hist=True, **constructor)["formatted"]
+            vdbfname = Path(str(self.VDB_TEMPLATE).format(**constructor))
+            histfname = vdbfname.with_suffix('.npz')
             vdbfname.parent.mkdir(parents=True, exist_ok=True)
             
             if( not vdbfname.exists() or not histfname.exists()) or remake :
@@ -80,20 +69,18 @@ class VolumeIO(DataIO):
 
                 arr = to_xyz(arr, ch['axes_order']) # for 1D and 2D data, expand to 3D, squeeze the single time frame
                 try:
-                    arr = arr.astype(np.float32) / min(np.iinfo(ch['data'].dtype).max, np.iinfo(np.int32).max) # scale between 0 and 1, capped to allow uint32 to at least not break
-                except ValueError as e:
-                    arr = arr.astype(np.float32) / ch['max_val'].compute()
-
+                    max_val = min(np.iinfo(ch['data'].dtype).max, np.iinfo(np.int32).max)
+                except ValueError:
+                    max_val = ch['max_val'].compute()
+                arr = arr.astype(np.float32) / max_val
                 # hists could be done better with bincount, but this doesnqt work with floats and seems harder to maintain
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
                 histogram[0] = 0
-                np.save(histfname, histogram, allow_pickle=False)
+                np.savez(histfname, data=histogram, metadata={"data_max": max_val}, allow_pickle=False)
                 log(f"write vdb {vdbfname.name}")
                 self.make_vdb(vdbfname, arr)   
+        
         return vdb_info
-
-    def get_metdata():
-        return {}
 
     def split_axis_to_chunks(self, length, ch_ix, maxlen):
         # chunks to max 2048 length, with ch_ix dependent offsets
@@ -129,42 +116,65 @@ class VolumeIO(DataIO):
         return
 
 
+    def get_metadata(self, file_constructors):
+        hist = np.zeros(NR_HIST_BINS)
+        data_max = 1.0
+        for constructor in file_constructors:
+            histfname = Path(str(constructor['template_str']).format(**constructor)).with_suffix('.npz')
+            try:
+                hist += np.load(histfname, allow_pickle=False)['data']
+                data_max = np.load(histfname, allow_pickle=True)['metadata'].item()['data_max']
+            except Exception as e:
+                print(e, " in reading histogram, skipping chunk")
+                hist += np.zeros(NR_HIST_BINS)
+        if not np.any(hist):
+            return {"range": (0, 1), 'vdb_min': 0, 'vdb_max':1, "histogram": np.zeros(NR_HIST_BINS), "threshold": 0, "threshold_upper": 1.0}
+
+        r0, r1 = get_leading_trailing_zero_float(hist)
+        cropped = hist[int(r0 * NR_HIST_BINS): int(r1 * NR_HIST_BINS)]
+        threshold = threshold_isodata(hist=cropped)
+
+        cs = np.cumsum(cropped)
+        threshold_upper = max(threshold+2,np.searchsorted(cs, np.percentile(cs, 70))) 
+
+        if threshold < 30:
+            threshold = 1
+            threshold_upper = len(cropped)
+        
+        return {
+            "range": (r0, r1), # legacy 
+            "vdb_min" : r0,
+            "vdb_max" : r1,
+            "histogram": cropped,
+            "threshold": threshold / len(cropped),
+            "threshold_upper": threshold_upper / len(cropped),
+            "data_max": data_max
+        }
+
 
 class VolumeObject(ChannelObject):
     min_type = min_keys.VOLUME
-    
-    def import_node(self, ch):
-        import_node = self.node_group.nodes.new("GeometryNodeGroup")  # type: ignore
-        node_group = bpy.data.node_groups.get("Import Microscopy Volume")
-        if node_group:
-            import_node.node_tree = node_group
-        else:
-            import_node.node_tree = append_from_blend("Import Microscopy Volume", filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=True)
-            min_nodes.generate_format_string(import_node.node_tree, str(vdb_path()['template']))
-        node_group = import_node.node_tree
-        
-        import_node.location = (-600, 0)
+    import_node_name = "Import Microscopy Volume"    
+
+    def update_import_node(self, import_node, file_constructors, ch):
+        super().update_import_node(import_node, file_constructors, ch)
+        ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
+        for key, val in ch_to_node.items():
+            import_node.inputs.get(key).default_value = ch['metadata'][self.min_type][val]
+        import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
 
         for input_field in import_node.inputs: 
-            if input_field.name not in ['Include', 'Channel Name', 'Normalized']:
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
                 input_field.hide = True
-        # Explicit setting
         return
     
-    def update_import_node(self, importnode, file_constructors):
-        if importnode.parent is not None:
-            importnode.parent.label = f"{importnode.inputs['Channel Name'].default_value} data"
-        for key in file_constructors[0]:
-            try:
-                import_node.inputs.get(key).default_value = int(ch['data_info'][self.min_type][0][key])
-            except Exception:
-                import_node.inputs.get(key).default_value = ch['data_info'][self.min_type][0][key]
-        ch_to_node = {"VDB Minimum":"vdb_min", "VDB Maximum":"vdb_max", "Original Minimum":"data_min", "Original Maximum":"data_max", "Channel Name":"name"}
-        for key in ch_to_node:
-            import_node.inputs[ch_to_node[key]].default_value = ch[key]
-        # if 't' in ch['axes_order']:
-            
-        return
+    def channel_nodes(self, x, y, ch, in_ch, out_ch):
+        mat_in, mat_out = super().channel_nodes(x, y, ch, in_ch, out_ch)
+        g2i = self.node_group.nodes.new('GeometryNodeGeometryToInstance')
+        g2i.location = (x + 500, y)
+        self.node_group.links.new(in_ch, g2i.inputs.get('Geometry'))
+        self.node_group.links.new(g2i.outputs.get('Instances'), mat_in)
+        return g2i.inputs.get('Geometry'), mat_out
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
@@ -208,7 +218,7 @@ class VolumeObject(ChannelObject):
         try:
             ch_load = nodes[f"[channel_load_{ch['identifier']}]"]
             shader_in_color = nodes['[shader_in_color]']
-            shader_in_alpha = nodes['[shader_in_alpha]']
+            shader_in_alpha = nodes['[shader_in_alpha]'] 
             shader_out = nodes['[shader_out]']
             lut = nodes['[color_lut]']
         except KeyError as e:
@@ -300,22 +310,10 @@ class VolumeObject(ChannelObject):
         node_attr.location = (-1600, 0)
         node_attr.name = f"[channel_load_{ch['identifier']}]"
 
-        try:
-            ch['metadata'][self.min_type]['datapointer'].grids.load()
-            node_attr.attribute_name = ch['metadata'][self.min_type]['datapointer'].grids[0].name
-        except Exception:
-            node_attr.attribute_name = f"data"
+        node_attr.attribute_name = 'data'
 
         node_attr.label = ch['name']
         node_attr.hide =True
-
-        normnode = nodes.new(type="ShaderNodeMapRange")
-        normnode.location = (-1400, 0)
-        normnode.label = "Normalize data"
-        normnode.inputs[1].default_value = ch['metadata'][self.min_type]['range'][0]       
-        normnode.inputs[2].default_value = ch['metadata'][self.min_type]['range'][1]    
-        links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
-        normnode.hide = True
 
         ramp_node = nodes.new(type="ShaderNodeValToRGB")
         ramp_node.location = (-1200, 0)
@@ -331,7 +329,7 @@ class VolumeObject(ChannelObject):
         if 'threshold_upper' in ch['metadata'][self.min_type]:
             ramp_node.color_ramp.elements[1].position = ch['metadata'][self.min_type]['threshold_upper']
         ramp_node.outputs[0].hide = True
-        links.new(normnode.outputs.get('Result'), ramp_node.inputs.get("Fac"))  
+        links.new(node_attr.outputs.get('Fac'), ramp_node.inputs.get("Fac"))  
 
         self.draw_histogram(nodes, (-1200, 300), 1000, ch['metadata'][self.min_type]['histogram'])
 
@@ -413,8 +411,13 @@ def binned_statistic_sum(x, values, bins):
     sums = np.zeros(bins.size - 1, dtype=values.dtype)
     np.add.at(sums, bin_indices, values)  # sum values in each bin
     return sums
-
-  # TODO REWORK ALL OF THIS TO SEPARATE WRITING AND FILEPATH GENERATION
+    
+    
+    
+    
+    
+    
+    # TODO remove all of this old code below once confirmed working
     # def export_ch(self, ch, cache_dir, remake, axes_order, write):
     #     vdb_info = []
     #     axes_order = axes_order.replace('c', '') 
@@ -526,3 +529,42 @@ def binned_statistic_sum(x, values, bins):
     #         metadata['threshold'] = 0.3
     #         metadata['threshold_upper'] = 1
     #     return vol_collection, metadata
+#  def get_metadata(self, file_constructors):
+#         hist = np.zeros(NR_HIST_BINS)
+#         for constructor in file_constructors:
+#             histfname = vdb_path(hist=True, **constructor)["formatted"]
+#             try:
+#                 hist += np.load(histfname, allow_pickle=False)
+#             except Exception as e:
+#                 hist += np.zeros(NR_HIST_BINS)
+#         histtotal = hist
+#         metadata = {}
+#         metadata['range'] = (0, 1)
+#         metadata['histogram'] = np.zeros(NR_HIST_BINS)
+
+#         if np.sum(histtotal)> 0:
+#             metadata['range'] = get_leading_trailing_zero_float(histtotal)
+#             metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
+#             threshold = threshold_isodata(hist=metadata['histogram'] )
+#             metadata['threshold'] = threshold/len(metadata['histogram'] )  
+#             cs = np.cumsum(metadata['histogram'])
+#             percentile = np.searchsorted(cs, np.percentile(cs, 80))
+#             if percentile > threshold:
+#                 metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
+#         elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
+#             metadata['threshold'] = ch['threshold']
+#         else:
+#             # this is for 0,1 range int32 data
+#             metadata['range'] = (0, 1e-9)
+#             metadata['threshold'] = 0.3
+#             metadata['threshold_upper'] = 1
+        
+#         return metadata
+
+        # normnode = nodes.new(type="ShaderNodeMapRange")
+        # normnode.location = (-1400, 0)
+        # normnode.label = "Normalize data"
+        # normnode.inputs[1].default_value = ch['metadata'][self.min_type]['range'][0]       
+        # normnode.inputs[2].default_value = ch['metadata'][self.min_type]['range'][1]    
+        # links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
+        # normnode.hide = True

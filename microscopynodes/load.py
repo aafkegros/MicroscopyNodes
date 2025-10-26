@@ -77,6 +77,8 @@ def load_blocking(params):
         for ch in ch_dicts:
             if ch[min_type] and scn.MiN_update_data:
                 file_constructors = data_io.generate_file_constructors(ch, cache_dir)
+                ch['metadata'][min_type] = data_io.get_metadata(file_constructors)
+                print(ch['metadata'][min_type])
                 ch_obj.update_ch_data(ch, file_constructors)
             if scn.MiN_update_settings:
                 ch_obj.update_ch_settings(ch)

@@ -15,6 +15,7 @@ class SurfaceIO(DataIO):
 
 class SurfaceObject(ChannelObject):
     min_type = min_keys.SURFACE
+    import_node_name = "Import Microscopy Volume"    
 
     def add_material(self, ch):
         mat = super().add_material(ch)
@@ -51,22 +52,15 @@ class SurfaceObject(ChannelObject):
         princ.inputs.get('Alpha').default_value = 0.8
         return mat
 
-    def append_channel_to_holder(self, ch):
-        super().append_channel_to_holder(ch)
-        in_node = get_safe_node_input(self.node_group)
-        nodes = self.node_group.nodes
-        links = self.node_group.links
-        # can be explicitly named as this should only be called upon appending a channel
-        edit_in = nodes[f"edit_in_{ch['identifier']}"]
-        edit_out = nodes[f"edit_out_{ch['identifier']}"]
-        editframe = nodes[f"editframe_{ch['identifier']}"]
+    def channel_nodes(self, x, y, ch, in_ch, out_ch):
+        mat_in, mat_out = super().channel_nodes(x, y, ch, in_ch, out_ch)
 
         v2m = nodes.new('GeometryNodeVolumeToMesh')
         v2m.name = f"VOL_TO_MESH_{ch['identifier']}"
-        v2m.location = (edit_in.location[0] + 400, edit_in.location[1])
+        v2m.location = (x + 400, y)
         v2m.parent = editframe
-        links.new(edit_in.outputs[0], v2m.inputs.get('Volume'))
-        links.new(v2m.outputs.get('Mesh'), edit_out.inputs[0])
+        links.new(ch_in, v2m.inputs.get('Volume'))
+        links.new(mat_in, edit_out.inputs[0])
         
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
@@ -84,7 +78,6 @@ class SurfaceObject(ChannelObject):
         links.new(in_node.outputs.get(threshold_socket.name), normnode.inputs[0])  
         links.new(normnode.outputs[0], v2m.inputs.get("Threshold"))  
         normnode.hide = True
-        
         return
 
     def update_gn(self, ch):

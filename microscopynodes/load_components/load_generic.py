@@ -1,7 +1,8 @@
 import bpy
 from ..handle_blender_structs import *
 import numpy as np
-
+from .. import min_nodes
+from databpy.nodes import append_from_blend
 
 def ChannelObjectFactory(min_key, obj, scale):
     if min_key == min_keys.VOLUME:
@@ -15,12 +16,12 @@ def ChannelObjectFactory(min_key, obj, scale):
         return LabelmaskObject(obj, scale)
 
 def DataIOFactory(min_key):
-    if min_key == min_keys.VOLUME:
+    if min_key == min_keys.VOLUME or min_key == min_keys.SURFACE:
         from .load_volume import VolumeIO
         return VolumeIO()
-    elif min_key == min_keys.SURFACE:
-        from .load_surfaces import SurfaceIO
-        return SurfaceIO()
+    # elif min_key == min_keys.SURFACE:
+    #     from .load_surfaces import SurfaceIO
+    #     return SurfaceIO()
     elif min_key == min_keys.LABELMASK:
         from .load_labelmask import LabelmaskIO
         return LabelmaskIO()
@@ -39,12 +40,15 @@ class DataIO():
         # return collection, metadata
         return None, None
 
+    def get_metadata(self, file_constructors):
+        return {}
 
 class ChannelObject():
     min_type = min_keys.NONE
     obj = None
     gn_mod = None
     node_group = None
+    import_node_name = ""
 
     def __init__(self, obj, scale):
         if obj is None:
@@ -69,7 +73,9 @@ class ChannelObject():
         node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')  
         obj.modifiers[-1].node_group = node_group
         obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
+        node_group.interface.new_socket(name="Frame", in_out="INPUT",socket_type='NodeSocketInt')
         node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
+        node_group.interface.items_tree[-1].default_attribute_name = "[frame]"
 
         inputnode = node_group.nodes.new('NodeGroupInput')
         inputnode.location = (-900, 0)
@@ -91,7 +97,7 @@ class ChannelObject():
         if not self.ch_present(ch): 
             self.append_channel_to_holder(ch)
         importnode = self.node_group.nodes[f"channel_load_{ch['identifier']}"]
-        self.update_import_node(importnode, file_constructors)  
+        self.update_import_node(importnode, file_constructors, ch)  
         return
 
     def update_ch_settings(self, ch):
@@ -99,7 +105,6 @@ class ChannelObject():
             return
 
         for ix, socket in enumerate(self.node_group.interface.items_tree):
-            
             if isinstance(socket, bpy.types.NodeTreeInterfaceSocket) and ch['identifier'] in socket.default_attribute_name:
                 set_name_socket(socket, ch['name'])
         
@@ -111,6 +116,39 @@ class ChannelObject():
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
             self.gn_mod[socket.identifier] = bool(ch[self.min_type])
+        return
+
+    def import_node(self, ch):
+        import_node = self.node_group.nodes.new("GeometryNodeGroup")  # type: ignore
+        node_group = bpy.data.node_groups.get(self.import_node_name)
+        if node_group:
+            import_node.node_tree = node_group
+        else: 
+            import_node.node_tree = append_from_blend(self.import_node_name, filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=False)
+        import_node.location = (-600, 0)
+        return import_node
+
+    def config_import_node(self, import_node, file_constructors, ch):
+        # updates based on the format string, applies visuals
+        min_nodes.generate_format_string(import_node.node_tree, file_constructors[0]['template_str'])
+        import_node.inputs.get('template_str').default_value = file_constructors[0]['template_str']
+
+    def update_import_node(self, import_node, file_constructors, ch):
+        if not any([socket.name == 'template_str' for socket in import_node.node_tree.interface.items_tree]):
+            # dynamically add format str to newly appended import group - TODO make dynamic template str
+            min_nodes.generate_format_string(import_node.node_tree, file_constructors[0]['template_str'])
+            import_node.inputs.get('template_str').default_value = file_constructors[0]['template_str']
+        self.node_group.links.new(self.node_group.nodes['Group Input'].outputs['Frame'], import_node.inputs['Frame'])
+        for key,val in file_constructors[0].items():
+            if key == 't':
+                key = 'Frame'
+            if import_node.inputs.get(key) is None:
+                continue
+            try:
+                import_node.inputs.get(key).default_value = int(val)
+            except Exception:
+                import_node.inputs.get(key).default_value = str(val)
+        import_node.label = ch['name']
         return
 
     def ch_present(self, ch):
@@ -147,66 +185,28 @@ class ChannelObject():
         for node in self.node_group.nodes:
             if node.name not in [in_node.name, out_node.name, joingeo.name]:
                 min_y_loc = min(min_y_loc, node.location[1])
-        in_ch, out_ch = self.channel_nodes(in_node.location[0] + 400, min_y_loc - 300, ch)
+        
+        x = in_node.location[0] + 400
+        y = min_y_loc - 300
+        importnode = self.import_node(ch)
+        importnode.location = (x , y+100)
+        importnode.name = f"channel_load_{ch['identifier']}"
 
-        self.node_group.links.new(node_socket, in_ch)
-        self.node_group.links.new(out_ch, joingeo.inputs[-1])
+        self.channel_nodes(x, y, ch, importnode.outputs[0], joingeo.inputs[-1])
+
+        self.node_group.links.new(node_socket, importnode.inputs.get("Include"))
         return
 
-    def channel_nodes(self, x, y, ch):
-        nodes = self.node_group.nodes
-        links = self.node_group.links
-        interface = self.node_group.interface
-        
-        importnode = self.import_node(ch)
-
-        loadnode = nodes.new('GeometryNodeCollectionInfo')
-        loadnode.location = (x , y + 100)
-        loadnode.hide = True
-        loadnode.label = ch['name']
-        loadnode.transform_space='RELATIVE'
-
-        # reload-func:
-        loadnode.name = f"channel_load_{ch['identifier']}"
-        
-        switch = nodes.new('GeometryNodeSwitch')      
-        switch.location = (x, y + 50)  
-        switch.input_type = 'GEOMETRY'
-        links.new(loadnode.outputs.get('Instances'), switch.inputs.get("True"))
-        switch.hide = True
-        switch.label = "Include channel"
-        
-        dataframe = nodes.new('NodeFrame')
-        loadnode.parent = dataframe
-        switch.parent = dataframe
-        dataframe.label = f"{ch['name']} data"
-        dataframe.name = f"dataframe_{ch['identifier']}"
-
-        reroutes = [switch] 
-        for x_, y_ in [(220, 40), (0, -150), (850,0), (0, 150)]:
-            x += x_
-            y += y_
-            reroutes.append(nodes.new('NodeReroute'))
-            reroutes[-1].location= (x, y)
-            links.new(reroutes[-2].outputs[0], reroutes[-1].inputs[0])
-        
-        x += 50
-        
-        editframe = nodes.new('NodeFrame')
-        reroutes[2].parent = editframe
-        reroutes[2].name = f"edit_in_{ch['identifier']}"
-        reroutes[3].parent = editframe
-        reroutes[3].name = f"edit_out_{ch['identifier']}"
-        editframe.label = f"edit geometry"
-        editframe.name = f"editframe_{ch['identifier']}"
-        
-        setmat = nodes.new('GeometryNodeSetMaterial')
+    def channel_nodes(self, x, y, ch, in_ch, out_ch):
+        x += 800
+        setmat = self.node_group.nodes.new('GeometryNodeSetMaterial')
         setmat.name = f"set_material_{ch['identifier']}"
         setmat.inputs.get('Material').default_value = self.add_material(ch)
-        links.new(reroutes[-1].outputs[0], setmat.inputs.get('Geometry'))
         setmat.location = (x, y)
-        setmat.hide= True
-        return switch.inputs.get("Switch"), setmat.outputs[0]
+        
+        self.node_group.links.new(in_ch, setmat.inputs.get('Geometry'))
+        self.node_group.links.new(setmat.outputs[0], out_ch)
+        return setmat.inputs[0] , setmat.outputs[0]
 
 
     def set_parent_and_slicer(self, parent, slice_cube, ch):
@@ -217,3 +217,4 @@ class ChannelObject():
         if self.min_type in ch['collections']:
             for obj in ch['collections'][self.min_type].all_objects:
                 obj.parent = parent
+            
