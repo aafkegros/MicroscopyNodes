@@ -60,7 +60,7 @@ def load_blocking(params):
     # label mask exporting is hard to move outside of blocking functions, as it uses the Blender abc export
     for ch in ch_dicts:
         if ch[min_keys.LABELMASK] and scn.MiN_update_data:
-            ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  scn.MiN_remake,  axes_order)
+            ch[min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  scn.MiN_remake,  axes_order)
     
     # -- axes, slice cube and scales -- 
     scale, scale_factor = parse_scale(size_px, pixel_size, objs) 
