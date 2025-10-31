@@ -162,10 +162,6 @@ class VolumeObject(ChannelObject):
         for key, val in ch_to_node.items():
             import_node.inputs.get(key).default_value = ch['metadata'][self.min_type][val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
-
-        for input_field in import_node.inputs: 
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
-                input_field.hide = True
         return
     
     def channel_nodes(self, x, y, ch, in_ch, out_ch):

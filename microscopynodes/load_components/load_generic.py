@@ -19,9 +19,6 @@ def DataIOFactory(min_key):
     if min_key == min_keys.VOLUME or min_key == min_keys.SURFACE:
         from .load_volume import VolumeIO
         return VolumeIO()
-    # elif min_key == min_keys.SURFACE:
-    #     from .load_surfaces import SurfaceIO
-    #     return SurfaceIO()
     elif min_key == min_keys.LABELMASK:
         from .load_labelmask import LabelmaskIO
         return LabelmaskIO()
@@ -126,19 +123,17 @@ class ChannelObject():
         else: 
             import_node.node_tree = append_from_blend(self.import_node_name, filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=False)
         import_node.location = (-600, 0)
+
+        for input_field in import_node.inputs: 
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+                input_field.hide = True
         return import_node
 
-    def config_import_node(self, import_node, file_constructors, ch):
-        # updates based on the format string, applies visuals
-        min_nodes.generate_format_string(import_node.node_tree, file_constructors[0]['template_str'])
-        import_node.inputs.get('template_str').default_value = file_constructors[0]['template_str']
 
     def update_import_node(self, import_node, file_constructors, ch):
-        if not any([socket.name == 'template_str' for socket in import_node.node_tree.interface.items_tree]):
-            # dynamically add format str to newly appended import group - TODO make dynamic template str
-            min_nodes.generate_format_string(import_node.node_tree, file_constructors[0]['template_str'])
-            import_node.inputs.get('template_str').default_value = file_constructors[0]['template_str']
-        self.node_group.links.new(self.node_group.nodes['Group Input'].outputs['Frame'], import_node.inputs['Frame'])
+        if import_node.inputs.get('original_path') == "":
+            import_node.inputs.get('original_path').default_value = ch['dataset_path']
+            self.node_group.links.new(self.node_group.nodes['Group Input'].outputs['Frame'], import_node.inputs['Frame'])
         for key,val in file_constructors[0].items():
             if key == 't':
                 key = 'Frame'
