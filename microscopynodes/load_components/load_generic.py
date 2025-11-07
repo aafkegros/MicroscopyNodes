@@ -32,10 +32,6 @@ class DataIO():
     def export_ch(self, ch, file_constructors, remake):
         # return paths to local files with metadata in list of dcts
         return []
-    
-    def import_data(self, ch, scale):
-        # return collection, metadata
-        return None, None
 
     def get_metadata(self, file_constructors):
         return {}
@@ -113,7 +109,19 @@ class ChannelObject():
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
             self.gn_mod[socket.identifier] = bool(ch[self.min_type])
+        
+        
+        # frame_socket, socket_ix = get_socket_by_name('[frame]', return_ix=True)
+        # keyframes = get_keyframes(self.gn_mod, '["Socket_0"]')
+        # if len(keyframes) == 2:
+        #     if keyframe
+
+        setattr(self.gn_mod, '["Socket_0"]', 0)
+        self.gn_mod.keyframe_insert(data_path='["Socket_0"]', frame=0)
+        setattr(self.gn_mod, '["Socket_0"]', bpy.context.scene.MiN_load_end_frame-bpy.context.scene.MiN_load_start_frame)
+        self.gn_mod.keyframe_insert(data_path='["Socket_0"]', frame=bpy.context.scene.MiN_load_end_frame-bpy.context.scene.MiN_load_start_frame)
         return
+    
 
     def import_node(self, ch):
         import_node = self.node_group.nodes.new("GeometryNodeGroup")  # type: ignore
@@ -167,13 +175,11 @@ class ChannelObject():
             if self.min_type != min_keys.VOLUME:
                 realize = self.node_group.nodes.new('GeometryNodeRealizeInstances')
                 insert_last_node(self.node_group, realize, safe=True)
-        
+
+        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
+
         if out_node.location[0] - 1200 < in_node.location[0]: # make sure there is enough space
             out_node.location[0] = in_node.location[0]+1200
-
-        # add switch socket
-        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
-        node_socket = in_node.outputs.get(socket.name)
 
         # make new channel
         min_y_loc = in_node.location[1] + 300
@@ -186,10 +192,16 @@ class ChannelObject():
         importnode = self.import_node(ch)
         importnode.location = (x , y+100)
         importnode.name = f"channel_load_{ch['identifier']}"
+        
+        
 
         self.channel_nodes(x, y, ch, importnode.outputs[0], joingeo.inputs[-1])
 
-        self.node_group.links.new(node_socket, importnode.inputs.get("Include"))
+        self.node_group.links.new(in_node.outputs.get('Frame'), importnode.inputs.get("Frame"))
+        # add switch socket
+        
+        node_socket = in_node.outputs.get(socket.name)
+        self.node_group.links.new(in_node.outputs.get(socket.name), importnode.inputs.get("Include"))
         return
 
     def channel_nodes(self, x, y, ch, in_ch, out_ch):

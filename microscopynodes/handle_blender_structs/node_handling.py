@@ -132,6 +132,13 @@ def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
         return None, None
     return None
 
+def get_socket_by_name(node_group, name, return_ix=False):
+    for ix, socket in enumerate(node_group.interface.items_tree):
+        if re.search(string=socket.default_attribute_name, pattern=f"{name}") is not None:
+            if return_ix:
+                return node_group.interface.items_tree[ix], ix
+            return node_group.interface.items_tree[ix]
+
 def insert_slicing(group, slice_obj):
     nodes = group.nodes
     links = group.links

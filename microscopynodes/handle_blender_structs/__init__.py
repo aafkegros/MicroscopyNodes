@@ -3,3 +3,4 @@ from .node_handling import *
 from .progress_handling import *
 from .props import *
 from .array_handling import *
+from .keyframe_handling import *
