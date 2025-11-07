@@ -31,4 +31,5 @@ def load_slice_cube(size_px, scale, scale_factor, container, slicecube=None):
     slicecube.parent = container
     slicecube.location =  np.array(slicecube.location)+ ( np.array(slicecube.location)*(scale_factor - 1))
     slicecube.scale = np.array(slicecube.scale)  * scale_factor
+    slicecube.display_type = 'BOUNDS'
     return slicecube

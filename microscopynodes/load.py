@@ -21,12 +21,16 @@ def load_threaded(params):
 
         log('Loading file')
         load_array(ch_dicts) # unpacks into ch_dicts
-        axes_order = axes_order.replace('c', "") # channels are separated
-        
+
         for ch in ch_dicts:
-            if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]: #TODO Maybe put axes order in ch
-                file_constructors = VolumeIO().generate_file_constructors(ch, cache_dir)
-                VolumeIO().export_ch(ch, file_constructors, scn.MiN_remake)
+            for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
+                if ch[min_type]:
+                    data_io = DataIOFactory(min_type)
+                    file_constructors = data_io.generate_file_constructors(ch, cache_dir)
+                    data_io.export_ch(ch, file_constructors, scn.MiN_remake)
+            # if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]: #TODO Maybe put axes order in ch
+            #     file_constructors = VolumeIO().generate_file_constructors(ch, cache_dir)
+            #     VolumeIO().export_ch(ch, file_constructors, scn.MiN_remake)
 
         log('Loading objects to Blender')
     except Exception as e: # hacky way to track exceptions across threaded process
@@ -58,9 +62,9 @@ def load_blocking(params):
 
     # -- export labelmask --
     # label mask exporting is hard to move outside of blocking functions, as it uses the Blender abc export
-    for ch in ch_dicts:
-        if ch[min_keys.LABELMASK] and scn.MiN_update_data:
-            ch[min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  scn.MiN_remake,  axes_order)
+    # for ch in ch_dicts:
+    #     if ch[min_keys.LABELMASK] and scn.MiN_update_data:
+    #         ch[min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  scn.MiN_remake,  axes_order)
     
     # -- axes, slice cube and scales -- 
     scale, scale_factor = parse_scale(size_px, pixel_size, objs) 
@@ -71,14 +75,12 @@ def load_blocking(params):
     for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
         if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
             continue
-        data_io = DataIOFactory(min_type)
         ch_obj = ChannelObjectFactory(min_type, objs[min_type], scale)
 
         for ch in ch_dicts:
             if ch[min_type] and scn.MiN_update_data:
-                file_constructors = data_io.generate_file_constructors(ch, cache_dir)
-                ch['metadata'][min_type] = data_io.get_metadata(file_constructors)
-                print(ch['metadata'][min_type])
+                file_constructors = DataIOFactory(min_type).generate_file_constructors(ch, cache_dir)
+                ch['metadata'][min_type] = DataIOFactory(min_type).get_metadata(file_constructors)
                 ch_obj.update_ch_data(ch, file_constructors)
             if scn.MiN_update_settings:
                 ch_obj.update_ch_settings(ch)
