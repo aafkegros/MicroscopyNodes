@@ -265,8 +265,8 @@ class VolumeObject(ChannelObject):
         alphanode.name = '[volume_alpha]'
         alphanode.location = (-300, -120)
         alphanode.show_options = False
-        alphanode.outputs.get("Alpha Baseline").default_value = 0
-        alphanode.outputs.get("Alpha Multiplier").default_value = 1
+        alphanode.inputs.get("Alpha Baseline").default_value = 0
+        alphanode.inputs.get("Alpha Multiplier").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
 
@@ -283,6 +283,7 @@ class VolumeObject(ChannelObject):
         links.new(color_lut.outputs[0],ac_linear.inputs[0])
         links.new(alphanode.outputs.get("Alpha Baseline"),ac_linear.inputs.get("Alpha Baseline"))
         links.new(alphanode.outputs.get("Alpha Multiplier"),ac_linear.inputs.get("Alpha Multiplier"))
+        ac_linear.label = "Ensure linear scaling"
         ac_linear.hide =True
 
         shader_nodes = {'ShaderNodeEmission': None, 'ShaderNodeVolumeAbsorption': None, 'ShaderNodeVolumeScatter':None}
@@ -316,7 +317,7 @@ class VolumeObject(ChannelObject):
         menuswitch.enum_items.clear()
         menuswitch.enum_items.new("Emission")
         menuswitch.enum_items.new("Scattering")
-        
+
         links.new(shader_nodes["ShaderNodeEmission"].outputs[0], menuswitch.inputs[1])
         links.new(add.outputs[0], menuswitch.inputs[2])
         
