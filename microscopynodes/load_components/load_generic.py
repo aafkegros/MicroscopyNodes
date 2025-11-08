@@ -2,7 +2,9 @@ import bpy
 from ..handle_blender_structs import *
 import numpy as np
 from .. import min_nodes
-from databpy.nodes import append_from_blend
+
+
+# This defines abstract classes for interacting with all microscopy nodes objects
 
 def ChannelObjectFactory(min_key, obj, scale):
     if min_key == min_keys.VOLUME:
@@ -124,14 +126,8 @@ class ChannelObject():
     
 
     def import_node(self, ch):
-        import_node = self.node_group.nodes.new("GeometryNodeGroup")  # type: ignore
-        node_group = bpy.data.node_groups.get(self.import_node_name)
-        if node_group:
-            import_node.node_tree = node_group
-        else: 
-            import_node.node_tree = append_from_blend(self.import_node_name, filepath='/Users/oanegros/Documents/werk/tif2bpy/microscopynodes/min_nodes/min_nodes.blend/NodeTree',link=False)
+        import_node = node_handling.nodegroup_from_blend(self.import_node_name, nodes=self.node_group.nodes)
         import_node.location = (-600, 0)
-
         for input_field in import_node.inputs: 
             if input_field.name not in ['Include', 'Normalized', 'Frame']:
                 input_field.hide = True

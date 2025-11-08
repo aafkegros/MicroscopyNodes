@@ -1,6 +1,7 @@
 import bpy 
 from .. import min_nodes
 import re
+from databpy.nodes import append_from_blend
 
 def  get_nodes_last_output(group):
     # fast function for tests and non-user changed trees
@@ -164,3 +165,11 @@ def insert_slicing(group, slice_obj):
     outnode.location = (outnode.location[0]+550, outnode.location[1])
     return
 
+def nodegroup_from_blend(name, nodes, tree_type = "GeometryNodeGroup", link=False):
+    node = nodes.new(tree_type) 
+    node_group = bpy.data.node_groups.get(name)
+    if node_group:
+        node.node_tree = node_group
+    else: 
+        node.node_tree = append_from_blend(name, filepath=min_nodes.MIN_DATA_FILE,link=False)
+    return node

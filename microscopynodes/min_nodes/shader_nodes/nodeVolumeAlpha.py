@@ -20,7 +20,7 @@ def volume_alpha_node():
     interface.items_tree[-1].default_value = False
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.new_socket("Alpha Baseline", in_out="INPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 0.2
+    interface.items_tree[-1].default_value = 1
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 100.0
@@ -31,6 +31,10 @@ def volume_alpha_node():
     interface.items_tree[-1].max_value = 100.0
 
     interface.new_socket("Alpha", in_out="OUTPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.new_socket("Alpha Baseline", in_out="OUTPUT",socket_type='NodeSocketFloat')
+    interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.new_socket("Alpha Multiplier", in_out="OUTPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'
     
     group_input = node_group.nodes.new("NodeGroupInput")
@@ -58,14 +62,10 @@ def volume_alpha_node():
     links.new(mult_add.outputs[0], mult.inputs[0])
     links.new(ignore_extremes.outputs[0], mult.inputs[1])
 
-#    mult3 = node_group.nodes.new("ShaderNodeMath")
-#    mult3.location = (600, -150)
-#    mult3.operation = "MULTIPLY"
-#    links.new(mult.outputs[0], mult3.inputs[0])
-#    links.new(group_input.outputs.get("Alpha Multiplier"), mult3.inputs[1])
-
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (600, -100)
     links.new(mult.outputs[0], group_output.inputs[0])
+    links.new(group_input.outputs.get("Alpha Baseline"), group_output.inputs.get("Alpha Baseline"))
+    links.new(group_input.outputs.get("Alpha Multiplier"), group_output.inputs.get("Alpha Multiplier"))
 #    links.new(mult3.outputs[0], group_output.inputs[1])
     return node_group

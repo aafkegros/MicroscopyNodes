@@ -203,93 +203,24 @@ class VolumeObject(ChannelObject):
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
 
-        node_names = [node.name for node in nodes]
+        if nodes.get('[color_lut]') is not None:
+            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes['[color_lut]'])
 
         if self.min_type in ch['metadata']:
-            if '[Histogram]' in node_names and ch['metadata'][self.min_type] is not None:
+            if ch['metadata'][self.min_type] is not None and nodes.get('[Histogram]') is not None:
                 histnode= nodes["[Histogram]"]
                 self.draw_histogram(nodes, histnode.location,histnode.width, ch['metadata'][self.min_type]['histogram'])
                 nodes.remove(histnode)
 
-        try:
-            ch_load = nodes[f"[channel_load_{ch['identifier']}]"]
-            shader_in_color = nodes['[shader_in_color]']
-            shader_in_alpha = nodes['[shader_in_alpha]'] 
-            shader_out = nodes['[shader_out]']
-            lut = nodes['[color_lut]']
-        except KeyError as e:
-            print(e, " skipping update of shader")
-            return
-
-        min_nodes.shader_nodes.set_color_ramp_from_ch(ch, lut)
-
-
-        if '[shaderframe]' not in node_names:
-            shaderframe = nodes.new('NodeFrame')
-            shaderframe.name = '[shaderframe]'
-            shaderframe.use_custom_color = True
-            shaderframe.color = (0.2,0.2,0.2)
-            shader_in_color.parent = shaderframe
-            shader_in_alpha.parent = shaderframe
-            shader_out.parent = shaderframe
-        else:
-            shaderframe = nodes['[shaderframe]']
-
-        ch_load.label = ch['name']
-        # removes of other type, if any of current type exist, don't update
-        setting, remove = 'absorb', 'emit'
-        if ch['emission']:
-            setting, remove = 'emit', 'absorb'
+        if nodes.get('[switch]') is not None:
+            nodes['[switch]'].inputs[0].default_value = ['Emission', 'Scattering'][int(not ch['emission'])]
 
         for node in nodes:
-            if remove in node.name:
-                nodes.remove(node)
-            elif setting in node.name:
-                return
-        
-        if ch['emission']:
-            emit = nodes.new(type='ShaderNodeEmission')
-            emit.name = '[emit]'
-            emit.location = (250,0)
-            links.new(shader_in_color.outputs[0], emit.inputs.get('Color'))
-            links.new(shader_in_alpha.outputs[0], emit.inputs[1])
-            links.new(emit.outputs[0], shader_out.inputs[0])
-            emit.parent=shaderframe
-        else:
-            
-            adsorb = nodes.new(type='ShaderNodeVolumeAbsorption')
-            adsorb.name = 'absorb [absorb]'
-            adsorb.location = (50,-100)
-            links.new(shader_in_color.outputs[0], adsorb.inputs.get('Color'))
-            links.new(shader_in_alpha.outputs[0], adsorb.inputs.get('Density'))
-            scatter = nodes.new(type='ShaderNodeVolumeScatter')
-            scatter.name = 'scatter absorb'
-            scatter.location = (250,-200)
-            links.new(shader_in_color.outputs[0], scatter.inputs.get('Color'))
-            links.new(shader_in_alpha.outputs[0], scatter.inputs.get('Density'))
-            scatter.parent=shaderframe
-
-            add = nodes.new(type='ShaderNodeAddShader')
-            add.name = 'add [absorb]'
-            add.location = (450, -100)
-            links.new(adsorb.outputs[0], add.inputs[0])
-            links.new(scatter.outputs[0], add.inputs[1])
-            links.new(add.outputs[0], shader_out.inputs[0])
-            add.parent=shaderframe
-
-
-        try:
-            for node in nodes:
-                if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
-                    node.inputs[0].show_expanded = True
-                    if node.inputs.get('Strength') is not None:
-                        node.inputs.get('Strength').show_expanded= True
-                    if node.inputs.get('Density') is not None:
-                        node.inputs.get('Density').show_expanded= True
-            shader_in_alpha.inputs[0].show_expanded=True
-            nodes['[volume_alpha]'].inputs[0].show_expanded = True
-        except:
-            print('could not set outliner options expanded in shader')
+            if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
+                node.inputs[0].show_expanded = True # traces through
+                for key in ['Strength', 'Density', 'Emission']: # non-first key
+                    if (inp := node.inputs.get(key)) is not None:
+                        inp.show_expanded = True
         return
 
     def add_material(self, ch):
@@ -334,6 +265,8 @@ class VolumeObject(ChannelObject):
         alphanode.name = '[volume_alpha]'
         alphanode.location = (-300, -120)
         alphanode.show_options = False
+        alphanode.outputs.get("Alpha Baseline").default_value = 0
+        alphanode.outputs.get("Alpha Multiplier").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
 
@@ -344,28 +277,56 @@ class VolumeObject(ChannelObject):
         color_lut.name = "[color_lut]"
         color_lut.outputs[1].hide = True
         links.new(ramp_node.outputs[1], color_lut.inputs[0])
-        
 
-        shader_in_color = nodes.new('NodeReroute')
-        shader_in_color.name = f"[shader_in_color]"
-        shader_in_color.location = (100, 0)
-        links.new(color_lut.outputs[0], shader_in_color.inputs[0])
+        ac_linear = node_handling.nodegroup_from_blend("Normalize Luminance", nodes, "ShaderNodeGroup")
+        ac_linear.location = (150, 0)
+        links.new(color_lut.outputs[0],ac_linear.inputs[0])
+        links.new(alphanode.outputs.get("Alpha Baseline"),ac_linear.inputs.get("Alpha Baseline"))
+        links.new(alphanode.outputs.get("Alpha Multiplier"),ac_linear.inputs.get("Alpha Multiplier"))
+        ac_linear.hide =True
 
-        shader_in_alpha = nodes.new('NodeReroute')
-        shader_in_alpha.name = f"[shader_in_alpha]"
-        shader_in_alpha.location = (100, -50)
-        links.new(alphanode.outputs[0], shader_in_alpha.inputs[0])
+        shader_nodes = {'ShaderNodeEmission': None, 'ShaderNodeVolumeAbsorption': None, 'ShaderNodeVolumeScatter':None}
+
+        for i, node_type in enumerate(shader_nodes):
+            node = nodes.new(type=node_type)
+            node.location = (350, 100 - 150 * i)
+            links.new(ac_linear.outputs[0], node.inputs.get("Color"))
+            links.new(alphanode.outputs[0], node.inputs[1])
+            shader_nodes[node_type] = node
+
+        div = nodes.new(type='ShaderNodeMath')
+        div.operation = 'DIVIDE'
+        div.inputs[1].default_value = 10
+        div.location = (150, 100)
+        div.label = 'Divide by 10'
+        links.new(alphanode.outputs[0], div.inputs[0])
+        links.new(div.outputs[0], shader_nodes["ShaderNodeEmission"].inputs[1])
+        div.hide=True
+
+        add = nodes.new(type="ShaderNodeAddShader")
+        add.location = (550, -150)
+        links.new(shader_nodes["ShaderNodeVolumeAbsorption"].outputs[0], add.inputs[0])
+        links.new(shader_nodes["ShaderNodeVolumeScatter"].outputs[0], add.inputs[1])
+
+        menuswitch = nodes.new(type="GeometryNodeMenuSwitch")
+        menuswitch.name = "[switch]"
+        menuswitch.label = "Emission Switch"
+        menuswitch.data_type = 'SHADER'
+        menuswitch.location = (800, 0)
+        menuswitch.enum_items.clear()
+        menuswitch.enum_items.new("Emission")
+        menuswitch.enum_items.new("Scattering")
         
-        shader_out = nodes.new('NodeReroute')
-        shader_out.location = (600, 0)
-        shader_out.name = f"[shader_out]"
+        links.new(shader_nodes["ShaderNodeEmission"].outputs[0], menuswitch.inputs[1])
+        links.new(add.outputs[0], menuswitch.inputs[2])
+        
 
         if nodes.get("Material Output") is None:
             outnode = nodes.new(type='ShaderNodeOutputMaterial')
             outnode.name = 'Material Output'
-        links.new(shader_out.outputs[0], nodes.get("Material Output").inputs.get('Volume'))
-        nodes.get("Material Output").location = (700,00)
 
+        nodes.get("Material Output").location = (1200,00)
+        links.new(menuswitch.outputs[0], nodes.get("Material Output").inputs[1])
         return mat
 
 # Simplified rewrite of skimage.filters.threshold_isodata from
@@ -408,159 +369,3 @@ def binned_statistic_sum(x, values, bins):
     np.add.at(sums, bin_indices, values)  # sum values in each bin
     return sums
     
-    
-    
-    
-    
-    
-    # TODO remove all of this old code below once confirmed working
-    # def export_ch(self, ch, cache_dir, remake, axes_order, write):
-    #     vdb_info = []
-    #     axes_order = axes_order.replace('c', '') 
-    #     xyz_shape = [len_axis(dim, axes_order, ch['data'].shape) for dim in 'xyz']
-    #     maxlen = np.inf
-    #     if bpy.context.scene.MiN_chunk:
-    #         maxlen = 2048
-    #     slices = [self.split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
-    #     for block in itertools.product(*slices):
-    #         chunk = ch['data']
-    #         for dim, sl in zip('xyz', block): 
-    #             chunk = take_index(chunk, indices = np.arange(sl.start, sl.stop), dim=dim, axes_order=axes_order)
-    #         chunk_vdb_infos = self.make_vdbs(chunk, block, axes_order, remake, cache_dir, ch, write)
-    #         vdb_info.extend(chunk_vdb_infos)
-    #     return [vdb_info, ]
-
-
-    
-    # def make_vdbs(self, imgdata, block, axes_order, remake, cache_dir, ch, write):
-    #     # non-lazy functions are allowed on only single time-frames
-    #     x, y, z = [sl.start for sl in block]
-        
-
-    #     vdb_infos = [] 
-    #     for t in range(bpy.context.scene.MiN_load_start_frame, bpy.context.scene.MiN_load_end_frame+1):
-    #         if t >= len_axis('t', axes_order, imgdata.shape):
-    #             break
-    #         frame = take_index(imgdata, t, 't', axes_order)
-    #         frame_axes_order = axes_order.replace('t',"")
-
-    #         # generate distinguishing paths
-    #         vdb_info = {"cache_dir": cache_dir, "dataset_hash": ch['dataset_hash'], "scale": ch['dataset_scale'], "x": x, "y": y, "z": z, "channel_ix": ch['ix'], "time": t}
-    #         vdbfname = vdb_path(hist=False, **vdb_info)["formatted"]
-    #         histfname = vdb_path(hist=True, **vdb_info)["formatted"]
-    #         vdbfname.parent.mkdir(parents=True, exist_ok=True)
-
-    #         vdb_infos.append(vdb_info)
-            
-    #         if( not vdbfname.exists() or not histfname.exists()) or remake :
-    #             if write == False:
-    #                 print(vdbfname, " would be written", vdbfname.exists(), histfname.exists(), remake, write, ch['name'])
-    #                 raise ValueError("Files do not exist locally")
-    #             if vdbfname.exists():
-    #                 vdbfname.unlink()
-    #             if histfname.exists():
-    #                 histfname.unlink()
-    #             log(f"loading chunk {Path(vdbfname).stem}")
-    #             arr = frame.compute()
-                
-    #             arr = expand_to_xyz(arr, frame_axes_order) # for 1D and 2D data, expand to 3D
-    #             try:
-    #                 arr = arr.astype(np.float32) / min(np.iinfo(imgdata.dtype).max, np.iinfo(np.int32).max) # scale between 0 and 1, capped to allow uint32 to at least not break
-    #             except ValueError as e:
-    #                 arr = arr.astype(np.float32) / ch['max_val'].compute()
-
-    #             # hists could be done better with bincount, but this doesnqt work with floats and seems harder to maintain
-    #             histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
-    #             histogram[0] = 0
-    #             np.save(histfname, histogram, allow_pickle=False)
-    #             log(f"write vdb {vdbfname.name}")
-    #             self.make_vdb(vdbfname, arr)   
-
-    #     return vdb_infos\
-
-        # def import_data(self, ch, scale):
-    #     vol_collection, vol_lcoll = make_subcollection(f"{ch['name']} {'volume'}", duplicate=True)
-    #     metadata = {}
-    #     collection_activate(vol_collection, vol_lcoll)
-    #     histtotal = np.zeros(NR_HIST_BINS)
-    #     for chunk in ch['local_files'][self.min_type]:
-    #         bpy.ops.object.volume_import(filepath=chunk['vdbfiles'][0]['name'],directory=chunk['directory'], files=chunk['vdbfiles'], align='WORLD', location=(0, 0, 0))
-    #         vol = bpy.context.active_object
-    #         pos = chunk['pos']
-    #         strpos = f"{pos[0]}{pos[1]}{pos[2]}"
-        
-    #         vol.scale = scale
-    #         vol.data.frame_offset = -1 + bpy.context.scene.MiN_load_start_frame
-    #         vol.data.frame_start = bpy.context.scene.MiN_load_start_frame
-    #         vol.data.frame_duration = bpy.context.scene.MiN_load_end_frame - bpy.context.scene.MiN_load_start_frame + 1
-    #         vol.data.render.clipping =0
-    #         # vol.data.display.density = 1e-5
-    #         # vol.data.display.interpolation_method = 'CLOSEST'
-
-            
-    #         vol.location = tuple((np.array(chunk['pos']) * scale))  
-        
-    #         for hist in chunk['histfiles']:
-    #             histtotal += np.load(Path(chunk['directory'])/hist['name'], allow_pickle=False)
-        
-    #     # defaults
-    #     metadata['range'] = (0, 1)
-    #     metadata['histogram'] = np.zeros(NR_HIST_BINS)
-    #     metadata['datapointer'] = vol.data
-
-    #     if np.sum(histtotal)> 0:
-    #         metadata['range'] = get_leading_trailing_zero_float(histtotal)
-    #         metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
-    #         threshold = threshold_isodata(hist=metadata['histogram'] )
-    #         metadata['threshold'] = threshold/len(metadata['histogram'] )  
-    #         cs = np.cumsum(metadata['histogram'])
-    #         percentile = np.searchsorted(cs, np.percentile(cs, 90))
-    #         if percentile > threshold:
-    #             metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
-    #     elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
-    #         metadata['threshold'] = ch['threshold']
-    #     else:
-    #         # this is for 0,1 range int32 data
-    #         metadata['range'] = (0, 1e-9)
-    #         metadata['threshold'] = 0.3
-    #         metadata['threshold_upper'] = 1
-    #     return vol_collection, metadata
-#  def get_metadata(self, file_constructors):
-#         hist = np.zeros(NR_HIST_BINS)
-#         for constructor in file_constructors:
-#             histfname = vdb_path(hist=True, **constructor)["formatted"]
-#             try:
-#                 hist += np.load(histfname, allow_pickle=False)
-#             except Exception as e:
-#                 hist += np.zeros(NR_HIST_BINS)
-#         histtotal = hist
-#         metadata = {}
-#         metadata['range'] = (0, 1)
-#         metadata['histogram'] = np.zeros(NR_HIST_BINS)
-
-#         if np.sum(histtotal)> 0:
-#             metadata['range'] = get_leading_trailing_zero_float(histtotal)
-#             metadata['histogram'] = histtotal[int(metadata['range'][0] * NR_HIST_BINS): int(metadata['range'][1] * NR_HIST_BINS)]
-#             threshold = threshold_isodata(hist=metadata['histogram'] )
-#             metadata['threshold'] = threshold/len(metadata['histogram'] )  
-#             cs = np.cumsum(metadata['histogram'])
-#             percentile = np.searchsorted(cs, np.percentile(cs, 80))
-#             if percentile > threshold:
-#                 metadata['threshold_upper'] = percentile / len(metadata['histogram'] )  
-#         elif ch['threshold'] != -1: # THIS IS TO BE DEPRECATED - LABEL SUPPORT FOR ZARR
-#             metadata['threshold'] = ch['threshold']
-#         else:
-#             # this is for 0,1 range int32 data
-#             metadata['range'] = (0, 1e-9)
-#             metadata['threshold'] = 0.3
-#             metadata['threshold_upper'] = 1
-        
-#         return metadata
-
-        # normnode = nodes.new(type="ShaderNodeMapRange")
-        # normnode.location = (-1400, 0)
-        # normnode.label = "Normalize data"
-        # normnode.inputs[1].default_value = ch['metadata'][self.min_type]['range'][0]       
-        # normnode.inputs[2].default_value = ch['metadata'][self.min_type]['range'][1]    
-        # links.new(node_attr.outputs.get("Fac"), normnode.inputs[0])  
-        # normnode.hide = True
