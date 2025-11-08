@@ -47,10 +47,13 @@ class LabelmaskIO(DataIO):
             timeframe_arr = take_index(ch['data'], constructor['t'], 't', ch['axes_order']).compute()
             timeframe_arr = to_xyz(timeframe_arr,  ch['axes_order'].replace('t', ''))
             
+            log(f"Meshing timepoint {constructor['t']}")
+
             mesher.mesh(timeframe_arr, close=True)
             
             vertex_offset = 0
             for obj_id in mesher.ids():
+                log(f"Writing object {obj_id} at time {constructor['t']}")
                 zmeshed = mesher.get(obj_id, 
                     normals=False,
                     reduction_factor=ch['surf_resolution']*30, 
