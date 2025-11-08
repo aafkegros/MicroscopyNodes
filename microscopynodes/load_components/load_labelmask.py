@@ -60,7 +60,7 @@ class LabelmaskIO(DataIO):
 
                 obj_str = f"\no {obj_id}\n"
                 for v in zmeshed.vertices:
-                    obj_str += "v {:.5f} {:.5f} {:.5f}\n".format(*v)
+                    obj_str += "v {:.5f} {:.5f} {:.5f}\n".format(v[0]-1, v[1]-1, v[2]-1)
                 for f in zmeshed.faces:
                     obj_str += "f {} {} {}\n".format(*(i + 1 + vertex_offset for i in f))
                 vertex_offset += len(zmeshed.vertices)
@@ -151,102 +151,3 @@ class LabelmaskObject(ChannelObject):
             print(e)
             pass
         return
-        
-    # def gn_oid_tree(self, oid, ch):
-    #     node_group = bpy.data.node_groups.get(f"object id {oid}, {ch}")
-    #     if node_group:
-    #         return node_group
-    #     node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name =f"object id {oid}")
-    #     links = node_group.links
-    #     nodes = node_group.nodes
-    #     interface = node_group.interface
-    #     interface.new_socket("Geometry", in_out="INPUT",socket_type='NodeSocketGeometry')
-    #     group_input = node_group.nodes.new("NodeGroupInput")
-    #     group_input.location = (-400, 0)
-        
-    #     oidnode = nodes.new('FunctionNodeInputInt')
-    #     oidnode.integer = oid
-    #     oidnode.label = 'object id'
-    #     oidnode.location = (-100, -200)
-        
-    #     chnode = nodes.new('FunctionNodeInputInt')
-    #     chnode.integer = ch
-    #     chnode.label = 'channel'
-    #     chnode.location = (-100, -400)
-
-    #     store =  node_group.nodes.new("GeometryNodeStoreNamedAttribute")
-    #     store.data_type = 'FLOAT_COLOR'
-    #     store.domain = 'CORNER'
-    #     store.location =(150, 0)
-    #     store.inputs.get("Name").default_value = "object id"
-    #     links.new(group_input.outputs.get('Geometry'), store.inputs[0])
-    #     links.new(oidnode.outputs[0], store.inputs.get("Value"))
-
-    #     store2 =  node_group.nodes.new("GeometryNodeStoreNamedAttribute")
-    #     store2.data_type = 'FLOAT_COLOR'
-    #     store2.domain = 'CORNER'
-    #     store2.location =(350, 0)
-    #     store2.inputs.get("Name").default_value = "channel"
-    #     links.new(store.outputs[0], store2.inputs[0])
-    #     links.new(chnode.outputs[0], store2.inputs.get("Value"))
-
-    #     interface.new_socket("Geometry", in_out="OUTPUT",socket_type='NodeSocketGeometry')
-    #     group_output = node_group.nodes.new("NodeGroupOutput")
-    #     group_output.location = (500, 0)
-    #     links.new(store2.outputs[0], group_output.inputs[0])
-    #     return node_group
-        # def dissolve(self, obj, obj_id):
-    #     m = obj.data
-    #     bm = bmesh.new()
-    #     bm.from_mesh(m)
-    #     bmesh.ops.dissolve_limit(bm, angle_limit=0.0872665, verts=bm.verts, edges=bm.edges)
-    #     bm.to_mesh(m)
-    #     bm.free()
-    #     m.update()
-    #     return
-
-    # for obj in tmp_collection.all_objects: 
-            #     obj.select_set(True)
-            
-            
-            # bpy.ops.wm.alembic_export(filepath=fname,
-            #                 selected=True,
-            #                 vcolors = False,
-            #                 flatten=False,
-            #                 orcos=True,
-            #                 export_custom_properties=False,
-            #                 start = 0,
-            #                 end = 1,
-            #                 evaluation_mode = "RENDER",
-            #                 )
-            # for obj in tmp_collection.all_objects: 
-            #     obj.data.clear_geometry()
-
-        # for obj in mask_objects.values():
-        #     obj.select_set(True)
-        # bpy.ops.object.delete(use_global=False)
-        # bpy.data.collections.remove(tmp_collection)
-        # collection_activate(*parentcoll)
-
-        # if not Path(fname).exists(): #make dummy file for sequencing
-                #     open(fname, 'a').close()
-                #     open(fname_ids, 'a').close()
-
-     # obj_id_val = obj_id + 1
-                
-                # if obj_id_val in mask_objects:
-                #     obj = mask_objects[obj_id_val]
-                # else: 
-                #     objname=f"ch{ch['ix']}_obj{obj_id_val}_" 
-                #     bpy.ops.mesh.primitive_cube_add()
-                #     obj=bpy.context.view_layer.objects.active
-                #     obj.name = objname
-                #     obj.data.name = objname
-                #     mask_objects[obj_id_val] = obj
-
-                # mesh = obj.data
-                # mesh.clear_geometry()
-                # mesh.from_pydata(zmeshed.vertices,[], zmeshed.faces)
-                # bpy.ops.object.mode_set(mode = 'OBJECT')
-                # self.dissolve(obj, obj_id)
-                # obj.select_set(True) #TODO see if this works
