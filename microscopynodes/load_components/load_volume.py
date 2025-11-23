@@ -6,7 +6,7 @@ import math
 import itertools
 import string
 
-from .load_generic import *
+from .base import *
 from ..handle_blender_structs import *
 from .. import min_nodes
 
@@ -24,35 +24,38 @@ def get_leading_trailing_zero_float(arr):
 
 class VolumeIO(DataIO):
     min_type = min_keys.VOLUME
-    VDB_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
+    VDB_TEMPLATE = Path("{cache_path}") / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
 
-    def generate_file_constructors(self, ch, cache_dir):
+    def generate_file_constructors(self, ch):
         """Purely generates file path metadata without writing."""
         file_constructors = []
 
-        xyz_shape = [len_axis(dim, ch['axes_order'], ch['data'].shape) for dim in 'xyz']
+        xyz_shape = [len_axis(dim, ch.axes_order, ch.data.shape) for dim in 'xyz']
         maxlen = np.inf
         if bpy.context.scene.MiN_chunk:
             maxlen = 2048
-        slices_xyz = [self.split_axis_to_chunks(dimshape, ch['ix'], maxlen) for dimshape in xyz_shape]
-        time_slices = [slice(t, t+1) for t in range(bpy.context.scene.MiN_load_start_frame, min(bpy.context.scene.MiN_load_end_frame + 1, len_axis('t', ch['axes_order'], ch['data'].shape)))]
+        slices_xyz = [self.split_axis_to_chunks(dimshape, ch.ix, maxlen) for dimshape in xyz_shape]
+        time_slices = [slice(t, t+1) for t in range(bpy.context.scene.MiN_load_start_frame, min(bpy.context.scene.MiN_load_end_frame + 1, len_axis('t', ch.axes_order, ch.data.shape)))]
         slices_xyzt = slices_xyz + [time_slices]
 
         for block in itertools.product(*slices_xyzt):
             file_constructors.append( {
-                "cache_dir": cache_dir,
-                "dataset_hash": ch['dataset_hash'],
-                "scale": ch['dataset_scale'],
+                "cache_path": ch.cache_path,
+                "scale": ch.dataset_resolution,
                 'x': block[0].start, 'y': block[1].start, 'z': block[2].start,
                 "x_end": block[0].stop, "y_end": block[1].stop, "z_end": block[2].stop,
                 "t": block[3].start, "t_end": block[3].stop,
-                "channel_ix": ch['ix'],
+                "channel_ix": ch.ix,
                 "template_str" : str(self.VDB_TEMPLATE),
             })
         return file_constructors
 
-    def export_ch(self, ch, file_constructors, remake):
+    def export_ch(self, ch, file_constructors):
         vdb_info = []
+        if np.issubdtype(ch.data.dtype, np.floating):
+            max_val = ch.data.max() # no way to normalize floats without nowing the maximum value
+        else:
+            max_val = min(np.iinfo(ch.data.dtype).max, np.iinfo(np.int32).max)
         for constructor in file_constructors:
             vdbfname = Path(str(self.VDB_TEMPLATE).format(**constructor))
             histfname = vdbfname.with_suffix('.npz')
@@ -62,16 +65,11 @@ class VolumeIO(DataIO):
                 vdbfname.unlink(missing_ok=True)
                 histfname.unlink(missing_ok=True)
                 log(f"loading chunk {Path(vdbfname).stem}")
-                arr = ch['data'][tuple(
-                    slice(constructor[dim], constructor[f"{dim}_end"]) for dim in ch['axes_order']
+                arr = ch.data[tuple(
+                    slice(constructor[dim], constructor[f"{dim}_end"]) for dim in ch.axes_order
                 )].compute()
 
-
-                arr = to_xyz(arr, ch['axes_order']) # for 1D and 2D data, expand to 3D, squeeze the single time frame
-                try:
-                    max_val = min(np.iinfo(ch['data'].dtype).max, np.iinfo(np.int32).max)
-                except ValueError:
-                    max_val = ch['max_val'].compute()
+                arr = to_xyz(arr, ch.axes_order) # for 1D and 2D data, expand to 3D, squeeze the single time frame
                 arr = arr.astype(np.float32) / max_val
                 # hists could be done better with bincount, but this doesnqt work with floats and seems harder to maintain
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.,1.)) [0]
@@ -160,7 +158,7 @@ class VolumeObject(ChannelObject):
         super().update_import_node(import_node, file_constructors, ch)
         ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
         for key, val in ch_to_node.items():
-            import_node.inputs.get(key).default_value = ch['metadata'][self.min_type][val]
+            import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
     
@@ -206,14 +204,14 @@ class VolumeObject(ChannelObject):
         if nodes.get('[color_lut]') is not None:
             min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes['[color_lut]'])
 
-        if self.min_type in ch['metadata']:
-            if ch['metadata'][self.min_type] is not None and nodes.get('[Histogram]') is not None:
+        if self.min_type in ch.metadata:
+            if ch.metadata[self.min_type] is not None and nodes.get('[Histogram]') is not None:
                 histnode= nodes["[Histogram]"]
-                self.draw_histogram(nodes, histnode.location,histnode.width, ch['metadata'][self.min_type]['histogram'])
+                self.draw_histogram(nodes, histnode.location,histnode.width, ch.metadata[self.min_type]['histogram'])
                 nodes.remove(histnode)
 
         if nodes.get('[switch]') is not None:
-            nodes['[switch]'].inputs[0].default_value = ['Emission', 'Scattering'][int(not ch['emission'])]
+            nodes['[switch]'].inputs[0].default_value = ['Emission', 'Scattering'][int(not ch.emission)]
 
         for node in nodes:
             if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
@@ -235,17 +233,17 @@ class VolumeObject(ChannelObject):
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1600, 0)
-        node_attr.name = f"[channel_load_{ch['identifier']}]"
+        node_attr.name = f"[channel_load_{ch.identifier}]"
 
         node_attr.attribute_name = 'data'
 
-        node_attr.label = ch['name']
+        node_attr.label = ch.name
         node_attr.hide =True
 
         ramp_node = nodes.new(type="ShaderNodeValToRGB")
         ramp_node.location = (-1200, 0)
         ramp_node.width = 1000
-        ramp_node.color_ramp.elements[0].position = ch['metadata'][self.min_type]['threshold']
+        ramp_node.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
         
 
         ramp_node.color_ramp.elements[0].color = (1,1,1,0)
@@ -253,12 +251,12 @@ class VolumeObject(ChannelObject):
         ramp_node.color_ramp.elements[1].position = 1
         ramp_node.name = '[alpha_ramp]'
         ramp_node.label = "Pixel Intensities"
-        if 'threshold_upper' in ch['metadata'][self.min_type]:
-            ramp_node.color_ramp.elements[1].position = ch['metadata'][self.min_type]['threshold_upper']
+        if 'threshold_upper' in ch.metadata[self.min_type]:
+            ramp_node.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
         ramp_node.outputs[0].hide = True
         links.new(node_attr.outputs.get('Fac'), ramp_node.inputs.get("Fac"))  
 
-        self.draw_histogram(nodes, (-1200, 300), 1000, ch['metadata'][self.min_type]['histogram'])
+        self.draw_histogram(nodes, (-1200, 300), 1000, ch.metadata[self.min_type]['histogram'])
 
         alphanode =  nodes.new('ShaderNodeGroup')
         alphanode.node_tree = min_nodes.shader_nodes.volume_alpha_node()

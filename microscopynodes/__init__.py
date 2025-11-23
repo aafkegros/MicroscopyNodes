@@ -26,22 +26,23 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import bpy
-
 from . import file_to_array
 from . import ui
+
 
 from . import min_nodes
 from .min_nodes.shader_nodes import MIN_add_shader_node_menu, MIN_context_shader_node_menu
 from .ui.preferences import addon_preferences
 
 
+print('getting classes')
 all_classes = (
     ui.CLASSES +
     file_to_array.CLASSES +
     min_nodes.CLASSES
 )
 
-# print(all_classes)
+print(all_classes)
 def _test_register():
     try:
         register()
@@ -52,8 +53,10 @@ def _test_register():
 
 
 def register():
+    print('in register')
     for op in all_classes:
         try:
+            print(op)
             bpy.utils.register_class(op)
         except Exception as e:
             print(op, e)

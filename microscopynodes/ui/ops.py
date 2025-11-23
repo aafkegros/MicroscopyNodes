@@ -10,10 +10,12 @@ from bpy.types import (Panel,
                         )
 from bpy.types import UIList
 import threading
+from ..data_model import DatasetModel
+from ..parse_inputs import parse_blender_ui
 
 
 class TifLoadOperator(bpy.types.Operator):
-    """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
+    """ Load a microscopy dataset. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
     bl_idname ="microscopynodes.load"
     bl_label = "Load"
 
@@ -21,16 +23,17 @@ class TifLoadOperator(bpy.types.Operator):
     value = 0 
     thread = None
     params = None
+    dataset_model: DatasetModel = None
 
     def modal(self, context, event):
         if event.type == 'TIMER':
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
-                if 'EXCEPTION' in self.params[0][0]: # hacky
-                    raise(self.params[0][0]['EXCEPTION'])
+                if len(self.dataset_model.exception) > 0: 
+                    raise(Exception(self.dataset_model.exception))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
-                load.load_blocking(self.params)
+                load.load_blocking(self.dataset_model)
                 return {'FINISHED'}
             if not self.thread.is_alive():
                 self.thread = None # update UI for one timer-round
@@ -45,8 +48,13 @@ class TifLoadOperator(bpy.types.Operator):
     def execute(self, context):
         wm = context.window_manager
         self._timer = wm.event_timer_add(0.1, window=context.window)
-        self.params = parse_inputs.parse_initial()
-        self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
+
+        self.dataset_model = parse_blender_ui()
+        print(self.dataset_model)
+        self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.dataset_model,))
+        
+        # self.params = parse_inputs.parse_initial()
+        # self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
         wm.modal_handler_add(self)
         self.thread.start()
         return {'RUNNING_MODAL'}
@@ -63,7 +71,8 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
     bl_label = "Load"
 
     def execute(self, context):
-        params = parse_inputs.parse_initial()
+        params = parse_blender_ui()
+        # params = parse_inputs.parse_initial()
         load.load_threaded(params)
         load.load_blocking(params)
         return {'FINISHED'}

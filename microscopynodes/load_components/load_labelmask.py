@@ -6,30 +6,29 @@ import json
 import os
 
 from ..handle_blender_structs import *
-from .load_generic import *
+from .base import *
 from .. import min_nodes
 import zmesh
 
 class LabelmaskIO(DataIO):
     min_type = min_keys.LABELMASK
-    MASK_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "mask_{scale}" / "c{channel_ix}_t{t}"
+    MASK_TEMPLATE = Path("{cache_path}") / "mask_{scale}" / "c{channel_ix}_t{t}"
 
-    def generate_file_constructors(self, ch, cache_dir):
+    def generate_file_constructors(self, ch):
         file_constructors = []
-        for t in range(bpy.context.scene.MiN_load_start_frame,bpy.context.scene.MiN_load_end_frame+1):
-            if t >= len_axis('t', ch['axes_order'], ch['data'].shape):
+        for t in range(ch.start_frame,ch.end_frame+1):
+            if t >= len_axis('t', ch.axes_order, ch.data.shape):
                 break
             file_constructors.append( {
-                "cache_dir": cache_dir,
-                "dataset_hash": ch['dataset_hash'],
-                "scale": ch['surf_resolution'],
+                "cache_path": ch.cache_path,
+                "scale": ch.surf_resolution,
                 "t": t, 
-                "channel_ix" : ch['ix'],
+                "channel_ix" : ch.ix,
                 "template_str" : str(self.MASK_TEMPLATE),
             })
         return file_constructors
 
-    def export_ch(self, ch, file_constructors, remake):
+    def export_ch(self, ch, file_constructors):
         mesher = zmesh.Mesher((1,1,1))
         for constructor in file_constructors: # loops through time
             fname = Path(str(self.MASK_TEMPLATE).format(**constructor)).with_suffix('.obj')
@@ -44,8 +43,8 @@ class LabelmaskIO(DataIO):
             with open(str(fname_ids), 'ab+') as ofs:
                 ofs.write(f"oid\n".encode('utf-8'))
             
-            timeframe_arr = take_index(ch['data'], constructor['t'], 't', ch['axes_order']).compute()
-            timeframe_arr = to_xyz(timeframe_arr,  ch['axes_order'].replace('t', ''))
+            timeframe_arr = take_index(ch.data, constructor['t'], 't', ch.axes_order).compute()
+            timeframe_arr = to_xyz(timeframe_arr,  ch.axes_order.replace('t', ''))
             
             log(f"Meshing timepoint {constructor['t']}")
 
@@ -56,8 +55,8 @@ class LabelmaskIO(DataIO):
                 log(f"Writing object {obj_id} at time {constructor['t']}")
                 zmeshed = mesher.get(obj_id, 
                     normals=False,
-                    reduction_factor=ch['surf_resolution']*30, 
-                    max_error=ch['surf_resolution']*3,
+                    reduction_factor=ch.surf_resolution*30, 
+                    max_error=ch.surf_resolution*3,
                     voxel_centered=False, 
                     )
 
@@ -113,7 +112,7 @@ class LabelmaskObject(ChannelObject):
             links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
         
         princ = nodes.get("Principled BSDF")
-        princ.name = f"[{ch['identifier']}] principled"
+        princ.name = f"[{ch.identifier}] principled"
 
         idnode =  nodes.new("ShaderNodeVertexColor")
         idnode.layer_name = 'oid'
@@ -124,7 +123,7 @@ class LabelmaskObject(ChannelObject):
         remap.name = '[remap_oid]'
         remap.location = (-600, 300)
         remap.show_options = False
-        remap.inputs.get('# Objects').default_value = ch['metadata'][self.min_type]['max']
+        remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
         links.new(idnode.outputs.get('Color'), remap.inputs.get('Value'))
 
         color_lut = nodes.new(type="ShaderNodeValToRGB")
@@ -145,10 +144,10 @@ class LabelmaskObject(ChannelObject):
             min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes.get('[color_lut]'))
             nodes.get('[remap_oid]').inputs.get('Revolving Colormap').default_value = (nodes.get('[color_lut]').color_ramp.interpolation == 'CONSTANT')
             nodes.get('[remap_oid]').inputs.get('# Colors').default_value =max(len(nodes.get('[color_lut]').color_ramp.elements), 5)
-            princ = mat.node_tree.nodes.get(f"[{ch['identifier']}] principled")
-            if ch['emission'] and princ.inputs[28].default_value == 0.0:
+            princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
+            if ch.emission and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
-            elif not ch['emission'] and princ.inputs[28].default_value == 0.5:
+            elif not ch.emission and princ.inputs[28].default_value == 0.5:
                 princ.inputs[28].default_value = 0
         except Exception as e:
             print(e)

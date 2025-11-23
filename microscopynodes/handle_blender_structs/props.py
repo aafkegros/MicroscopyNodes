@@ -9,14 +9,23 @@ from enum import Enum
 import tempfile
 
 class min_keys(Enum): 
-    NONE = 0
+    HOLDER = 0
     AXES = 1
     VOLUME = 2
     SURFACE = 3
     LABELMASK = 4
     SLICECUBE = 5
 
+# class dataset_objects(Enum):
+#     HOLDER = min_keys.HOLDER.value
+#     LABELMASK = min_keys.LABELMASK.value
+#     SLICECUBE = min_keys.SLICECUBE.value
 
+# class min_keys(Enum):
+#     VOLUME = min_keys.VOLUME.value
+#     SURFACE = min_keys.SURFACE.value
+#     LABELMASK = min_keys.LABELMASK.value
+    
 # # -- props --
 ## Names start with MiN for Microscopy Nodes (MN = Molecular Nodes)
 
