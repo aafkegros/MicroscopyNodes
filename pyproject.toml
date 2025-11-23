@@ -20,6 +20,7 @@ cmap = "0.6.0"
 s3fs = "2025.5.1"
 zmesh = "1.8.0"
 databpy = "0.3.0"
+pydantic = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

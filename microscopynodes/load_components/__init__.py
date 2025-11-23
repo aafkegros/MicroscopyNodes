@@ -1,4 +1,4 @@
-from .load_generic import *
+from .base import *
 from .load_axes import *
 from .load_labelmask import *
 from .load_volume import *

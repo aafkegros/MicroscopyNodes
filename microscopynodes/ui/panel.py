@@ -96,9 +96,9 @@ class TIFLoadPanel(bpy.types.Panel):
         # col = layout.column(align=False)  
         # row = col.row(align=False)
         if bpy.context.scene.MiN_reload is None:
-            col.operator("microscopynodes.load", text="Load")
+            col.operator("microscopynodes.load_background", text="Load")
         else:
-            col.operator("microscopynodes.load", text="Reload")
+            col.operator("microscopynodes.load_background", text="Reload")
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
         

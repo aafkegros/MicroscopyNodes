@@ -65,6 +65,9 @@ def change_array_option(self, context):
 def load_array(ch_dicts):
     get_loader().unpack_array(ch_dicts)
 
+def channel_data(ch_ix, axes_order):
+    return get_loader().get_channel_data(ch_ix, axes_order)
+
 def change_channel_ax(self, context):
     get_loader().reset_options(context.scene.MiN_input_file)
 

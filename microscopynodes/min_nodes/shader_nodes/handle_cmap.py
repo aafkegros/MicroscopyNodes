@@ -3,8 +3,7 @@ import cmap
 
 
 def set_color_ramp_from_ch(ch, ramp_node):
-    lut, linear = get_lut(ch['cmap'], ch['single_color'])
-    set_color_ramp(ramp_node, lut, linear, ch['cmap'])
+    set_color_ramp(ramp_node, ch.cmap, ch.cmap_is_linear, "Colormap")
     return
 
 def set_color_ramp(ramp_node, lut, linear, name):

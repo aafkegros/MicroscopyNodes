@@ -47,6 +47,12 @@ class ArrayLoader():
     def load_array(self, input_file, array_option):
         # gets the array data from the selected option
         return 
+    
+    def get_channel_data(self, ch_ix, axes_order):
+        imgdata = da.from_zarr(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()))
+        if selected_array_option().is_rescaled:
+            imgdata = map_resize(imgdata)
+        return da.take(imgdata, indices=ch_ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
 
 
     # -- default methods --
@@ -148,23 +154,19 @@ class ArrayLoader():
 
         ix = 0
         for ix, ch in enumerate(ch_dicts):
-            if ch['data'] is None:
-                ch['data'] = da.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
+            if ch.data is None:
+                ch.data = da.take(imgdata, indices=ix, axis=axes_order.find('c')) if 'c' in axes_order else imgdata
                 ch['dataset_path'] = bpy.context.scene.MiN_input_file
                 ch['dataset_hash'] = hash_path(bpy.context.scene.MiN_input_file)
                 ch['dataset_scale'] = selected_array_option().identifier
                 ch['axes_order'] = axes_order.replace('c', '')
-                if np.issubdtype(ch['data'].dtype,np.floating):
-                    ch['max_val'] = np.max(ch['data'])
+                if np.issubdtype(ch.data.dtype,np.floating):
+                    ch['max_val'] = np.max(ch.data)
             if ix >= selected_array_option().len_axis('c'): 
                 break
 
         return 
 
-def hash_path(path):
-    import hashlib
-    h = hashlib.sha1(path.encode()).digest()
-    return str(int.from_bytes(h[:4], "big") % 10**8)
 
 def parse_unit(unit_str):
     if unit_str in ['A', 'Å', '\\u00C5','ANGSTROM', 'ÅNGSTROM','ÅNGSTRÖM', 'Ångstrom','angstrom','ångström','ångstrom']:
