@@ -1,7 +1,6 @@
 import bpy
-from ..handle_blender_structs import *
-import numpy as np
-from .. import min_nodes
+from ..handle_blender_structs.props import min_keys
+from databpy import BlenderObject
 from pathlib import Path
 
 class DataIO():
@@ -16,49 +15,48 @@ class DataIO():
         return []
 
     def make_local_files(self, ch):
-        file_constructors = data_io.generate_file_constructors(ch)
-        data_io.export_ch(ch, file_constructors)
+        file_constructors = self.generate_file_constructors(ch)
+        self.export_ch(ch, file_constructors)
         return file_constructors
     
     def get_metadata(self, file_constructors):
         return {}
 
 
-class MiNObject():
+class MiNObject(BlenderObject):
     min_type = None # needs to be of type min_keys
-    obj = None
-    
 
-    def __init__(self, obj):
+    def __init__(self, obj=None):
+        super().__init__(obj) 
         if obj is None:
             obj = self.init_obj()
-        self.obj = obj
     
-    def init_obj(self, scale):
+    def init_obj(self):
         bpy.ops.mesh.primitive_cube_add()
-        self.obj = bpy.context.view_layer.objects.active
-        name = self.min_type.name.lower()
-        self.obj.name = name
+        self.object = bpy.context.view_layer.objects.active
+        self.object.name = self.min_type.name.lower()
 
-    def set_data(dataset_model):
+    def set_data(self, dataset_model):
         return
 
-    def set_settings(dataset_model):
+    def set_settings(self, dataset_model):
         return
+    
+    @property
+    def min_gn(self):
+        for mod in self.object.modifiers:
+            if 'Microscopy Nodes' in mod.name:
+                return mod
+
+    @property 
+    def node_group(self):
+        if self.min_gn is not None:
+            return self.min_gn.node_group
 
 class ChannelObject(MiNObject):
-    # min_type = None # needs to be of type channel_keys
-    gn_mod = None
-    node_group = None
     import_node_name = ""
 
-    def __init__(self, obj):
-        super().__init__(obj) 
-        self.gn_mod = get_min_gn(self.obj)
-        self.node_group =self.gn_mod.node_group
-
-
-    def init_obj(self, scale):
+    def init_obj(self):
         if self.min_type == min_keys.VOLUME: # makes the icon show up
             bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         else:
@@ -66,7 +64,8 @@ class ChannelObject(MiNObject):
         obj = bpy.context.view_layer.objects.active
         name = self.min_type.name.lower()
         obj.name = name
-        obj.scale = scale
+        self.object = obj
+        # obj.scale = scale
 
         bpy.ops.object.modifier_add(type='NODES')
 
@@ -90,15 +89,25 @@ class ChannelObject(MiNObject):
 
     def add_material(self, ch):
         mat = bpy.data.materials.new(f"{ch.name} {self.min_type.name.lower()}")
-        self.obj.data.materials.append(mat)
+        self.object.data.materials.append(mat)
         return mat
 
-    def update_ch_data(self, ch, file_constructors, metadata):
+
+    def set_data(self, dataset_model):
+        for ch in dataset_model.channels:
+            self.update_ch_data(ch)
+
+    def update_ch_data(self, ch):
         if not self.ch_present(ch): 
             self.append_channel_to_holder(ch)
         importnode = self.node_group.nodes[f"channel_load_{ch.identifier}"]
         self.update_import_node(importnode, file_constructors, ch)  
         return
+
+    def set_settings(self, dataset_model):
+        for ch in dataset_model.channels:
+            self.update_ch_settings(ch)
+
 
     def update_ch_settings(self, ch):
         if not self.ch_present(ch): 
@@ -109,7 +118,7 @@ class ChannelObject(MiNObject):
                 set_name_socket(socket, ch.name)
         
         self.update_gn(ch)
-        for mat in self.obj.data.materials:
+        for mat in self.object.data.materials:
             if any([ch.identifier in node.name for node in mat.node_tree.nodes]):
                 self.update_material(mat, ch)
 
@@ -120,7 +129,7 @@ class ChannelObject(MiNObject):
         
         # frame_socket, socket_ix = get_socket_by_name('[frame]', return_ix=True)
         print('start setting')
-        keyframes = get_keyframes(self.obj, '["Socket_0"]')
+        keyframes = get_keyframes(self.object, '["Socket_0"]')
         print(keyframes)
         # if len(keyframes) == 2:
         #     if keyframe
@@ -129,7 +138,7 @@ class ChannelObject(MiNObject):
         self.gn_mod.keyframe_insert(data_path='["Socket_0"]', frame=0)
         setattr(self.gn_mod, '["Socket_0"]', bpy.context.scene.MiN_load_end_frame-bpy.context.scene.MiN_load_start_frame)
         self.gn_mod.keyframe_insert(data_path='["Socket_0"]', frame=bpy.context.scene.MiN_load_end_frame-bpy.context.scene.MiN_load_start_frame)
-        get_keyframes(self.obj,  '["Socket_0"]')
+        get_keyframes(self.object,  '["Socket_0"]')
         print(keyframes)
         return
     
@@ -217,7 +226,7 @@ class ChannelObject(MiNObject):
 
 
     def set_parent_and_slicer(self, parent, slice_cube, ch):
-        self.obj.parent = parent
+        self.object.parent = parent
         for mat in self.obj.data.materials:
             if mat.node_tree.nodes.get("Slice Cube") is None:
                 node_handling.insert_slicing(mat.node_tree, slice_cube)

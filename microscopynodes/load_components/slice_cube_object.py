@@ -1,13 +1,16 @@
+print('trying to import stuff in slice cube')
 import bpy
-from .. import handle_blender_structs
+from ..handle_blender_structs.props import min_keys
 import numpy as np
+from .base import *
+print('imported stuff in slice cube')
 
-class Axes(MiNObject):
-
+class SliceCubeObject():
+    min_type = min_keys.SLICECUBE
+    
     def init_obj(self): 
-        bpy.ops.mesh.primitive_cube_add(location=size_px*scale/2)
-        slicecube = bpy.context.active_object
-        self.obj = slicecube
+        super().init_obj()
+        slicecube = self.object
         slicecube.name = "slice cube"
         slicecube.scale = size_px * scale /2 
 
@@ -31,19 +34,8 @@ class Axes(MiNObject):
         slicecube.data.materials.append(mat)
 
     def set_settings(self, dataset_model):
-        slicecube = self.obj
+        slicecube = self.object
         slicecube.location =  np.array(slicecube.location)+ ( np.array(slicecube.location)*(scale_factor - 1))
         slicecube.scale = np.array(slicecube.scale)  * scale_factor
         slicecube.display_type = 'BOUNDS'
     
-
-
-# def load_slice_cube(size_px, scale, scale_factor, container, slicecube=None):
-    
-#     if slicecube is None:
-        
-#     slicecube.parent = container
-#     slicecube.location =  np.array(slicecube.location)+ ( np.array(slicecube.location)*(scale_factor - 1))
-#     slicecube.scale = np.array(slicecube.scale)  * scale_factor
-#     slicecube.display_type = 'BOUNDS'
-#     return slicecube

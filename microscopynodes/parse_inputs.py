@@ -130,6 +130,8 @@ def parse_unit(string):
 def parse_output_unit(world_scale):
     if world_scale == "MOLECULAR_NODES":
         return 1e-7
+    if "_SCALE" not in world_scale:
+        return 1e-2 # THIS DOESNT FULLY WORK RN
     return parse_unit(world_scale.removesuffix("_SCALE")) 
 
 # def parse_scale(size_px, pixel_size):
