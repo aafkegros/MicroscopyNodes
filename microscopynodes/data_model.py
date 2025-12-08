@@ -5,10 +5,11 @@ from typing import Literal
 import numpy as np
 from .handle_blender_structs.props import min_keys
 import dask
+from .load_components.factories import DataIOFactory
 
-# class Transform()
-# class Transform(BaseModel):
+# class ChannelTransform(BaseModel)
 #     affine: 
+#     
 
 # TODO maybe rename this?
 class ChannelModel(BaseModel):
@@ -30,9 +31,10 @@ class ChannelModel(BaseModel):
     frame_start: int = None
     frame_end: int = None
 
-    volume: bool = False
-    surface: bool = False
-    labelmask: bool = False
+    visible_as : Dict[min_keys, bool] #maybe change this later
+    # volume: bool = False 
+    # surface: bool = False
+    # labelmask: bool = False
     
     emission: bool 
     # DISPLAY RGBA space(0-1 normalized rgb)
@@ -68,6 +70,14 @@ class ChannelModel(BaseModel):
         mins = tc.min(0)
         maxs = tc.max(0)
         return (mins[0], maxs[0]), (mins[1], maxs[1]), (mins[2], maxs[2])
+    
+    
+    
+    @property
+    def file_constructors(self):
+        for min_type, load in ch.visible_as.items():
+            if load:
+                DataIOFactory(min_type).file_constructors(ch)
 
     @field_validator("data")
     def validate_data_shape(cls, v, info):
@@ -123,6 +133,8 @@ class ChannelModel(BaseModel):
             raise ValueError("frame_start must not exceed frame_end")
         return self
 
+    
+
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
@@ -144,7 +156,7 @@ class DatasetModel(BaseModel):
 
     @property
     def scale(self):
-        return channels[0].unit / self.output_unit
+        return self.channels[0].unit / self.output_unit
 
     @field_validator("channels")
     def no_duplicate_channel_names(cls, channels):
@@ -174,8 +186,8 @@ class DatasetModel(BaseModel):
             self.name = 'Microscopy Dataset'
         return self
 
-    def make_local_files(self, dataset_model):
-        for ch in dataset_model.channels:
+    def make_local_files(self):
+        for ch in self.channels:
             for min_type, load in ch.visible_as.items():
                 if load:
                     DataIOFactory(min_type).make_local_files(ch)

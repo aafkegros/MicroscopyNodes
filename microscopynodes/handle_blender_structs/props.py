@@ -16,18 +16,7 @@ class min_keys(Enum):
     LABELMASK = 4
     SLICECUBE = 5
 
-# class dataset_objects(Enum):
-#     HOLDER = min_keys.HOLDER.value
-#     LABELMASK = min_keys.LABELMASK.value
-#     SLICECUBE = min_keys.SLICECUBE.value
 
-# class min_keys(Enum):
-#     VOLUME = min_keys.VOLUME.value
-#     SURFACE = min_keys.SURFACE.value
-#     LABELMASK = min_keys.LABELMASK.value
-    
-# # -- props --
-## Names start with MiN for Microscopy Nodes (MN = Molecular Nodes)
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 

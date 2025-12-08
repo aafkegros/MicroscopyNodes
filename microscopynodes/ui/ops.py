@@ -11,6 +11,7 @@ from bpy.types import (Panel,
 from bpy.types import UIList
 import threading
 from ..data_model import DatasetModel
+from ..load import Scene, Dataset
 from ..parse_inputs import parse_blender_ui
 
 
@@ -33,7 +34,9 @@ class TifLoadOperator(bpy.types.Operator):
                     raise(Exception(self.dataset_model.exception))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
-                load.load_blocking(self.dataset_model)
+                Dataset().set_state(self.dataset_model)
+                
+                # load.load_blocking(self.dataset_model)
                 return {'FINISHED'}
             if not self.thread.is_alive():
                 self.thread = None # update UI for one timer-round
@@ -50,8 +53,10 @@ class TifLoadOperator(bpy.types.Operator):
         self._timer = wm.event_timer_add(0.1, window=context.window)
 
         self.dataset_model = parse_blender_ui()
+        # self.min_scene = Scene()
         print(self.dataset_model)
-        self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.dataset_model,))
+        self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files)
+        # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))
         
         # self.params = parse_inputs.parse_initial()
         # self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))

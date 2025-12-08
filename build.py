@@ -42,16 +42,17 @@ required_packages = [
     'pyyaml==6.0.2', # needed for preference yaml loading and writing
     'zmesh==1.8.0', # for fast mesh generation from labeled data
     'databpy==0.3.0', 
+    'pydantic==2.12.4', 
 ]
 # this is deprecated - for non buildable wheels, will remove in the future
 nodeps_packages = [ 
 ]
 
 build_platforms = [
-    windows_x64,
-    linux_x64,
+    # windows_x64,
+    # linux_x64,
     macos_arm,
-    macos_intel,
+    # macos_intel,
 ]
 
 

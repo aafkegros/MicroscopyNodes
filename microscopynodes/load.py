@@ -12,7 +12,7 @@ from mathutils import Matrix
 class Scene():
     # wraps the blender scene and can hold Microscopy Nodes Datasets
     def __init__(self, bgcol = None, render_preset=None):
-        self.scn = bpy.context.scene # TODO catch uninitialized scene
+        self.scene = bpy.context.scene # TODO catch uninitialized scene
         if bgcol is not None:
             self.set_background_color(bgcol)
         if render_preset is not None:
@@ -20,7 +20,7 @@ class Scene():
         
     def set_background_color(bgcol):
         try:
-            bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
+            self.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
         except:
             pass
     
@@ -58,10 +58,10 @@ class Dataset():
         if not dataset_model.local_files_exist:
             dataset_model.make_local_files()
         for min_key in min_keys:
-            min_obj = getattr(self, min_key.name.lower)
+            min_obj = getattr(self, min_key.name.lower())
             if min_obj is None:
-                min_obj = MinObjectFactory(min_key, dataset_model)
-                setattr(self, min_key.name.lower, min_obj)
+                min_obj = MinObjectFactory(min_key)
+                setattr(self, min_key.name.lower(), min_obj)
             if dataset_model.update_data:
                 min_obj.set_data(dataset_model)
             if dataset_model.update_settings:
