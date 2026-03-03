@@ -1,5 +1,5 @@
 import bpy
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs import *
 from databpy import BlenderObject
 from pathlib import Path
 
