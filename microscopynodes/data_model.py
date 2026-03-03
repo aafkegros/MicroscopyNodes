@@ -133,6 +133,11 @@ class ChannelModel(BaseModel):
             raise ValueError("frame_start must not exceed frame_end")
         return self
 
+    def make_local_files():
+        return
+    
+    def metadata():
+        return
     
 
 class DatasetModel(BaseModel):
