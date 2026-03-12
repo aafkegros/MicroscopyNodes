@@ -9,7 +9,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "==3.13.9"
-bpy = "=="5.1.0"
+bpy = "==5.0.0"
 dask = "==2026.1.2"
 importlib-metadata = "==8.7.0"
 tifffile = "==2026.2.24"
