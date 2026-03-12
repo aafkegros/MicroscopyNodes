@@ -1,6 +1,5 @@
 pytest
 pytest-snapshot
 pytest-cov
-bpy==4.4.0
-tifffile==2023.4.12 # Python tif loading
-scikit-image==0.22.0
+bpy==5.0.0
+tifffile==2026.2.24 # Python tif loading
