@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         blender-version: ["5.1.0b"]
-        os: [ubuntu-latest, windows-latest, macos-13]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Check out repository
