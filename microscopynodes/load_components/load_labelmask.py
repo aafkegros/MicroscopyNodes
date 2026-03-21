@@ -91,7 +91,6 @@ class LabelmaskIO(DataIO):
             
             
             bpy.ops.wm.alembic_export(filepath=fname,
-                            visible_objects_only=False,
                             selected=True,
                             vcolors = False,
                             flatten=False,
