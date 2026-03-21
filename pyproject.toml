@@ -6,19 +6,23 @@ authors = ["Oane Gros <oane.gros@embl.de>"]
 include = [
     {path = "README.md"}
 ]
+[[tool.poetry.source]]
+name = "dailybpy"
+url = "https://bradyajohnston.github.io/dailybpy/"
+priority = "explicit"
 
 [tool.poetry.dependencies]
-python = "~=3.11.6"
-bpy = "==4.4.0"
-dask = "2025.5.1"
-importlib-metadata = "8.7.0"
-tifffile = "2025.6.11"
-imagecodecs = "2025.3.30"
-zarr = "3.0.8"
-fsspec = "2025.5.1"
-cmap = "0.6.0"
-s3fs = "2025.5.1"
-zmesh = "1.8.0"
+python = "==3.13.9"
+bpy = { version = "==5.1.0b", source = "dailybpy" }
+dask = "==2026.1.2"
+importlib-metadata = "==8.7.0"
+tifffile = "==2026.2.24"
+imagecodecs = "==2026.1.14"
+zarr = "==3.1.5"
+fsspec = "==2026.2.0"
+cmap = "==0.7.1"
+s3fs = "==2026.2.0"
+zmesh = "1.10.0"
 
 
 [tool.poetry.group.dev.dependencies]

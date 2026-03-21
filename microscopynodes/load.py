@@ -79,6 +79,9 @@ def load_blocking(params):
             continue
         data_io = DataIOFactory(min_type)
         ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+        # print(ch_obj.scale, scale)
+        ch_obj.obj.scale = scale
+        # print(ch_obj.scale, scale)
 
         for ch in ch_dicts:
             if ch[min_type] and scn.MiN_update_data:
@@ -137,7 +140,7 @@ def set_render_settings():
 
     bpy.context.scene.render.engine = 'CYCLES'
     bpy.context.scene.cycles.transparent_max_bounces = 40 # less slicing artefacts
-    bpy.context.scene.cycles.volume_bounces = 32
-    bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
+    # bpy.context.scene.cycles.volume_bounces = 32
+    # bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
     bpy.context.scene.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
     return

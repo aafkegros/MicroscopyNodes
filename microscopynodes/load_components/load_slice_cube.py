@@ -3,6 +3,7 @@ from .. import handle_blender_structs
 import numpy as np
 
 def load_slice_cube(size_px, scale, scale_factor, container, slicecube=None):
+    
     if slicecube is None:
         bpy.ops.mesh.primitive_cube_add(location=size_px*scale/2)
         slicecube = bpy.context.active_object

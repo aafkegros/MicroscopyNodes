@@ -1,8 +1,8 @@
 name: test-addon
 
-on: 
+on:
   push:
-    branches: 
+    branches:
       - main
   pull_request:
     branches:
@@ -15,34 +15,29 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        blender-version: ["4.4.0"]
-        os: [ubuntu-latest, windows-latest, macos-13]
-        # os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-      # - run: pip install bpy==${{ matrix.blender-version }}
+        blender-version: ["5.1.0b"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-            
-      - name: Install poetry
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.9"
+          cache: "pip"
+
+      - name: Install Poetry
         run: pip install poetry
-        
-      - name: Install with retries
+
+      - name: Install dependencies with retries
         shell: bash
         run: |
-            for i in 1 2 3; do
-                poetry install --with=dev && break
-                sleep 10
-            done
-      - name: install
-        run: pip install -r requirements.txt
-      
-      - name: Install microscopy nodes
-        run: pip install .
- 
-     
-      - name: Run Tests
-        run: pytest --verbose 
+          for i in 1 2 3; do
+            poetry install --with dev && break
+            sleep 10
+          done
+
+      - name: Run tests
+        run: poetry run pytest --verbose
