@@ -14,6 +14,7 @@ blender_path ="/Users/oanegros/Documents/blenderBuilds/daily/blender-5.1.0-beta+
 # blender_path = "/Users/oanegros/Documents/blenderBuilds/daily/blender-5.0.0-alpha+daily.022d0edf2297+ma/Blender/Blender.app/Contents/MacOS/Blender"
 # permanent_whls = ["./microscopynodes/wheels/asciitree-0.3.4.dev1-py3-none-any.whl"]
 
+
 @dataclass
 class Platform:
     pypi_suffix: str
@@ -23,12 +24,11 @@ class Platform:
 # tags for blender metadata
 # platforms = ["windows-x64", "macos-arm64", "linux-x64", "windows-arm64", "macos-x64"]
 
-
-windows_x64 = Platform(pypi_suffix="win_amd64", metadata="windows-x64")
-linux_x64 = Platform(pypi_suffix="manylinux2014_x86_64", metadata="linux-x64")
-macos_arm = Platform(pypi_suffix="macosx_12_0_arm64", metadata="macos-arm64")
-macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
-
+build_platforms = [
+    Platform(pypi_suffix="win_amd64", metadata="windows-x64"),
+    Platform(pypi_suffix="manylinux2014_x86_64", metadata="linux-x64"),
+    Platform(pypi_suffix="macosx_13_0_arm64", metadata="macos-arm64"),
+]
 
 required_packages = required_packages = [
     # scikit-image + scipy is really big, but i cannot remove the fast marching cubes algorithm, or the fast find_objects
@@ -42,18 +42,10 @@ required_packages = required_packages = [
     "cmap==0.7.1",
     "s3fs==2026.2.0",
     "pyyaml==6.0.3",
-    "zmesh==1.10.0"
+    "zmesh==1.10.0",
 ]
 # this is deprecated - for non buildable wheels, will remove in the future
-nodeps_packages = [ 
-]
-
-build_platforms = [
-    windows_x64,
-    linux_x64,
-    macos_arm,
-    macos_intel,
-]
+nodeps_packages = []
 
 
 def run_python(args: str):
