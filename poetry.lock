@@ -222,15 +222,16 @@ crt = ["awscrt (==0.23.8)"]
 
 [[package]]
 name = "bpy"
-version = "5.1.0b0"
+version = "5.1.0"
 description = "Blender as a Python module"
 optional = false
 python-versions = "==3.13.*"
 groups = ["main"]
 files = [
-    {file = "bpy-5.1.0b0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4e245e6954c2f023249974db14f0d73da7335ba34db430c6d4fd6c9d6cdb7618"},
-    {file = "bpy-5.1.0b0-cp313-cp313-manylinux_2_39_x86_64.whl", hash = "sha256:7f305a2dfd978eaac659d6e5d9fa8216d0c9b655aaeeedfadf284027ac744dee"},
-    {file = "bpy-5.1.0b0-cp313-cp313-win_amd64.whl", hash = "sha256:aab18691c16dd064d0b390789a1d431e2eb716e7329a6f176f8dfc9d919448da"},
+    {file = "bpy-5.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:79cb379d32432031b31aaa740b2af1cbd6fab14ba3aa25db1500b19ea332bf8a"},
+    {file = "bpy-5.1.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:5b557f65902e4c84caf8b413d9bc6aceb660a5ca934e65f6c16e4ee91dc4cd4f"},
+    {file = "bpy-5.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:6ee14d8b28989b911b2e921b4592d1801738d550fedbcc57f773dae589f41bb2"},
+    {file = "bpy-5.1.0-cp313-cp313-win_arm64.whl", hash = "sha256:7dbd29e684dd6fa6acdc11c96bdbfb43ca95576a6b00ece413d3f80b8717fc08"},
 ]
 
 [package.dependencies]
@@ -238,11 +239,6 @@ cython = "*"
 numpy = ">=1.26,<2.0"
 requests = "*"
 zstandard = "*"
-
-[package.source]
-type = "legacy"
-url = "https://bradyajohnston.github.io/dailybpy"
-reference = "dailybpy"
 
 [[package]]
 name = "certifi"
@@ -2043,4 +2039,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.13.9"
-content-hash = "0a8c5ab5aea1ca794f5b8db70c550b12db0df16f601a264763953cae6a0e895a"
+content-hash = "f4a554436d028e7ecd3603159e88a79c2ac271f92557fce508676099139ab41f"
