@@ -3,7 +3,7 @@ import bpy
 
 def normalize_luminance_node():
     node_group = bpy.data.node_groups.get("Normalize Luminance")
-    if node_group:
+    if node_group and node_group.interface.items_tree.get("Alpha-Intensity Coupling"):
         return node_group
 
     node_group = bpy.data.node_groups.new(type='ShaderNodeTree', name="Normalize Luminance")
@@ -23,13 +23,11 @@ def normalize_luminance_node():
     interface.items_tree[-1].default_value = (0.0, 0.0, 0.0, 1.0)
     interface.items_tree[-1].attribute_domain = 'POINT'
 
-    interface.new_socket("Alpha Baseline", in_out="INPUT", socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 0.0
+    interface.new_socket("Alpha-Intensity Coupling", in_out="INPUT", socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 1.0
     interface.items_tree[-1].attribute_domain = 'POINT'
-
-    interface.new_socket("Alpha Multiplier", in_out="INPUT", socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 0.0
-    interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 1.0
 
     group_input = nodes.new("NodeGroupInput")
     group_input.location = (-440, 0)
@@ -37,18 +35,6 @@ def normalize_luminance_node():
     group_output = nodes.new("NodeGroupOutput")
     group_output.location = (335, 0)
     group_output.is_active_output = True
-
-    alpha_plus_baseline = nodes.new("ShaderNodeMath")
-    alpha_plus_baseline.location = (-265, -15)
-    alpha_plus_baseline.operation = 'ADD'
-    links.new(group_input.outputs["Alpha Baseline"], alpha_plus_baseline.inputs[0])
-    links.new(group_input.outputs["Alpha Multiplier"], alpha_plus_baseline.inputs[1])
-
-    mix_factor = nodes.new("ShaderNodeMath")
-    mix_factor.location = (-95, 100)
-    mix_factor.operation = 'DIVIDE'
-    links.new(group_input.outputs["Alpha Multiplier"], mix_factor.inputs[0])
-    links.new(alpha_plus_baseline.outputs[0], mix_factor.inputs[1])
 
     separate_color = nodes.new("ShaderNodeSeparateColor")
     separate_color.location = (-150, -115)
@@ -69,7 +55,7 @@ def normalize_luminance_node():
     mix.clamp_result = False
     mix.data_type = 'VECTOR'
     mix.factor_mode = 'UNIFORM'
-    links.new(mix_factor.outputs[0], mix.inputs["Factor"])
+    links.new(group_input.outputs["Alpha-Intensity Coupling"], mix.inputs["Factor"])
     links.new(group_input.outputs["Color"], mix.inputs[4])
     links.new(full_value_color.outputs["Color"], mix.inputs[5])
     links.new(mix.outputs[1], group_output.inputs["Color"])

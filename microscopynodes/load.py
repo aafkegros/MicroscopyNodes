@@ -11,12 +11,23 @@ from mathutils import Matrix
 
 class Scene():
     # wraps the blender scene and can hold Microscopy Nodes Datasets
-    def __init__(self, bgcol = None, render_preset=None):
-        self.scene = bpy.context.scene # TODO catch uninitialized scene
-        if bgcol is not None:
-            self.set_background_color(bgcol)
-        if render_preset is not None:
-            self.set_render_settings(render_preset)
+    def __init__(self, scene=None, overwrite_background_color=False, overwrite_render_settings=False):
+        self.scene = scene or bpy.context.scene # TODO catch uninitialized scene
+
+        if overwrite_background_color:
+            set_background_color()
+        if overwrite_render_settings:
+            self.set_render_settings()
+
+    @classmethod
+    def from_blender_ui(cls, context=None):
+        context = context or bpy.context
+        scene = context.scene
+        return cls(
+            scene=scene,
+            overwrite_background_color=scene.MiN_overwrite_background_color,
+            overwrite_render_settings=scene.MiN_overwrite_render_settings,
+        )
         
     def set_background_color(self, bgcol):
         try:
@@ -24,7 +35,8 @@ class Scene():
         except:
             pass
     
-    def set_render_settings(self, render_preset):
+    def set_render_settings(self):
+        set_render_settings()
         return
 
 class Dataset():
@@ -65,9 +77,9 @@ class Dataset():
             required_objects.update(min_type for min_type, visible in ch.visible_as.items() if visible)
 
         for min_key in min_keys:
-            if min_key not in required_objects:
-                continue
             min_obj = getattr(self, min_key.name.lower())
+            if min_key not in required_objects and min_obj is None:
+                continue
             if min_obj is None:
                 min_obj = MinObjectFactory(min_key)
                 setattr(self, min_key.name.lower(), min_obj)
@@ -203,6 +215,8 @@ def set_background_color():
 
 def set_render_settings():
     scn = bpy.context.scene
+    scn.render.engine = 'CYCLES'
+
     eevee = getattr(scn, "eevee", None)
     if eevee is not None:
         for attr, value in {
@@ -216,9 +230,25 @@ def set_render_settings():
     # bpy.context.scene.cycles.samples = 64
     scn.view_settings.view_transform = 'Standard'
 
-    scn.render.engine = 'CYCLES'
     scn.cycles.transparent_max_bounces = 40 # less slicing artefacts
     # bpy.context.scene.cycles.volume_bounces = 32
     # bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
     scn.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
+    set_viewport_scene_world()
     return
+
+
+def set_viewport_scene_world():
+    screen = getattr(bpy.context, "screen", None)
+    if screen is None:
+        return
+    for area in screen.areas:
+        if area.type != 'VIEW_3D':
+            continue
+        for space in area.spaces:
+            if space.type != 'VIEW_3D':
+                continue
+            shading = space.shading
+            for attr in ("use_scene_world", "use_scene_world_render"):
+                if hasattr(shading, attr):
+                    setattr(shading, attr, True)

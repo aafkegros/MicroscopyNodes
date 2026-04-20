@@ -210,6 +210,12 @@ class VolumeObject(ChannelObject):
                 self.draw_histogram(nodes, histnode.location,histnode.width, ch.metadata[self.min_type]['histogram'])
                 nodes.remove(histnode)
 
+        if nodes.get('[microscopy_shading]') is not None:
+            nodes['[microscopy_shading]'].inputs["Emission / Scattering"].default_value = float(not ch.emission)
+        if nodes.get('[emission_scattering]') is not None:
+            nodes['[emission_scattering]'].inputs["Fac"].default_value = float(not ch.emission)
+        if nodes.get('[emission_switch]') is not None:
+            nodes['[emission_switch]'].inputs["Fac"].default_value = float(ch.emission)
         if nodes.get('[switch]') is not None:
             nodes['[switch]'].inputs[0].default_value = ['Emission', 'Scattering'][int(not ch.emission)]
 
@@ -263,8 +269,8 @@ class VolumeObject(ChannelObject):
         alphanode.name = '[volume_alpha]'
         alphanode.location = (-300, -120)
         alphanode.show_options = False
-        alphanode.inputs.get("Alpha Baseline").default_value = 0
-        alphanode.inputs.get("Alpha Multiplier").default_value = 1
+        alphanode.inputs.get("Alpha").default_value = 1
+        alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
 
@@ -276,56 +282,25 @@ class VolumeObject(ChannelObject):
         color_lut.outputs[1].hide = True
         links.new(ramp_node.outputs[1], color_lut.inputs[0])
 
-        ac_linear = node_handling.nodegroup_from_blend("Normalize Luminance", nodes, "ShaderNodeGroup")
-        ac_linear.location = (150, 0)
-        links.new(color_lut.outputs[0],ac_linear.inputs[0])
-        links.new(alphanode.outputs.get("Alpha Baseline"),ac_linear.inputs.get("Alpha Baseline"))
-        links.new(alphanode.outputs.get("Alpha Multiplier"),ac_linear.inputs.get("Alpha Multiplier"))
-        ac_linear.label = "Ensure linear scaling"
-        ac_linear.hide =True
+        microscopy_shading = node_handling.nodegroup_from_blend("Microscopy Shading", nodes, "ShaderNodeGroup")
+        microscopy_shading.name = "[microscopy_shading]"
+        microscopy_shading.location = (150, 0)
+        microscopy_shading.width = 300
+        microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.emission)
+        for socket_name in ("Color", "Alpha", "Alpha-Intensity Coupling"):
+            microscopy_shading.inputs[socket_name].hide_value = True
 
-        shader_nodes = {'ShaderNodeEmission': None, 'ShaderNodeVolumeAbsorption': None, 'ShaderNodeVolumeScatter':None}
-
-        for i, node_type in enumerate(shader_nodes):
-            node = nodes.new(type=node_type)
-            node.location = (350, 100 - 150 * i)
-            links.new(ac_linear.outputs[0], node.inputs.get("Color"))
-            links.new(alphanode.outputs[0], node.inputs[1])
-            shader_nodes[node_type] = node
-
-        div = nodes.new(type='ShaderNodeMath')
-        div.operation = 'DIVIDE'
-        div.inputs[1].default_value = 10
-        div.location = (150, 100)
-        div.label = 'Divide by 10'
-        links.new(alphanode.outputs[0], div.inputs[0])
-        links.new(div.outputs[0], shader_nodes["ShaderNodeEmission"].inputs[1])
-        div.hide=True
-
-        add = nodes.new(type="ShaderNodeAddShader")
-        add.location = (550, -150)
-        links.new(shader_nodes["ShaderNodeVolumeAbsorption"].outputs[0], add.inputs[0])
-        links.new(shader_nodes["ShaderNodeVolumeScatter"].outputs[0], add.inputs[1])
-
-        menuswitch = nodes.new(type="GeometryNodeMenuSwitch")
-        menuswitch.name = "[switch]"
-        menuswitch.label = "Emission Switch"
-        menuswitch.data_type = 'SHADER'
-        menuswitch.location = (800, 0)
-        menuswitch.enum_items.clear()
-        menuswitch.enum_items.new("Emission")
-        menuswitch.enum_items.new("Scattering")
-
-        links.new(shader_nodes["ShaderNodeEmission"].outputs[0], menuswitch.inputs[1])
-        links.new(add.outputs[0], menuswitch.inputs[2])
+        links.new(color_lut.outputs[0], microscopy_shading.inputs["Color"])
+        links.new(alphanode.outputs.get("Alpha"), microscopy_shading.inputs["Alpha"])
+        links.new(alphanode.outputs.get("Alpha-Intensity Coupling"), microscopy_shading.inputs["Alpha-Intensity Coupling"])
         
 
         if nodes.get("Material Output") is None:
             outnode = nodes.new(type='ShaderNodeOutputMaterial')
             outnode.name = 'Material Output'
 
-        nodes.get("Material Output").location = (1200,00)
-        links.new(menuswitch.outputs[0], nodes.get("Material Output").inputs[1])
+        nodes.get("Material Output").location = (600,00)
+        links.new(microscopy_shading.outputs["Shader"], nodes.get("Material Output").inputs[1])
         return mat
 
 # Simplified rewrite of skimage.filters.threshold_isodata from
