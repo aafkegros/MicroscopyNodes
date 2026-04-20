@@ -11,7 +11,7 @@ import tomlkit
 toml_path = "microscopynodes/blender_manifest.toml"
 whl_path = "./microscopynodes/wheels"
 blender_path =r"/Applications/Blender_5a.app/Contents/MacOS/Blender"
-blender_path = "/Users/oanegros/Documents/blenderBuilds/daily/blender-5.0.0-alpha+daily.022d0edf2297+ma/Blender/Blender.app/Contents/MacOS/Blender"
+blender_path = "/Users/oanegros/Documents/blenderBuilds/stable/blender-5.0.0-macos-arm64+stable.a37564c4df7a/Blender/Blender.app/Contents/MacOS/Blender"
 # permanent_whls = ["./microscopynodes/wheels/asciitree-0.3.4.dev1-py3-none-any.whl"]
 
 @dataclass

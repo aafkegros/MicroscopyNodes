@@ -47,7 +47,7 @@ class ChannelModel(BaseModel):
 
     @property
     def identifier(self):
-        return f"ch_id{self.ix}",
+        return f"ch_id{self.ix}"
 
     # should implement transforms for Zarr RFC-5, will then turn to floats
     @property
@@ -75,9 +75,9 @@ class ChannelModel(BaseModel):
     
     @property
     def file_constructors(self):
-        for min_type, load in ch.visible_as.items():
+        for min_type, load in self.visible_as.items():
             if load:
-                DataIOFactory(min_type).file_constructors(ch)
+                DataIOFactory(min_type).file_constructors(self)
 
     @field_validator("data")
     def validate_data_shape(cls, v, info):
@@ -178,6 +178,7 @@ class DatasetModel(BaseModel):
             raise ValueError("All channel units need to currently be the same")
         return channels
 
+    @property
     def intermediate_bbox(self):
         # this is pre-loc and output transform, in channel units
         bbs = [ch.transformed_bbox for ch in self.channels]

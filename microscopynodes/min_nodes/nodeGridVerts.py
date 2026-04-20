@@ -1,112 +1,126 @@
 import bpy
 
+
+def _combine_float_to_vector(node_group, source_socket, location):
+    combine = node_group.nodes.new("ShaderNodeCombineXYZ")
+    combine.location = location
+    node_group.links.new(source_socket, combine.inputs["X"])
+    node_group.links.new(source_socket, combine.inputs["Y"])
+    node_group.links.new(source_socket, combine.inputs["Z"])
+    return combine
+
+
 def grid_verts_node_group():
     node_group = bpy.data.node_groups.get("_grid_verts")
     if node_group:
         return node_group
-    node_group= bpy.data.node_groups.new(type = 'GeometryNodeTree', name = "_grid_verts")
+
+    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name="_grid_verts")
     links = node_group.links
     interface = node_group.interface
-    
-    # -- get IO --
-    #input Vector
-    interface.new_socket("Size (m)",in_out="INPUT",socket_type='NodeSocketVector')
-    interface.items_tree[-1].default_value = (13.0, 10.0, 6.0)
+
+    interface.new_socket("Extent (unit)", in_out="INPUT", socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (7.0, 5.0, 4.0)
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 10000000.0
     interface.items_tree[-1].attribute_domain = 'POINT'
 
-    #node Group Input
+    interface.new_socket("World per Unit", in_out="INPUT", socket_type='NodeSocketFloat')
+    interface.items_tree[-1].default_value = 1e-6
+    interface.items_tree[-1].min_value = 0.0
+    interface.items_tree[-1].max_value = 3.4028234663852886e+38
+    interface.items_tree[-1].attribute_domain = 'POINT'
+
+    interface.new_socket("Boolean", in_out="OUTPUT", socket_type='NodeSocketBool')
+    interface.items_tree[-1].attribute_domain = 'POINT'
+
     group_input = node_group.nodes.new("NodeGroupInput")
-    group_input.location = (-800,0)
-    
+    group_input.location = (-1000, 0)
+
+    group_output = node_group.nodes.new("NodeGroupOutput")
+    group_output.location = (850, 100)
+
+    world_per_unit_xyz = _combine_float_to_vector(
+        node_group,
+        group_input.outputs["World per Unit"],
+        (-820, -260),
+    )
+
+    extent_world = node_group.nodes.new("ShaderNodeVectorMath")
+    extent_world.operation = "MULTIPLY"
+    extent_world.location = (-620, -220)
+    links.new(group_input.outputs["Extent (unit)"], extent_world.inputs[0])
+    links.new(world_per_unit_xyz.outputs[0], extent_world.inputs[1])
+
     pos = node_group.nodes.new("GeometryNodeInputPosition")
-    pos.location = (-600, 130)
-    
-    posXYZ =  node_group.nodes.new("ShaderNodeSeparateXYZ")
-    posXYZ.location = (-400, 130)
-    posXYZ.label = "posXYZ"
-    links.new(pos.outputs[0], posXYZ.inputs[0])
-    
-    compnodes = [[],[],[]]
-    for ix, side in enumerate(['min', 'max']):
-        loc =  node_group.nodes.new("ShaderNodeVectorMath")
+    pos.location = (-620, 140)
+
+    pos_xyz = node_group.nodes.new("ShaderNodeSeparateXYZ")
+    pos_xyz.location = (-420, 140)
+    links.new(pos.outputs[0], pos_xyz.inputs[0])
+
+    boundary_compares = [[], [], []]
+
+    for ix, side in enumerate(["min", "max"]):
+        loc = node_group.nodes.new("ShaderNodeVectorMath")
         loc.operation = "MULTIPLY"
-        loc.location = (-600, -200 * ix)
-        loc.label = "location 0,0,0"
-        links.new(group_input.outputs.get("Size (m)"), loc.inputs[0])
-        if side == 'min':
-            loc.inputs[1].default_value = (-0.5,-0.5,0)
-        else: 
-            loc.inputs[1].default_value = (0.5,0.5,1)
-        locXYZ =  node_group.nodes.new("ShaderNodeSeparateXYZ")
-        locXYZ.location = (-400, -130*ix)
-        locXYZ.label = side + "XYZ"
-        links.new(loc.outputs[0], locXYZ.inputs[0])
-        
-        
-        for axix, ax in enumerate("XYZ"):
-            # element wise compare
+        loc.location = (-620, -80 - 170 * ix)
+        links.new(extent_world.outputs[0], loc.inputs[0])
+        loc.inputs[1].default_value = (-0.5, -0.5, 0.0) if side == "min" else (0.5, 0.5, 1.0)
+
+        loc_xyz = node_group.nodes.new("ShaderNodeSeparateXYZ")
+        loc_xyz.location = (-420, -80 - 170 * ix)
+        links.new(loc.outputs[0], loc_xyz.inputs[0])
+
+        for axix in range(3):
             compare = node_group.nodes.new("FunctionNodeCompare")
             compare.data_type = 'FLOAT'
             compare.operation = 'EQUAL'
             compare.mode = 'ELEMENT'
-            compare.label = "value on " + side + " in " + ax
-            compare.location = (-200, ((ix*3)+axix) * -200 +300)
-            links.new(posXYZ.outputs[axix], compare.inputs[0])
-            links.new(locXYZ.outputs[axix], compare.inputs[1])
-            compnodes[axix].append(compare)
-    
-    ornodes = []
-    for axix, ax in enumerate("XYZ"):
+            compare.location = (-210, 320 - (ix * 3 + axix) * 140)
+            links.new(pos_xyz.outputs[axix], compare.inputs[0])
+            links.new(loc_xyz.outputs[axix], compare.inputs[1])
+            boundary_compares[axix].append(compare)
+
+    on_boundary = []
+    for axix in range(3):
         ornode = node_group.nodes.new("FunctionNodeBooleanMath")
         ornode.operation = 'OR'
-        for nix,compnode in enumerate(compnodes[axix]):
-            links.new(compnode.outputs[0], ornode.inputs[nix])
-        ornode.location = (0, (axix) * -200 +100)
-        ornode.label = "vert in min or max of " + ax
-        ornodes.append(ornode)
-    
-    andnodes = []
-    for i in range(3):
-        andnode = node_group.nodes.new("FunctionNodeBooleanMath")
-        andnode.operation = 'AND'
-        links.new(ornodes[i].outputs[0], andnode.inputs[0])
-        links.new(ornodes[i-1].outputs[0], andnode.inputs[1])
-        andnode.location = (200, i * -200 +100)
-        andnodes.append(andnode)
-    
-    ornodes2 = []
-    ornode = node_group.nodes.new("FunctionNodeBooleanMath")
-    ornode.operation = 'OR'
-    links.new(andnodes[0].outputs[0], ornode.inputs[0])
-    links.new(andnodes[1].outputs[0], ornode.inputs[1])
-    ornode.location = (400, 100)
-    ornodes2.append(ornode)
-    
-    ornode = node_group.nodes.new("FunctionNodeBooleanMath")
-    ornode.operation = 'OR'
-    links.new(andnodes[1].outputs[0], ornode.inputs[0])
-    links.new(andnodes[2].outputs[0], ornode.inputs[1])
-    ornode.location = (400, -100)
-    ornodes2.append(ornode)
+        ornode.location = (10, 100 - axix * 140)
+        links.new(boundary_compares[axix][0].outputs[0], ornode.inputs[0])
+        links.new(boundary_compares[axix][1].outputs[0], ornode.inputs[1])
+        on_boundary.append(ornode)
 
-    nornode = node_group.nodes.new("FunctionNodeBooleanMath")
-    nornode.operation = 'NOR'
-    links.new(ornodes2[0].outputs[0], nornode.inputs[0])
-    links.new(ornodes2[1].outputs[0], nornode.inputs[1])
-    nornode.location = (600, 100)
+    edge_xy = node_group.nodes.new("FunctionNodeBooleanMath")
+    edge_xy.operation = 'AND'
+    edge_xy.location = (220, 120)
+    links.new(on_boundary[0].outputs[0], edge_xy.inputs[0])
+    links.new(on_boundary[1].outputs[0], edge_xy.inputs[1])
 
-    #output Geometry
-    #     interface.new_socket("Size (m)",in_out="INPUT",socket_type='NodeSocketVector')
-    # interface.items_tree[-1].default_value = (13.0, 10.0, 6.0)
-    # interface.items_tree[-1].min_value = 0.0
-    # interface.items_tree[-1].max_value = 10000000.0
-    # interface.items_tree[-1].attribute_domain = 'POINT'
+    edge_yz = node_group.nodes.new("FunctionNodeBooleanMath")
+    edge_yz.operation = 'AND'
+    edge_yz.location = (220, -20)
+    links.new(on_boundary[1].outputs[0], edge_yz.inputs[0])
+    links.new(on_boundary[2].outputs[0], edge_yz.inputs[1])
 
-    interface.new_socket("Boolean",in_out="OUTPUT",socket_type='NodeSocketBool')
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    group_output = node_group.nodes.new("NodeGroupOutput")
-    group_output.location = (800,100)
-    links.new(nornode.outputs[0], group_output.inputs[0])
+    edge_zx = node_group.nodes.new("FunctionNodeBooleanMath")
+    edge_zx.operation = 'AND'
+    edge_zx.location = (220, -160)
+    links.new(on_boundary[2].outputs[0], edge_zx.inputs[0])
+    links.new(on_boundary[0].outputs[0], edge_zx.inputs[1])
+
+    edge_or_1 = node_group.nodes.new("FunctionNodeBooleanMath")
+    edge_or_1.operation = 'OR'
+    edge_or_1.location = (420, 80)
+    links.new(edge_xy.outputs[0], edge_or_1.inputs[0])
+    links.new(edge_yz.outputs[0], edge_or_1.inputs[1])
+
+    edge_or_2 = node_group.nodes.new("FunctionNodeBooleanMath")
+    edge_or_2.operation = 'OR'
+    edge_or_2.location = (620, 80)
+    links.new(edge_or_1.outputs[0], edge_or_2.inputs[0])
+    links.new(edge_zx.outputs[0], edge_or_2.inputs[1])
+
+    links.new(edge_or_2.outputs[0], group_output.inputs["Boolean"])
+
     return node_group
