@@ -203,4 +203,3 @@ def parse_cmap(name, single_color):
 #                     objs[key] = child
 
 #     return objs
-

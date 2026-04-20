@@ -140,10 +140,6 @@ class DatasetModel(BaseModel):
     update_settings: bool = True
     update_data: bool = True
     
-    # Should not live here
-    overwrite_background_color: bool = False
-    overwrite_render_settings: bool = False
-
     exception : Optional[str] = ""
 
     @property
