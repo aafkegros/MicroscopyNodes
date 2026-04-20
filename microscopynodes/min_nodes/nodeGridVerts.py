@@ -1,15 +1,6 @@
 import bpy
 
 
-def _combine_float_to_vector(node_group, source_socket, location):
-    combine = node_group.nodes.new("ShaderNodeCombineXYZ")
-    combine.location = location
-    node_group.links.new(source_socket, combine.inputs["X"])
-    node_group.links.new(source_socket, combine.inputs["Y"])
-    node_group.links.new(source_socket, combine.inputs["Z"])
-    return combine
-
-
 def grid_verts_node_group():
     node_group = bpy.data.node_groups.get("_grid_verts")
     if node_group:
@@ -25,8 +16,8 @@ def grid_verts_node_group():
     interface.items_tree[-1].max_value = 10000000.0
     interface.items_tree[-1].attribute_domain = 'POINT'
 
-    interface.new_socket("World per Unit", in_out="INPUT", socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 1e-6
+    interface.new_socket("World per Unit", in_out="INPUT", socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (1e-6, 1e-6, 1e-6)
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 3.4028234663852886e+38
     interface.items_tree[-1].attribute_domain = 'POINT'
@@ -40,17 +31,11 @@ def grid_verts_node_group():
     group_output = node_group.nodes.new("NodeGroupOutput")
     group_output.location = (850, 100)
 
-    world_per_unit_xyz = _combine_float_to_vector(
-        node_group,
-        group_input.outputs["World per Unit"],
-        (-820, -260),
-    )
-
     extent_world = node_group.nodes.new("ShaderNodeVectorMath")
     extent_world.operation = "MULTIPLY"
     extent_world.location = (-620, -220)
     links.new(group_input.outputs["Extent (unit)"], extent_world.inputs[0])
-    links.new(world_per_unit_xyz.outputs[0], extent_world.inputs[1])
+    links.new(group_input.outputs["World per Unit"], extent_world.inputs[1])
 
     pos = node_group.nodes.new("GeometryNodeInputPosition")
     pos.location = (-620, 140)

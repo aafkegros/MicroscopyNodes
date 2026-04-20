@@ -63,16 +63,29 @@ def scale_node_group():
     self_info.location = (-1000, 350)
     links.new(self_object.outputs["Self Object"], self_info.inputs["Object"])
 
+    world_per_unit_xyz = node_group.nodes.new("ShaderNodeCombineXYZ")
+    world_per_unit_xyz.location = (-1000, 120)
+    links.new(group_input.outputs["World per Unit"], world_per_unit_xyz.inputs["X"])
+    links.new(group_input.outputs["World per Unit"], world_per_unit_xyz.inputs["Y"])
+    links.new(group_input.outputs["World per Unit"], world_per_unit_xyz.inputs["Z"])
+
     extent_unit = node_group.nodes.new("ShaderNodeVectorMath")
-    extent_unit.operation = "ABSOLUTE"
+    extent_unit.operation = "DIVIDE"
     extent_unit.location = (-800, 350)
     links.new(self_info.outputs["Scale"], extent_unit.inputs[0])
+    links.new(world_per_unit_xyz.outputs[0], extent_unit.inputs[1])
+
+    local_per_unit = node_group.nodes.new("ShaderNodeVectorMath")
+    local_per_unit.operation = "DIVIDE"
+    local_per_unit.location = (-800, 120)
+    links.new(world_per_unit_xyz.outputs[0], local_per_unit.inputs[0])
+    links.new(self_info.outputs["Scale"], local_per_unit.inputs[1])
 
     scalebox = node_group.nodes.new("GeometryNodeGroup")
     scalebox.node_tree = scalebox_node_group()
     scalebox.location = (-500, 520)
     links.new(extent_unit.outputs[0], scalebox.inputs["Extent (unit)"])
-    links.new(group_input.outputs["World per Unit"], scalebox.inputs["World per Unit"])
+    links.new(local_per_unit.outputs[0], scalebox.inputs["World per Unit"])
     links.new(group_input.outputs["Tick Step (unit)"], scalebox.inputs["Tick Step (unit)"])
     links.new(group_input.outputs["Axis Bundle"], scalebox.inputs["Axis Bundle"])
 
@@ -96,7 +109,7 @@ def scale_node_group():
     grid_verts.node_tree = grid_verts_node_group()
     grid_verts.location = (-500, 80)
     links.new(extent_unit.outputs[0], grid_verts.inputs["Extent (unit)"])
-    links.new(group_input.outputs["World per Unit"], grid_verts.inputs["World per Unit"])
+    links.new(local_per_unit.outputs[0], grid_verts.inputs["World per Unit"])
 
     nor_grid = node_group.nodes.new("FunctionNodeBooleanMath")
     nor_grid.operation = 'NOR'

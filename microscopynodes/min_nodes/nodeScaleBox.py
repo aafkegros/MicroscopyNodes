@@ -12,15 +12,6 @@ AXIS_ITEM_NAMES = [
 ]
 
 
-def _combine_float_to_vector(node_group, source_socket, location):
-    combine = node_group.nodes.new("ShaderNodeCombineXYZ")
-    combine.location = location
-    node_group.links.new(source_socket, combine.inputs["X"])
-    node_group.links.new(source_socket, combine.inputs["Y"])
-    node_group.links.new(source_socket, combine.inputs["Z"])
-    return combine
-
-
 def _add_bundle_items(bundle_node, item_names, socket_type='BOOLEAN'):
     for name in item_names:
         bundle_node.bundle_items.new(socket_type, name)
@@ -41,8 +32,8 @@ def scalebox_node_group():
     interface.items_tree[-1].max_value = 10000000.0
     interface.items_tree[-1].attribute_domain = 'POINT'
 
-    interface.new_socket("World per Unit", in_out="INPUT", socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 1e-6
+    interface.new_socket("World per Unit", in_out="INPUT", socket_type='NodeSocketVector')
+    interface.items_tree[-1].default_value = (1e-6, 1e-6, 1e-6)
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 3.4028234663852886e+38
     interface.items_tree[-1].attribute_domain = 'POINT'
@@ -73,23 +64,17 @@ def scalebox_node_group():
     _add_bundle_items(separate_axes, AXIS_ITEM_NAMES, 'BOOLEAN')
     links.new(group_input.outputs["Axis Bundle"], separate_axes.inputs["Bundle"])
 
-    world_per_unit_xyz = _combine_float_to_vector(
-        node_group,
-        group_input.outputs["World per Unit"],
-        (-1100, -430),
-    )
-
-    tick_step_xyz = _combine_float_to_vector(
-        node_group,
-        group_input.outputs["Tick Step (unit)"],
-        (-1100, -170),
-    )
+    tick_step_xyz = node_group.nodes.new("ShaderNodeCombineXYZ")
+    tick_step_xyz.location = (-1100, -170)
+    links.new(group_input.outputs["Tick Step (unit)"], tick_step_xyz.inputs["X"])
+    links.new(group_input.outputs["Tick Step (unit)"], tick_step_xyz.inputs["Y"])
+    links.new(group_input.outputs["Tick Step (unit)"], tick_step_xyz.inputs["Z"])
 
     extent_world = node_group.nodes.new("ShaderNodeVectorMath")
     extent_world.operation = "MULTIPLY"
     extent_world.location = (-900, -430)
     links.new(group_input.outputs["Extent (unit)"], extent_world.inputs[0])
-    links.new(world_per_unit_xyz.outputs[0], extent_world.inputs[1])
+    links.new(group_input.outputs["World per Unit"], extent_world.inputs[1])
 
     loc_0 = node_group.nodes.new("ShaderNodeVectorMath")
     loc_0.operation = "MULTIPLY"
@@ -130,7 +115,7 @@ def scalebox_node_group():
     overshoot_world.operation = "MULTIPLY"
     overshoot_world.location = (-580, 10)
     links.new(overshoot_unit.outputs[0], overshoot_world.inputs[0])
-    links.new(world_per_unit_xyz.outputs[0], overshoot_world.inputs[1])
+    links.new(group_input.outputs["World per Unit"], overshoot_world.inputs[1])
 
     overshoot_world_xyz = node_group.nodes.new("ShaderNodeSeparateXYZ")
     overshoot_world_xyz.location = (-420, 10)

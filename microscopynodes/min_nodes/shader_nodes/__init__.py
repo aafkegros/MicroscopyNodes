@@ -1,5 +1,6 @@
 from . import cmap_menus
 from .nodeVolumeAlpha import volume_alpha_node
+from .nodeNormalizeLuminance import normalize_luminance_node
 from .handle_cmap import set_color_ramp_from_ch, get_lut
 from .nodeRemapObjectID import remap_oid_node
 from . import ops
@@ -35,3 +36,14 @@ def MIN_context_shader_node_menu(self, context):
 
 
 CLASSES = [MIN_MT_CMAP_ADD, MIN_MT_CMAP_REPLACE] + cmap_menus.CLASSES + ops.CLASSES
+
+NODE_GROUPS = {
+    "Normalize Luminance": normalize_luminance_node,
+}
+
+
+def shader_node_group(name):
+    builder = NODE_GROUPS.get(name)
+    if builder is None:
+        return None
+    return builder()

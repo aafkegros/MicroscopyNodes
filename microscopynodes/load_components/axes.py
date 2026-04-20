@@ -45,12 +45,19 @@ class Axes(MiNObject):
         maxs = np.array([b[1] for b in bbox], dtype=float)
 
         extent_unit = maxs - mins
+        extent_world = extent_unit * float(dataset_model.scale)
         relative_loc = np.array(dataset_model.relative_loc, dtype=float)
 
-        location_unit = mins + relative_loc * extent_unit
+        location_unit = mins + (relative_loc + np.array([0.5,0.5,0])) * extent_unit
         location_world = location_unit * float(dataset_model.scale)
 
-        return tuple(extent_unit), tuple(location_world)
+        return tuple(extent_unit), tuple(extent_world), tuple(location_world)
+
+    def _line_thickness(self, extent_unit):
+        max_extent = float(np.max(extent_unit))
+        if max_extent <= 0:
+            return 0.1
+        return max(max_extent * 0.25, 0.1)
 
     def _nice_tick_step(self, extent_unit, target_ticks=6, min_ticks=3):
         max_extent = float(np.max(extent_unit))
@@ -77,18 +84,17 @@ class Axes(MiNObject):
         return
         
     def set_settings(self, dataset_model):
-        extent_unit, location_world = self._dataset_extent_and_location(dataset_model)
+        extent_unit, extent_world, location_world = self._dataset_extent_and_location(dataset_model)
         
         tick_step = self._nice_tick_step(extent_unit)
+        line_thickness = 0.25
 
         self.object.location = location_world
-        self.object.scale = extent_unit
-
-        scale_node = self.node_group.nodes["Scale Bars"]
+        self.object.scale = np.maximum(extent_world, 1e-6)
 
         self._set_modifier_input("Tick Step (unit)", tick_step)
         self._set_modifier_input("Grid", True)
-        self._set_modifier_input("Line thickness", 0.1)
+        self._set_modifier_input("Line thickness", line_thickness)
         for i in AXIS_ITEM_NAMES:
             self._set_modifier_input(i, True)
         return
