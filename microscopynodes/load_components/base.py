@@ -2,10 +2,21 @@ import bpy
 from ..handle_blender_structs import *
 from databpy import BlenderObject
 from pathlib import Path
+import numpy as np
+from mathutils import Matrix
 
 class DataIO():
     min_type = None
-    TEMPLATE = Path("{cache_path}") / "res{resolution}_c{channel_ix}_t{t}"
+    TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "res{resolution}_c{channel_ix}_t{t}"
+
+    def base_constructor(self, ch):
+        cache_path = Path(ch.cache_path)
+        return {
+            "cache_path": str(cache_path),
+            "cache_dir": str(cache_path.parent),
+            "dataset_hash": cache_path.name,
+            "original_path": ch.source,
+        }
 
     def generate_file_constructors(self, ch):
         return [] #Todo make this default? only if chunking get actually removed
@@ -53,6 +64,25 @@ class MiNObject(BlenderObject):
         if self.min_gn is not None:
             return self.min_gn.node_group
 
+    @property
+    def gn_mod(self):
+        return self.min_gn
+
+
+def dataset_extent(dataset_model):
+    bbox = dataset_model.intermediate_bbox
+    mins = np.array([b[0] for b in bbox], dtype=float)
+    maxs = np.array([b[1] for b in bbox], dtype=float)
+    return mins, maxs, maxs - mins
+
+
+def channel_world_matrix(ch, dataset_model):
+    _, _, extent = dataset_extent(dataset_model)
+    matrix = np.array(ch.affine, dtype=float)
+    matrix[:3, 3] += np.array(dataset_model.relative_loc, dtype=float) * extent
+    matrix[:3, :] *= float(dataset_model.scale)
+    return Matrix(matrix.tolist())
+
 class ChannelObject(MiNObject):
     import_node_name = ""
 
@@ -95,9 +125,14 @@ class ChannelObject(MiNObject):
 
     def set_data(self, dataset_model):
         for ch in dataset_model.channels:
+            if not ch.visible_as.get(self.min_type, False):
+                continue
             self.update_ch_data(ch)
 
     def update_ch_data(self, ch):
+        file_constructors = ch.file_constructors.get(self.min_type, [])
+        if not file_constructors:
+            return
         if not self.ch_present(ch): 
             self.append_channel_to_holder(ch)
         importnode = self.node_group.nodes[f"channel_load_{ch.identifier}"]
@@ -107,6 +142,9 @@ class ChannelObject(MiNObject):
     def set_settings(self, dataset_model):
         for ch in dataset_model.channels:
             self.update_ch_settings(ch)
+        ch = next((ch for ch in dataset_model.channels if ch.visible_as.get(self.min_type, False)), None)
+        if ch is not None:
+            self.object.matrix_world = channel_world_matrix(ch, dataset_model)
 
 
     def update_ch_settings(self, ch):
@@ -124,22 +162,7 @@ class ChannelObject(MiNObject):
 
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
-            self.gn_mod[socket.identifier] = bool(ch[self.min_type])
-        
-        
-        # frame_socket, socket_ix = get_socket_by_name('[frame]', return_ix=True)
-        print('start setting')
-        keyframes = get_keyframes(self.object, '["Socket_0"]')
-        print(keyframes)
-        # if len(keyframes) == 2:
-        #     if keyframe
-
-        setattr(self.gn_mod, '["Socket_0"]', 0)
-        self.gn_mod.keyframe_insert(data_path='["Socket_0"]', frame=0)
-        setattr(self.gn_mod, '["Socket_0"]', bpy.context.scene.MiN_load_end_frame-bpy.context.scene.MiN_load_start_frame)
-        self.gn_mod.keyframe_insert(data_path='["Socket_0"]', frame=bpy.context.scene.MiN_load_end_frame-bpy.context.scene.MiN_load_start_frame)
-        get_keyframes(self.object,  '["Socket_0"]')
-        print(keyframes)
+            self.gn_mod[socket.identifier] = bool(ch.visible_as.get(self.min_type, False))
         return
     
 
@@ -206,10 +229,6 @@ class ChannelObject(MiNObject):
 
         self.channel_nodes(x, y, ch, importnode.outputs[0], joingeo.inputs[-1])
 
-        self.node_group.links.new(in_node.outputs.get('Frame'), importnode.inputs.get("Frame"))
-        # add switch socket
-        
-        node_socket = in_node.outputs.get(socket.name)
         self.node_group.links.new(in_node.outputs.get(socket.name), importnode.inputs.get("Include"))
         return
 
@@ -227,10 +246,8 @@ class ChannelObject(MiNObject):
 
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
-        for mat in self.obj.data.materials:
+        for mat in self.object.data.materials:
             if mat.node_tree.nodes.get("Slice Cube") is None:
                 node_handling.insert_slicing(mat.node_tree, slice_cube)
-        if self.min_type in ch['collections']:
-            for obj in ch['collections'][self.min_type].all_objects:
-                obj.parent = parent
-            
+        for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
+            obj.parent = parent

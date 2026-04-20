@@ -53,8 +53,8 @@ def get_safe_node_input(group, make=False):
             innode = node
         xval = min(xval, node.location[0])
     if innode is None and make==True:
-        output = group.nodes.new('NodeGroupInput')
-        output.location = (xval - 300, 0)
+        innode = group.nodes.new('NodeGroupInput')
+        innode.location = (xval - 300, 0)
     return innode
 
 def insert_last_node(group, node, move = True, safe=False):
@@ -119,13 +119,14 @@ def new_socket(node_group, ch, type, min_type, internal_append="", ix=None):
 
 def set_name_socket(socket, ch_name):
     for min_type in MIN_SOCKET_TYPES:
-        if min_type in socket.default_attribute_name:
+        if min_type in getattr(socket, "default_attribute_name", ""):
             socket.name =  " ".join([ch_name, MIN_SOCKET_TYPES[min_type]])
     return
 
 def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if re.search(string=socket.default_attribute_name, pattern=f"{ch.identifier}_{min_type}_{internal_append}+") is not None:
+        default_attribute_name = getattr(socket, "default_attribute_name", "")
+        if re.search(string=default_attribute_name, pattern=f"{ch.identifier}_{min_type}_{internal_append}+") is not None:
             if return_ix:
                 return node_group.interface.items_tree[ix], ix
             return node_group.interface.items_tree[ix]
@@ -135,7 +136,8 @@ def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
 
 def get_socket_by_name(node_group, name, return_ix=False):
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if re.search(string=socket.default_attribute_name, pattern=f"{name}") is not None:
+        default_attribute_name = getattr(socket, "default_attribute_name", "")
+        if re.search(string=default_attribute_name, pattern=f"{name}") is not None:
             if return_ix:
                 return node_group.interface.items_tree[ix], ix
             return node_group.interface.items_tree[ix]
@@ -167,7 +169,9 @@ def insert_slicing(group, slice_obj):
 
 def nodegroup_from_blend(name, nodes, tree_type = "GeometryNodeGroup", link=False):
     node = nodes.new(tree_type) 
-    node_group = bpy.data.node_groups.get(name)
+    node_group = min_nodes.geometry_node_group(name)
+    if node_group is None:
+        node_group = bpy.data.node_groups.get(name)
     if node_group:
         node.node_tree = node_group
     else: 

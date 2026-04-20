@@ -24,7 +24,7 @@ def get_leading_trailing_zero_float(arr):
 
 class VolumeIO(DataIO):
     min_type = min_keys.VOLUME
-    VDB_TEMPLATE = Path("{cache_path}") / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
+    VDB_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
 
     def generate_file_constructors(self, ch):
         """Purely generates file path metadata without writing."""
@@ -35,12 +35,12 @@ class VolumeIO(DataIO):
         if bpy.context.scene.MiN_chunk:
             maxlen = 2048
         slices_xyz = [self.split_axis_to_chunks(dimshape, ch.ix, maxlen) for dimshape in xyz_shape]
-        time_slices = [slice(t, t+1) for t in range(bpy.context.scene.MiN_load_start_frame, min(bpy.context.scene.MiN_load_end_frame + 1, len_axis('t', ch.axes_order, ch.data.shape)))]
+        time_slices = [slice(t, t+1) for t in range(ch.frame_start, min(ch.frame_end + 1, len_axis('t', ch.axes_order, ch.data.shape)))]
         slices_xyzt = slices_xyz + [time_slices]
 
         for block in itertools.product(*slices_xyzt):
-            file_constructors.append( {
-                "cache_path": ch.cache_path,
+            file_constructors.append({
+                **self.base_constructor(ch),
                 "scale": ch.dataset_resolution,
                 'x': block[0].start, 'y': block[1].start, 'z': block[2].start,
                 "x_end": block[0].stop, "y_end": block[1].stop, "z_end": block[2].stop,

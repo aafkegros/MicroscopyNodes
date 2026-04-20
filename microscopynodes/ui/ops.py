@@ -34,7 +34,7 @@ class TifLoadOperator(bpy.types.Operator):
                     raise(Exception(self.dataset_model.exception))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
-                Dataset().set_state(self.dataset_model)
+                Dataset(holder=context.scene.MiN_reload).set_state(self.dataset_model)
                 
                 # load.load_blocking(self.dataset_model)
                 return {'FINISHED'}
@@ -76,10 +76,9 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
     bl_label = "Load"
 
     def execute(self, context):
-        params = parse_blender_ui()
-        # params = parse_inputs.parse_initial()
-        load.load_threaded(params)
-        load.load_blocking(params)
+        dataset_model = parse_blender_ui()
+        dataset_model.make_local_files()
+        Dataset(holder=context.scene.MiN_reload).set_state(dataset_model)
         return {'FINISHED'}
 
 
