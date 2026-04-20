@@ -1,7 +1,9 @@
+from .import_microscopy_meshes import import_microscopy_meshes_node_group
 from .import_microscopy_volume import import_microscopy_volume_node_group
 
 
 NODE_GROUPS = {
+    "Import Microscopy Meshes": import_microscopy_meshes_node_group,
     "Import Microscopy Volume": import_microscopy_volume_node_group,
 }
 
