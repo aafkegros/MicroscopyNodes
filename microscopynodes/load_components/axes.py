@@ -47,7 +47,7 @@ class Axes(MiNObject):
         extent_unit = maxs - mins
         relative_loc = np.array(dataset_model.relative_loc, dtype=float)
 
-        location_unit = mins - relative_loc * extent_unit
+        location_unit = mins + relative_loc * extent_unit
         location_world = location_unit * float(dataset_model.scale)
 
         return tuple(extent_unit), tuple(location_world)

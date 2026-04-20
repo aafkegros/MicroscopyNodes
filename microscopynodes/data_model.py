@@ -1,10 +1,8 @@
-from pathlib import Path
 from typing import Annotated, Optional, Tuple, List, Dict, Any
-from pydantic import BaseModel, Field, field_validator,model_validator, ConfigDict
-from typing import Literal
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import numpy as np
 from .handle_blender_structs.props import min_keys
-import dask
+import dask.array as da
 from .load_components.factories import DataIOFactory
 
 # class ChannelTransform(BaseModel)
@@ -22,11 +20,12 @@ class ChannelModel(BaseModel):
     cache_path: str
 
     ix: int # channel index in the original array
-    data: dask.array.Array # Maybe make this optional again for if the link to the data is lost? 
+    data: da.Array # Maybe make this optional again for if the link to the data is lost?
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
-    metadata:  Dict[min_keys, Any] = {} # runtime assessed
+    metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
+    file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict)
     
     frame_start: int = None
     frame_end: int = None
@@ -73,12 +72,6 @@ class ChannelModel(BaseModel):
     
     
     
-    @property
-    def file_constructors(self):
-        for min_type, load in self.visible_as.items():
-            if load:
-                DataIOFactory(min_type).file_constructors(self)
-
     @field_validator("data")
     def validate_data_shape(cls, v, info):
         if v is not None:
@@ -108,10 +101,11 @@ class ChannelModel(BaseModel):
         if data is None or axes is None:
             return v
 
-        if "t" not in axes:
-            if v != 0:
-                raise ValueError("frame_start and frame_end must be 0 when no t axis exists")
+        if v is None:
             return v
+
+        if "t" not in axes:
+            return 0
 
         tdim = data.shape[axes.index("t")]
 
@@ -125,20 +119,13 @@ class ChannelModel(BaseModel):
         if "t" not in self.axes_order:
             self.frame_start = 0
             self.frame_end = 0
-        if 't' in self.axes_order and not self.frame_start:
+        if 't' in self.axes_order and self.frame_start is None:
             self.frame_start = 0
-        if 't' in self.axes_order and not self.frame_end:
+        if 't' in self.axes_order and self.frame_end is None:
             self.frame_end = self.data.shape[self.axes_order.find('t')]-1 
         if "t" in self.axes_order and self.frame_start > self.frame_end:
             raise ValueError("frame_start must not exceed frame_end")
         return self
-
-    def make_local_files():
-        return
-    
-    def metadata():
-        return
-    
 
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
@@ -193,9 +180,16 @@ class DatasetModel(BaseModel):
         return self
 
     def make_local_files(self):
-        for ch in self.channels:
-            for min_type, load in ch.visible_as.items():
-                if load:
-                    DataIOFactory(min_type).make_local_files(ch)
-        self.local_files_exist = True
-        return
+        try:
+            for ch in self.channels:
+                for min_type, load in ch.visible_as.items():
+                    if not load:
+                        continue
+                    data_io = DataIOFactory(min_type)
+                    file_constructors = data_io.make_local_files(ch)
+                    ch.file_constructors[min_type] = file_constructors
+                    ch.metadata[min_type] = data_io.get_metadata(file_constructors)
+            self.local_files_exist = True
+        except Exception as e:
+            self.exception = str(e)
+        return self

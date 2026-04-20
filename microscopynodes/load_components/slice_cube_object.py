@@ -1,18 +1,15 @@
-print('trying to import stuff in slice cube')
 import bpy
 from ..handle_blender_structs.props import min_keys
 import numpy as np
 from .base import *
-print('imported stuff in slice cube')
 
-class SliceCubeObject():
+class SliceCubeObject(MiNObject):
     min_type = min_keys.SLICECUBE
     
     def init_obj(self): 
         super().init_obj()
         slicecube = self.object
         slicecube.name = "slice cube"
-        slicecube.scale = size_px * scale /2 
 
         bpy.ops.object.modifier_add(type='NODES')
         # slicecube.modifiers[-1].name = f"Slice cube empty modifier (for reloading)"
@@ -32,10 +29,16 @@ class SliceCubeObject():
             )
         mat.node_tree.nodes['Principled BSDF'].inputs.get("Alpha").default_value = 0
         slicecube.data.materials.append(mat)
+        return slicecube
 
     def set_settings(self, dataset_model):
         slicecube = self.object
-        slicecube.location =  np.array(slicecube.location)+ ( np.array(slicecube.location)*(scale_factor - 1))
-        slicecube.scale = np.array(slicecube.scale)  * scale_factor
+        mins, _, extent = dataset_extent(dataset_model)
+        extent_world = extent * float(dataset_model.scale)
+        center_unit = mins + (np.array(dataset_model.relative_loc, dtype=float) + 0.5) * extent
+        center_world = center_unit * float(dataset_model.scale)
+
+        slicecube.location = center_world
+        slicecube.scale = np.maximum(extent_world / 2.0, 1e-6)
         slicecube.display_type = 'BOUNDS'
     

@@ -18,20 +18,20 @@ class Scene():
         if render_preset is not None:
             self.set_render_settings(render_preset)
         
-    def set_background_color(bgcol):
+    def set_background_color(self, bgcol):
         try:
             self.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
         except:
             pass
     
-    def set_render_settings(render_preset):
+    def set_render_settings(self, render_preset):
         return
 
 class Dataset():
     def __init__(self, holder=None, dataset_model=None):
         self.holder = None
         self.axes = None
-        self.slice_cube = None
+        self.slicecube = None
         self.volume = None
         self.surface = None
         self.labelmask = None
@@ -48,16 +48,25 @@ class Dataset():
             min_gn = get_min_gn(child)
             if min_gn is None:
                 continue
-            key = next((k for k in min_keys if s in k.name.lower()), None)
+            key = next((k for k in min_keys if k.name.lower() in min_gn.name.lower()), None)
             if key:
-                min_obj = MinObjectFactory(type=min_key, obj=child)
-                setattr(self, min_key.name.lower, min_obj)
+                min_obj = MinObjectFactory(key, obj=child)
+                setattr(self, key.name.lower(), min_obj)
         return
 
     def set_state(self, dataset_model):
         if not dataset_model.local_files_exist:
             dataset_model.make_local_files()
+        if dataset_model.exception:
+            raise RuntimeError(dataset_model.exception)
+
+        required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}
+        for ch in dataset_model.channels:
+            required_objects.update(min_type for min_type, visible in ch.visible_as.items() if visible)
+
         for min_key in min_keys:
+            if min_key not in required_objects:
+                continue
             min_obj = getattr(self, min_key.name.lower())
             if min_obj is None:
                 min_obj = MinObjectFactory(min_key)
@@ -66,11 +75,33 @@ class Dataset():
                 min_obj.set_data(dataset_model)
             if dataset_model.update_settings:
                 min_obj.set_settings(dataset_model)
-        self.ensure_links_of_objects()
+        self.ensure_links_of_objects(dataset_model)
+        if self.holder is not None:
+            bpy.context.scene.MiN_reload = self.holder.object
         return    
     
-    def ensure_links_of_objects(self):
-        # set parentage, slicing, maybe also share action
+    def ensure_links_of_objects(self, dataset_model):
+        if self.holder is None:
+            return
+
+        ensure_dataset_frame_property(self.holder.object, dataset_model)
+
+        for min_key in (min_keys.AXES, min_keys.SLICECUBE, min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
+            min_obj = getattr(self, min_key.name.lower())
+            if min_obj is not None:
+                min_obj.object.parent = self.holder.object
+
+        if self.slicecube is not None:
+            for min_obj in (self.volume, self.surface, self.labelmask):
+                if min_obj is None:
+                    continue
+                for ch in dataset_model.channels:
+                    if ch.visible_as.get(min_obj.min_type, False):
+                        min_obj.set_parent_and_slicer(self.holder.object, self.slicecube.object, ch)
+
+        for min_obj in (self.volume, self.surface, self.labelmask):
+            if min_obj is not None:
+                ensure_dataset_frame_driver(self.holder.object, min_obj)
         return
 
 
@@ -171,16 +202,23 @@ def set_background_color():
 
 
 def set_render_settings():
-    bpy.context.scene.eevee.volumetric_tile_size = '1'
+    scn = bpy.context.scene
+    eevee = getattr(scn, "eevee", None)
+    if eevee is not None:
+        for attr, value in {
+            "volumetric_tile_size": '1',
+            "volumetric_end": 300,
+            "taa_samples": 64,
+        }.items():
+            if hasattr(eevee, attr):
+                setattr(eevee, attr, value)
     # bpy.context.scene.cycles.preview_samples = 8
     # bpy.context.scene.cycles.samples = 64
-    bpy.context.scene.view_settings.view_transform = 'Standard'
-    bpy.context.scene.eevee.volumetric_end = 300
-    bpy.context.scene.eevee.taa_samples = 64
+    scn.view_settings.view_transform = 'Standard'
 
-    bpy.context.scene.render.engine = 'CYCLES'
-    bpy.context.scene.cycles.transparent_max_bounces = 40 # less slicing artefacts
+    scn.render.engine = 'CYCLES'
+    scn.cycles.transparent_max_bounces = 40 # less slicing artefacts
     # bpy.context.scene.cycles.volume_bounces = 32
     # bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
-    bpy.context.scene.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
+    scn.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
     return

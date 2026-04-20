@@ -12,15 +12,15 @@ import zmesh
 
 class LabelmaskIO(DataIO):
     min_type = min_keys.LABELMASK
-    MASK_TEMPLATE = Path("{cache_path}") / "mask_{scale}" / "c{channel_ix}_t{t}"
+    MASK_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "mask_{scale}" / "c{channel_ix}_t{t}"
 
     def generate_file_constructors(self, ch):
         file_constructors = []
-        for t in range(ch.start_frame,ch.end_frame+1):
+        for t in range(ch.frame_start, ch.frame_end + 1):
             if t >= len_axis('t', ch.axes_order, ch.data.shape):
                 break
-            file_constructors.append( {
-                "cache_path": ch.cache_path,
+            file_constructors.append({
+                **self.base_constructor(ch),
                 "scale": ch.surf_resolution,
                 "t": t, 
                 "channel_ix" : ch.ix,
@@ -33,7 +33,7 @@ class LabelmaskIO(DataIO):
         for constructor in file_constructors: # loops through time
             fname = Path(str(self.MASK_TEMPLATE).format(**constructor)).with_suffix('.obj')
             fname_ids = fname.with_suffix('.csv')
-            fname.parent.mkdir(exist_ok=True)
+            fname.parent.mkdir(parents=True, exist_ok=True)
 
             if Path(fname).exists():
                 if ch.force_remaking_files:
@@ -78,11 +78,15 @@ class LabelmaskIO(DataIO):
     def get_metadata(self, file_constructors):
         files = [Path(str(self.MASK_TEMPLATE).format(**constructor)).with_suffix('.csv') for constructor in file_constructors]
         max_oid = max(
+            (
                 int(line)
                 for filepath in files
+                if filepath.exists()
                 for i, line in enumerate(open(filepath))
                 if i > 0 # skips header
-            )
+            ),
+            default=0,
+        )
         return {'max': max_oid}
 
 
