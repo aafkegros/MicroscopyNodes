@@ -36,8 +36,12 @@ class TifLoadOperator(bpy.types.Operator):
                 context.window_manager.event_timer_remove(self._timer)
                 Scene.from_blender_ui(context)
                 Dataset(holder=context.scene.MiN_reload).set_state(self.dataset_model)
-                
-                # load.load_blocking(self.dataset_model)
+                try:
+                    if prev_active_obj is not None:
+                        prev_active_obj.select_set(True)
+                        bpy.context.view_layer.objects.active = prev_active_obj
+                except:
+                    pass
                 return {'FINISHED'}
             if not self.thread.is_alive():
                 self.thread = None # update UI for one timer-round
@@ -57,6 +61,7 @@ class TifLoadOperator(bpy.types.Operator):
         # self.min_scene = Scene()
         print(self.dataset_model)
         self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files)
+        self.prev_active_obj = bpy.context.active_object
         # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))
         
         # self.params = parse_inputs.parse_initial()

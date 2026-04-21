@@ -31,10 +31,7 @@ class ChannelModel(BaseModel):
     frame_end: int = None
 
     visible_as : Dict[min_keys, bool] #maybe change this later
-    # volume: bool = False 
-    # surface: bool = False
-    # labelmask: bool = False
-    
+
     emission: bool 
     # DISPLAY RGBA space(0-1 normalized rgb)
     cmap: Annotated[list[Tuple[float, float, float, float]], Field(min_length=1, max_length=32)] #RGBA
@@ -69,8 +66,6 @@ class ChannelModel(BaseModel):
         mins = tc.min(0)
         maxs = tc.max(0)
         return (mins[0], maxs[0]), (mins[1], maxs[1]), (mins[2], maxs[2])
-    
-    
     
     @field_validator("data")
     def validate_data_shape(cls, v, info):
