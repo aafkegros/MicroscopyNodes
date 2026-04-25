@@ -25,40 +25,10 @@ class SurfaceObject(MeshChannelObject):
                 input_field.hide = True
         return 
 
-    def add_material(self, ch):
-        mat = super().add_material(ch)
+    def init_shader(self, mat):
+        super().init_shader(mat)
         mat.blend_method = "HASHED"
-        mat.use_nodes = True
-        nodes = mat.node_tree.nodes
-        links = mat.node_tree.links
-
-        if nodes.get("Principled BSDF") is None:
-            try: 
-                nodes.remove(nodes.get("Principled Volume"))
-            except Exception as e:
-                print(e)
-                pass
-            princ = nodes.new("ShaderNodeBsdfPrincipled")
-            if nodes.get("Material Output") is None:
-                out = nodes.new(type="ShaderNodeOutputMaterial")
-                out.location = (400,0)
-            links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
-        
-        princ = nodes.get("Principled BSDF")
-        princ.name = f"[{ch.identifier}] principled"
-
-        color_lut = nodes.new(type="ShaderNodeValToRGB")
-        color_lut.location = (princ.location[0]-400, princ.location[1])
-        color_lut.width = 300
-        color_lut.name = "[color_lut]"
-        color_lut.outputs[1].hide = True
-        color_lut.inputs[0].default_value = 1
-
-        links.new(color_lut.outputs[0], princ.inputs.get('Base Color'))
-        links.new(color_lut.outputs[0], princ.inputs[27])
-
-        princ.inputs.get('Alpha').default_value = 0.8
-        return mat
+        return
 
     def channel_nodes(self, x, y, ch, in_ch):
         nodes = self.node_group.nodes
@@ -110,12 +80,11 @@ class SurfaceObject(MeshChannelObject):
     def update_material(self, mat, ch):
         try:
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
-            color = ch.cmap[-1]
-            colornode = mat.node_tree.nodes.get(f"[color_lut]")
+            colornode = mat.node_tree.nodes.get(f"[color_lut_{ch.identifier}]")
             min_nodes.shader_nodes.set_color_ramp_from_ch(ch, colornode)
-            if ch.emission and princ.inputs[28].default_value == 0.0:
+            if princ is not None and ch.emission and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
-            elif not ch.emission and princ.inputs[28].default_value == 0.5:
+            elif princ is not None and not ch.emission and princ.inputs[28].default_value == 0.5:
                 princ.inputs[28].default_value = 0
         except Exception as e:
             print(e, 'in update surface shader')
