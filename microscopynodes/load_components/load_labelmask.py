@@ -98,63 +98,52 @@ class LabelmaskObject(MeshChannelObject):
     def import_node_tree(self):
         return import_microscopy_meshes_node_group()
 
-    def add_material(self, ch):
-        # do not check whether it exists, so a new load will force making a new mat
-        mat = super().add_material(ch)
+    def init_shader(self, mat):
+        super().init_shader(mat)
         mat.blend_method = "BLEND"
-        mat.use_nodes = True
+        return
+
+    def init_channel_shader(self, mat, ch):
+        super().init_channel_shader(mat, ch)
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
+        y_offset = -self.shader_y_step() * ch.ix
+        frame = nodes[f"[frame_{ch.identifier}]"]
+        color_lut = nodes[f"[color_lut_{ch.identifier}]"]
 
-        if nodes.get("Principled BSDF") is None:
-            try: 
-                nodes.remove(nodes.get("Principled Volume"))
-            except Exception as e:
-                print(e)
-                pass
-            princ = nodes.new("ShaderNodeBsdfPrincipled")
-            if nodes.get("Material Output") is None:
-                outnode = nodes.new(type='ShaderNodeOutputMaterial')
-                outnode.name = 'Material Output'
-            links.new(princ.outputs[0], nodes.get('Material Output').inputs[0])
-        
-        princ = nodes.get("Principled BSDF")
-        princ.name = f"[{ch.identifier}] principled"
-
-        idnode =  nodes.new("ShaderNodeVertexColor")
+        idnode = nodes.new("ShaderNodeVertexColor")
+        idnode.name = f"[oid_{ch.identifier}]"
         idnode.layer_name = 'oid'
-        idnode.location = (-800, 300)
+        idnode.location = (-800, y_offset + 300)
+        idnode.parent = frame
 
         remap = nodes.new('ShaderNodeGroup')
         remap.node_tree = min_nodes.shader_nodes.remap_oid_node()
-        remap.name = '[remap_oid]'
-        remap.location = (-600, 300)
+        remap.name = f"[remap_oid_{ch.identifier}]"
+        remap.location = (-600, y_offset + 300)
         remap.show_options = False
         remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
+        remap.parent = frame
+
         links.new(idnode.outputs.get('Color'), remap.inputs.get('Value'))
-
-        color_lut = nodes.new(type="ShaderNodeValToRGB")
-        color_lut.location = (-350, 300)
-        color_lut.width = 300
-        color_lut.name = "[color_lut]"
-        color_lut.outputs[1].hide = True
         links.new(remap.outputs[0], color_lut.inputs[0])
-
-        links.new(color_lut.outputs[0], princ.inputs.get("Base Color"))
-        links.new(color_lut.outputs[0], princ.inputs[27])
-        return mat
+        return
 
 
     def update_material(self, mat, ch):
         try:
             nodes =  mat.node_tree.nodes
-            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes.get('[color_lut]'))
-            nodes.get('[remap_oid]').inputs.get('Revolving Colormap').default_value = (nodes.get('[color_lut]').color_ramp.interpolation == 'CONSTANT')
-            nodes.get('[remap_oid]').inputs.get('# Colors').default_value =max(len(nodes.get('[color_lut]').color_ramp.elements), 5)
+            color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
+            remap = nodes.get(f'[remap_oid_{ch.identifier}]')
+            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, color_lut)
+            if remap is not None and color_lut is not None:
+                remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
+                remap.inputs.get('Revolving Colormap').default_value = (color_lut.color_ramp.interpolation == 'CONSTANT')
+                remap.inputs.get('# Colors').default_value = max(len(color_lut.color_ramp.elements), 5)
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
-            if ch.emission and princ.inputs[28].default_value == 0.0:
+            if princ is not None and ch.emission and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
-            elif not ch.emission and princ.inputs[28].default_value == 0.5:
+            elif princ is not None and not ch.emission and princ.inputs[28].default_value == 0.5:
                 princ.inputs[28].default_value = 0
         except Exception as e:
             print(e)

@@ -1,5 +1,6 @@
 import bpy
 from ..handle_blender_structs import *
+from .. import min_nodes
 from databpy import BlenderObject
 from pathlib import Path
 import numpy as np
@@ -70,6 +71,8 @@ class MiNObject(BlenderObject):
 
 
 class ChannelObject(MiNObject):
+    shader_count = 10
+
     def init_obj(self):
         if self.min_type == min_keys.VOLUME: # makes the icon show up
             bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -94,14 +97,18 @@ class ChannelObject(MiNObject):
         return obj
 
     def add_material(self, ch):
+        material_name = self.material_name()
         if len(self.object.data.materials) > 0 and self.object.data.materials[0] is not None:
             mat = self.object.data.materials[0]
+            if mat.name != material_name:
+                mat.name = material_name
         else:
-            mat = bpy.data.materials.new(f"{self.object.name} {self.min_type.name.lower()}")
+            mat = bpy.data.materials.new(material_name)
             if len(self.object.data.materials) == 0:
                 self.object.data.materials.append(mat)
             else:
                 self.object.data.materials[0] = mat
+            self.init_shader(mat)
         set_material = self.node_group.nodes.get("Set Material")
         if set_material is not None and set_material.inputs.get("Material").default_value is None:
             set_material.inputs.get("Material").default_value = mat
@@ -109,6 +116,7 @@ class ChannelObject(MiNObject):
 
 
     def set_data(self, dataset_model):
+        self.dataset_name = dataset_model.name
         for ch in dataset_model.channels:
             if not ch.visible_as.get(self.min_type, False):
                 continue
@@ -118,13 +126,15 @@ class ChannelObject(MiNObject):
         file_constructors = ch.file_constructors.get(self.min_type, [])
         if not file_constructors:
             return
-        if not self.ch_present(ch): 
+        if not self.ch_present(ch):
             self.add_ch_to_gn(ch)
+            self.init_channel_shader(self.add_material(ch), ch)
         importnode = self.node_group.nodes[f"channel_load_{ch.identifier}"]
         self.update_import_node(importnode, file_constructors, ch)  
         return
 
     def set_settings(self, dataset_model):
+        self.dataset_name = dataset_model.name
         for ch in dataset_model.channels:
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if ch.visible_as.get(self.min_type, False)), None)
@@ -175,6 +185,57 @@ class ChannelObject(MiNObject):
     
     def update_gn(self, ch):
         return
+
+    def init_shader(self, mat):
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        nodes.clear()
+
+        output = nodes.new("ShaderNodeOutputMaterial")
+        output.name = "Material Output"
+        output.location = (1500, 0)
+        output.is_active_output = True
+
+        texcoord = nodes.new("ShaderNodeTexCoord")
+        texcoord.name = "Texture Coordinate"
+        texcoord.width = 200
+        texcoord.location = (770, 140)
+
+        add_shaders = nodes.new("ShaderNodeGroup")
+        add_shaders.node_tree = min_nodes.shader_nodes.add_shaders_node(self.shader_count)
+        add_shaders.name = "Add Shaders"
+        add_shaders.width = 100
+        add_shaders.location = (620, 0)
+
+        slicecube = nodes.new("ShaderNodeGroup")
+        slicecube.node_tree = min_nodes.slice_cube_node_group()
+        slicecube.name = "Slice Cube"
+        slicecube.width = 250
+        slicecube.location = (1070, 0)
+        slicecube.inputs[0].show_expanded = True
+
+        links.new(texcoord.outputs.get("Object"), slicecube.inputs.get("Slicing Object"))
+        links.new(add_shaders.outputs[0], slicecube.inputs.get("Shader"))
+        links.new(slicecube.outputs.get("Shader"), output.inputs[self.shader_output_name()])
+        return
+
+    def shader_output_name(self):
+        return "Surface"
+
+    def shader_y_step(self):
+        return 950
+
+    def material_name(self):
+        dataset_name = getattr(self, "dataset_name", None)
+        if not dataset_name and self.object.parent is not None:
+            dataset_name = self.object.parent.name
+        if not dataset_name:
+            dataset_name = self.object.name
+        return f"{dataset_name} {self.min_type.name.lower()}"
+
+    def init_channel_shader(self, mat, ch):
+        raise NotImplementedError(f"{type(self).__name__} must implement init_channel_shader()")
 
     def import_node_tree(self):
         raise NotImplementedError(f"{type(self).__name__} must implement import_node_tree()")
@@ -230,6 +291,23 @@ class ChannelObject(MiNObject):
     def channel_nodes(self, x, y, ch, in_ch):
         return in_ch
 
+    def add_ch_to_shader(self, mat, ch, shader_socket):
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        y_offset = -self.shader_y_step() * ch.ix
+        add_shaders = nodes["Add Shaders"]
+
+        frame = nodes.new("NodeFrame")
+        frame.name = f"[frame_{ch.identifier}]"
+        frame.label = ch.name
+        frame.use_custom_color = True
+        frame.color = (0.0, 0.0, 0.0)
+        frame.label_size = 50
+        frame.shrink = True
+
+        links.new(shader_socket, add_shaders.inputs[min(ch.ix, self.shader_count - 1)])
+        return frame, add_shaders
+
     def import_node(self, ch):
         import_node = self.node_group.nodes.new("GeometryNodeGroup")
         import_node.node_tree = self.import_node_tree()
@@ -243,13 +321,17 @@ class ChannelObject(MiNObject):
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
         for mat in self.object.data.materials:
-            if mat.node_tree.nodes.get("Slice Cube") is None:
-                node_handling.insert_slicing(mat.node_tree, slice_cube)
+            texcoord = mat.node_tree.nodes.get("Texture Coordinate")
+            if texcoord is not None:
+                texcoord.object = slice_cube
         for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
             obj.parent = parent
 
 
 class MeshChannelObject(ChannelObject):
+    def shader_y_step(self):
+        return 500
+
     def create_join_node(self):
         join_node = self.node_group.nodes.new('GeometryNodeJoinGeometry')
         join_node.name = "Join"
@@ -287,3 +369,47 @@ class MeshChannelObject(ChannelObject):
 
     def channel_nodes(self, x, y, ch, in_ch):
         return self.store_channel_attribute(x + 400, y, ch, in_ch)
+
+    def init_shader(self, mat):
+        super().init_shader(mat)
+        nodes = mat.node_tree.nodes
+        nodes["Add Shaders"].location = (980, 0)
+        nodes["Texture Coordinate"].location = (1270, 140)
+        nodes["Slice Cube"].location = (1570, 0)
+        nodes["Material Output"].location = (2050, 0)
+        return
+
+    def init_channel_shader(self, mat, ch):
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        y_offset = -self.shader_y_step() * ch.ix
+
+        color_lut = nodes.new("ShaderNodeValToRGB")
+        color_lut.name = f"[color_lut_{ch.identifier}]"
+        color_lut.location = (-20, y_offset - 35)
+        color_lut.width = 300
+        color_lut.outputs[1].hide = True
+
+        princ = nodes.new("ShaderNodeBsdfPrincipled")
+        princ.name = f"[{ch.identifier}] principled"
+        princ.location = (390, y_offset - 35)
+        princ.inputs.get('Alpha').default_value = 0.8
+
+        channel_index = nodes.new("ShaderNodeGroup")
+        channel_index.name = f"[channel_index_{ch.identifier}]"
+        channel_index.node_tree = min_nodes.shader_nodes.channel_index_node()
+        channel_index.label = "Channel index"
+        channel_index.location = (710, y_offset - 65)
+        channel_index.inputs["Index"].default_value = ch.ix
+
+        frame, _ = self.add_ch_to_shader(mat, ch, channel_index.outputs["Shader"])
+
+        color_lut.parent = frame
+        princ.parent = frame
+        channel_index.parent = frame
+
+        links.new(color_lut.outputs[0], princ.inputs.get('Base Color'))
+        links.new(color_lut.outputs[0], princ.inputs[27])
+        links.new(princ.outputs[0], channel_index.inputs["Shader"])
+        color_lut.inputs[0].default_value = 1.0
+        return

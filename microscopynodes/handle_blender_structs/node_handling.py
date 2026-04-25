@@ -149,13 +149,13 @@ def insert_slicing(group, slice_obj):
     texcoord = nodes.new('ShaderNodeTexCoord')
     texcoord.object = slice_obj
     texcoord.width = 200
-    texcoord.location = (outnode.location[0], outnode.location[1]+100)
+    texcoord.location = (outnode.location[0] + 120, outnode.location[1] + 140)
 
     slicecube = nodes.new('ShaderNodeGroup')
     slicecube.node_tree = min_nodes.slice_cube_node_group()
     slicecube.name = "Slice Cube"
     slicecube.width = 250
-    slicecube.location = (outnode.location[0]+ 270, outnode.location[1])
+    slicecube.location = (outnode.location[0] + 420, outnode.location[1])
     links.new(texcoord.outputs.get('Object'),slicecube.inputs.get('Slicing Object'))
     
     slicecube.inputs[0].show_expanded = True
@@ -164,5 +164,5 @@ def insert_slicing(group, slice_obj):
 
     links.new(lastnode.outputs[0], slicecube.inputs.get("Shader"))
     links.new(slicecube.outputs.get("Shader"), output_input)
-    outnode.location = (outnode.location[0]+550, outnode.location[1])
+    outnode.location = (outnode.location[0] + 850, outnode.location[1])
     return

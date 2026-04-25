@@ -159,6 +159,26 @@ class VolumeObject(ChannelObject):
     def import_node_tree(self):
         return import_microscopy_volume_node_group()
 
+    def shader_output_name(self):
+        return "Volume"
+
+    def init_shader(self, mat):
+        super().init_shader(mat)
+        return
+
+    def init_gn(self):
+        super().init_gn()
+        outputnode = self.node_group.nodes.get('Group Output')
+        join_node = self.node_group.nodes.get("Join")
+
+        set_material = self.node_group.nodes.new('GeometryNodeSetMaterial')
+        set_material.name = "Set Material"
+        set_material.location = (1100, -100)
+
+        self.node_group.links.new(join_node.outputs[0], set_material.inputs['Geometry'])
+        self.node_group.links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
+        return
+
     def create_join_node(self):
         join_node = self.node_group.nodes.new("GeometryNodeGroup")
         join_node.node_tree = join_grids_node_group()
@@ -216,110 +236,89 @@ class VolumeObject(ChannelObject):
 
     def update_material(self, mat, ch):
         nodes = mat.node_tree.nodes
-        links = mat.node_tree.links
 
-        if nodes.get('[color_lut]') is not None:
-            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, nodes['[color_lut]'])
+        color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
+        if color_lut is not None:
+            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, color_lut)
 
         if self.min_type in ch.metadata:
-            if ch.metadata[self.min_type] is not None and nodes.get('[Histogram]') is not None:
-                histnode= nodes["[Histogram]"]
-                self.draw_histogram(nodes, histnode.location,histnode.width, ch.metadata[self.min_type]['histogram'])
+            histnode = nodes.get(f'[Histogram_{ch.identifier}]')
+            if ch.metadata[self.min_type] is not None and histnode is not None:
+                new_histnode = self.draw_histogram(nodes, histnode.location, histnode.width, ch.metadata[self.min_type]['histogram'])
+                new_histnode.name = histnode.name
+                new_histnode.label = histnode.label
+                new_histnode.parent = histnode.parent
                 nodes.remove(histnode)
 
-        if nodes.get('[microscopy_shading]') is not None:
-            nodes['[microscopy_shading]'].inputs["Emission / Scattering"].default_value = float(not ch.emission)
-        if nodes.get('[emission_scattering]') is not None:
-            nodes['[emission_scattering]'].inputs["Fac"].default_value = float(not ch.emission)
-        if nodes.get('[emission_switch]') is not None:
-            nodes['[emission_switch]'].inputs["Fac"].default_value = float(ch.emission)
-        if nodes.get('[switch]') is not None:
-            nodes['[switch]'].inputs[0].default_value = ['Emission', 'Scattering'][int(not ch.emission)]
-
-        for node in nodes:
-            if (len(node.inputs) > 0 and not node.hide) and node.type != 'VALTORGB':
-                node.inputs[0].show_expanded = True # traces through
-                for key in ['Strength', 'Density', 'Emission']: # non-first key
-                    if (inp := node.inputs.get(key)) is not None:
-                        inp.show_expanded = True
+        microscopy_shading = nodes.get(f'[microscopy_shading_{ch.identifier}]')
+        if microscopy_shading is not None:
+            microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.emission)
         return
 
-    def add_material(self, ch):
-        mat = super().add_material(ch)
+    def init_channel_shader(self, mat, ch):
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        if nodes.get("Principled BSDF") is not None:
-            nodes.remove(nodes.get("Principled BSDF"))
-        if nodes.get("Principled Volume") is not None:
-            nodes.remove(nodes.get("Principled Volume"))
+        y_offset = -700 * ch.ix
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
-        node_attr.location = (-1600, 0)
+        node_attr.location = (-1600, y_offset)
         node_attr.name = f"[channel_load_{ch.identifier}]"
-
-        node_attr.attribute_name = 'data'
-
+        node_attr.attribute_name = f'Channel {ch.ix}'
         node_attr.label = ch.name
-        node_attr.hide =True
+        node_attr.hide = True
 
         ramp_node = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node.location = (-1200, 0)
+        ramp_node.location = (-1200, y_offset)
         ramp_node.width = 1000
         ramp_node.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
-        
-
         ramp_node.color_ramp.elements[0].color = (1,1,1,0)
         ramp_node.color_ramp.elements[1].color = (1,1,1,1)
         ramp_node.color_ramp.elements[1].position = 1
-        ramp_node.name = '[alpha_ramp]'
+        ramp_node.name = f'[alpha_ramp_{ch.identifier}]'
         ramp_node.label = "Pixel Intensities"
         if 'threshold_upper' in ch.metadata[self.min_type]:
             ramp_node.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
         ramp_node.outputs[0].hide = True
         links.new(node_attr.outputs.get('Fac'), ramp_node.inputs.get("Fac"))  
 
-        self.draw_histogram(nodes, (-1200, 300), 1000, ch.metadata[self.min_type]['histogram'])
+        histnode = self.draw_histogram(nodes, (-1200, y_offset + 300), 1000, ch.metadata[self.min_type]['histogram'])
+        histnode.name = f'[Histogram_{ch.identifier}]'
 
         alphanode =  nodes.new('ShaderNodeGroup')
         alphanode.node_tree = min_nodes.shader_nodes.volume_alpha_node()
-        alphanode.name = '[volume_alpha]'
-        alphanode.location = (-300, -120)
+        alphanode.name = f'[volume_alpha_{ch.identifier}]'
+        alphanode.location = (-300, y_offset - 120)
         alphanode.show_options = False
         alphanode.inputs.get("Alpha").default_value = 1
         alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
 
-
         color_lut = nodes.new(type="ShaderNodeValToRGB")
-        color_lut.location = (-300, 120)
+        color_lut.location = (-300, y_offset + 120)
         color_lut.width = 300
-        color_lut.name = "[color_lut]"
+        color_lut.name = f"[color_lut_{ch.identifier}]"
         color_lut.outputs[1].hide = True
         links.new(ramp_node.outputs[1], color_lut.inputs[0])
 
         microscopy_shading = nodes.new("ShaderNodeGroup")
         microscopy_shading.node_tree = microscopy_shading_node()
-        microscopy_shading.name = "[microscopy_shading]"
-        microscopy_shading.location = (150, 0)
+        microscopy_shading.name = f"[microscopy_shading_{ch.identifier}]"
+        microscopy_shading.location = (150, y_offset)
         microscopy_shading.width = 300
         microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.emission)
         for socket_name in ("Color", "Alpha", "Alpha-Intensity Coupling"):
             microscopy_shading.inputs[socket_name].hide_value = True
 
+        frame, _ = self.add_ch_to_shader(mat, ch, microscopy_shading.outputs["Shader"])
+        for node in (node_attr, ramp_node, histnode, alphanode, color_lut, microscopy_shading):
+            node.parent = frame
+
         links.new(color_lut.outputs[0], microscopy_shading.inputs["Color"])
         links.new(alphanode.outputs.get("Alpha"), microscopy_shading.inputs["Alpha"])
         links.new(alphanode.outputs.get("Alpha-Intensity Coupling"), microscopy_shading.inputs["Alpha-Intensity Coupling"])
-        
-
-        if nodes.get("Material Output") is None:
-            outnode = nodes.new(type='ShaderNodeOutputMaterial')
-            outnode.name = 'Material Output'
-
-        nodes.get("Material Output").location = (600,00)
-        links.new(microscopy_shading.outputs["Shader"], nodes.get("Material Output").inputs[1])
-        return mat
+        return
 
 # Simplified rewrite of skimage.filters.threshold_isodata from
 # https://github.com/scikit-image/scikit-image/blob/v0.25.2/skimage/filters/thresholding.py

@@ -3,6 +3,7 @@ from .nodeVolumeAlpha import volume_alpha_node
 from .nodeNormalizeLuminance import normalize_luminance_node
 from .nodeMicroscopyShading import microscopy_shading_node
 from .nodeChannelIndex import channel_index_node
+from .nodeAddShaders import add_shaders_node
 from .handle_cmap import set_color_ramp_from_ch, get_lut
 from .nodeRemapObjectID import remap_oid_node
 from . import ops
