@@ -68,16 +68,8 @@ class MiNObject(BlenderObject):
     def gn_mod(self):
         return self.min_gn
 
-def channel_world_matrix(ch, dataset_model):
-    _, _, extent = dataset_model.intermediate_bbox
-    matrix = np.array(ch.affine, dtype=float)
-    matrix[:3, 3] += np.array(dataset_model.relative_loc, dtype=float) * extent
-    matrix[:3, :] *= float(dataset_model.scale)
-    return Matrix(matrix.tolist())
 
 class ChannelObject(MiNObject):
-    import_node_name = ""
-
     def init_obj(self):
         if self.min_type == min_keys.VOLUME: # makes the icon show up
             bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -87,22 +79,14 @@ class ChannelObject(MiNObject):
         name = self.min_type.name.lower()
         obj.name = name
         self.object = obj
-        # obj.scale = scale
-
+        node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')
         bpy.ops.object.modifier_add(type='NODES')
-
-        node_group = bpy.data.node_groups.new(name, 'GeometryNodeTree')  
         obj.modifiers[-1].node_group = node_group
         obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
         node_group.interface.new_socket(name="Frame", in_out="INPUT",socket_type='NodeSocketInt')
         node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
         node_group.interface.items_tree[-1].default_attribute_name = "[frame]"
-
-        inputnode = node_group.nodes.new('NodeGroupInput')
-        inputnode.location = (-900, 0)
-        outnode = node_group.nodes.new('NodeGroupOutput')
-        outnode.location = (800, -100)
-
+        self.init_gn()
         for dim in range(3):
             obj.lock_location[dim] = True
             obj.lock_rotation[dim] = True
@@ -110,8 +94,17 @@ class ChannelObject(MiNObject):
         return obj
 
     def add_material(self, ch):
-        mat = bpy.data.materials.new(f"{ch.name} {self.min_type.name.lower()}")
-        self.object.data.materials.append(mat)
+        if len(self.object.data.materials) > 0 and self.object.data.materials[0] is not None:
+            mat = self.object.data.materials[0]
+        else:
+            mat = bpy.data.materials.new(f"{self.object.name} {self.min_type.name.lower()}")
+            if len(self.object.data.materials) == 0:
+                self.object.data.materials.append(mat)
+            else:
+                self.object.data.materials[0] = mat
+        set_material = self.node_group.nodes.get("Set Material")
+        if set_material is not None and set_material.inputs.get("Material").default_value is None:
+            set_material.inputs.get("Material").default_value = mat
         return mat
 
 
@@ -126,7 +119,7 @@ class ChannelObject(MiNObject):
         if not file_constructors:
             return
         if not self.ch_present(ch): 
-            self.append_channel_to_holder(ch)
+            self.add_ch_to_gn(ch)
         importnode = self.node_group.nodes[f"channel_load_{ch.identifier}"]
         self.update_import_node(importnode, file_constructors, ch)  
         return
@@ -136,7 +129,11 @@ class ChannelObject(MiNObject):
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if ch.visible_as.get(self.min_type, False)), None)
         if ch is not None:
-            self.object.matrix_world = channel_world_matrix(ch, dataset_model)
+            _, _, extent = dataset_model.intermediate_bbox
+            matrix = np.array(ch.affine, dtype=float)
+            matrix[:3, 3] += np.array(dataset_model.relative_loc, dtype=float) * extent
+            matrix[:3, :] *= float(dataset_model.scale)
+            self.object.matrix_world = Matrix(matrix.tolist())
 
 
     def update_ch_settings(self, ch):
@@ -148,24 +145,14 @@ class ChannelObject(MiNObject):
                 set_name_socket(socket, ch.name)
         
         self.update_gn(ch)
-        for mat in self.object.data.materials:
-            if any([ch.identifier in node.name for node in mat.node_tree.nodes]):
-                self.update_material(mat, ch)
+        mat = self.add_material(ch)
+        self.update_material(mat, ch)
 
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
             self.gn_mod[socket.identifier] = bool(ch.visible_as.get(self.min_type, False))
         return
     
-
-    def import_node(self, ch):
-        import_node = node_handling.nodegroup_from_blend(self.import_node_name, nodes=self.node_group.nodes)
-        import_node.location = (-600, 0)
-        for input_field in import_node.inputs: 
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
-                input_field.hide = True
-        self.node_group.links.new(self.node_group.nodes['Group Input'].outputs['Frame'], import_node.inputs['Frame'])
-        return import_node
 
     def update_import_node(self, import_node, file_constructors, ch):
         for key,val in file_constructors[0].items():
@@ -189,52 +176,69 @@ class ChannelObject(MiNObject):
     def update_gn(self, ch):
         return
 
-    def append_channel_to_holder(self, ch):
-        # assert that layout is reasonable or make this:
-        joingeo, out_node, out_input = get_safe_nodes_last_output(self.node_group, make=True)
-        in_node = get_safe_node_input(self.node_group, make=True)
-        if joingeo is not None and joingeo.type == "REALIZE_INSTANCES":
-            joingeo = joingeo.inputs[0].links[0].from_node
-        if joingeo is None or joingeo.type != "JOIN_GEOMETRY":
-            joingeo = self.node_group.nodes.new('GeometryNodeJoinGeometry')
-            insert_last_node(self.node_group, joingeo, safe=True)
-            if self.min_type != min_keys.VOLUME:
-                realize = self.node_group.nodes.new('GeometryNodeRealizeInstances')
-                insert_last_node(self.node_group, realize, safe=True)
+    def import_node_tree(self):
+        raise NotImplementedError(f"{type(self).__name__} must implement import_node_tree()")
+
+    def create_join_node(self):
+        raise NotImplementedError(f"{type(self).__name__} must implement create_join_node()")
+
+    def attach_channel_output(self, join_node, ch, out_ch):
+        raise NotImplementedError(f"{type(self).__name__} must implement attach_channel_output()")
+
+    def init_gn(self):
+        node_group = self.node_group
+        nodes = node_group.nodes
+        links = node_group.links
+
+        nodes.clear()
+
+        inputnode = nodes.new('NodeGroupInput')
+        inputnode.location = (-900, 0)
+
+        outputnode = nodes.new('NodeGroupOutput')
+        outputnode.location = (1400, -100)
+
+        join_node = self.create_join_node()
+        links.new(join_node.outputs[0], outputnode.inputs['Geometry'])
+        return
+
+    def add_ch_to_gn(self, ch):
+        in_node = self.node_group.nodes.get('Group Input')
+        join_node = self.node_group.nodes.get("Join")
 
         socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
 
-        if out_node.location[0] - 1200 < in_node.location[0]: # make sure there is enough space
-            out_node.location[0] = in_node.location[0]+1200
-
-        # make new channel
         min_y_loc = in_node.location[1] + 300
+        skip_names = {in_node.name, "Group Output", join_node.name, "Set Material"}
         for node in self.node_group.nodes:
-            if node.name not in [in_node.name, out_node.name, joingeo.name]:
+            if node.name not in skip_names:
                 min_y_loc = min(min_y_loc, node.location[1])
-        
+
         x = in_node.location[0] + 400
         y = min_y_loc - 300
-        importnode = self.import_node(ch)
-        importnode.location = (x , y+100)
-        importnode.name = f"channel_load_{ch.identifier}"
 
-        self.channel_nodes(x, y, ch, importnode.outputs[0], joingeo.inputs[-1])
+        import_node = self.import_node(ch)
+        import_node.location = (x, y + 100)
+        import_node.name = f"channel_load_{ch.identifier}"
+        import_node.label = ch.name
 
-        self.node_group.links.new(in_node.outputs.get(socket.name), importnode.inputs.get("Include"))
+        self.node_group.links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
+        out_ch = self.channel_nodes(x, y, ch, import_node.outputs[0])
+        self.attach_channel_output(join_node, ch, out_ch)
         return
 
-    def channel_nodes(self, x, y, ch, in_ch, out_ch):
-        x += 800
-        setmat = self.node_group.nodes.new('GeometryNodeSetMaterial')
-        setmat.name = f"set_material_{ch.identifier}"
-        setmat.inputs.get('Material').default_value = self.add_material(ch)
-        setmat.location = (x, y)
-        
-        self.node_group.links.new(in_ch, setmat.inputs.get('Geometry'))
-        self.node_group.links.new(setmat.outputs[0], out_ch)
-        return setmat.inputs[0] , setmat.outputs[0]
+    def channel_nodes(self, x, y, ch, in_ch):
+        return in_ch
 
+    def import_node(self, ch):
+        import_node = self.node_group.nodes.new("GeometryNodeGroup")
+        import_node.node_tree = self.import_node_tree()
+        import_node.location = (-600, 0)
+        for input_field in import_node.inputs:
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+                input_field.hide = True
+        self.node_group.links.new(self.node_group.nodes['Group Input'].outputs['Frame'], import_node.inputs['Frame'])
+        return import_node
 
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
@@ -243,3 +247,43 @@ class ChannelObject(MiNObject):
                 node_handling.insert_slicing(mat.node_tree, slice_cube)
         for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
             obj.parent = parent
+
+
+class MeshChannelObject(ChannelObject):
+    def create_join_node(self):
+        join_node = self.node_group.nodes.new('GeometryNodeJoinGeometry')
+        join_node.name = "Join"
+        join_node.location = (800, -100)
+        return join_node
+
+    def attach_channel_output(self, join_node, ch, out_ch):
+        self.node_group.links.new(out_ch, join_node.inputs["Geometry"])
+        return
+
+    def store_channel_attribute(self, x, y, ch, geometry_socket):
+        store_channel = self.node_group.nodes.new("GeometryNodeStoreNamedAttribute")
+        store_channel.name = f"STORE_CHANNEL_{ch.identifier}"
+        store_channel.location = (x, y)
+        store_channel.data_type = 'INT'
+        store_channel.domain = 'FACE'
+        store_channel.inputs["Selection"].default_value = True
+        store_channel.inputs["Name"].default_value = "channel ix"
+        store_channel.inputs["Value"].default_value = ch.ix
+        self.node_group.links.new(geometry_socket, store_channel.inputs["Geometry"])
+        return store_channel.outputs["Geometry"]
+
+    def init_gn(self):
+        super().init_gn()
+        outputnode = self.node_group.nodes.get('Group Output')
+        join_node = self.node_group.nodes.get("Join")
+
+        set_material = self.node_group.nodes.new('GeometryNodeSetMaterial')
+        set_material.name = "Set Material"
+        set_material.location = (1100, -100)
+
+        self.node_group.links.new(join_node.outputs[0], set_material.inputs['Geometry'])
+        self.node_group.links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
+        return
+
+    def channel_nodes(self, x, y, ch, in_ch):
+        return self.store_channel_attribute(x + 400, y, ch, in_ch)

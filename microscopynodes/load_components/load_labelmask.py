@@ -8,6 +8,7 @@ import os
 from ..handle_blender_structs import *
 from .base import *
 from .. import min_nodes
+from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
 import zmesh
 
 class LabelmaskIO(DataIO):
@@ -91,9 +92,11 @@ class LabelmaskIO(DataIO):
 
 
 
-class LabelmaskObject(ChannelObject):
+class LabelmaskObject(MeshChannelObject):
     min_type = min_keys.LABELMASK
-    import_node_name = "Import Microscopy Meshes"    
+
+    def import_node_tree(self):
+        return import_microscopy_meshes_node_group()
 
     def add_material(self, ch):
         # do not check whether it exists, so a new load will force making a new mat
