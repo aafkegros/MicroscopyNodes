@@ -9,6 +9,9 @@ import string
 from .base import *
 from ..handle_blender_structs import *
 from .. import min_nodes
+from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
+from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
+from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
 
 
 NR_HIST_BINS = 2**16
@@ -152,7 +155,26 @@ class VolumeIO(DataIO):
 
 class VolumeObject(ChannelObject):
     min_type = min_keys.VOLUME
-    import_node_name = "Import Microscopy Volume"    
+
+    def import_node_tree(self):
+        return import_microscopy_volume_node_group()
+
+    def create_join_node(self):
+        join_node = self.node_group.nodes.new("GeometryNodeGroup")
+        join_node.node_tree = join_grids_node_group()
+        join_node.name = "Join"
+        join_node.location = (800, -100)
+        join_node.hide = True
+        join_node.inputs["Total channels"].default_value = 10
+        return join_node
+
+    def attach_channel_output(self, join_node, ch, out_ch):
+        join_node.inputs["Total channels"].default_value = max(
+            join_node.inputs["Total channels"].default_value,
+            min(ch.ix + 1, 10),
+        )
+        self.node_group.links.new(out_ch, join_node.inputs[str(min(ch.ix, 9))])
+        return
 
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
@@ -162,13 +184,8 @@ class VolumeObject(ChannelObject):
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
     
-    def channel_nodes(self, x, y, ch, in_ch, out_ch):
-        mat_in, mat_out = super().channel_nodes(x, y, ch, in_ch, out_ch)
-        g2i = self.node_group.nodes.new('GeometryNodeGeometryToInstance')
-        g2i.location = (x + 500, y)
-        self.node_group.links.new(in_ch, g2i.inputs.get('Geometry'))
-        self.node_group.links.new(g2i.outputs.get('Instances'), mat_in)
-        return g2i.inputs.get('Geometry'), mat_out
+    def channel_nodes(self, x, y, ch, in_ch):
+        return self.node_group.nodes[f"channel_load_{ch.identifier}"].outputs["Grid"]
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
@@ -282,7 +299,8 @@ class VolumeObject(ChannelObject):
         color_lut.outputs[1].hide = True
         links.new(ramp_node.outputs[1], color_lut.inputs[0])
 
-        microscopy_shading = node_handling.nodegroup_from_blend("Microscopy Shading", nodes, "ShaderNodeGroup")
+        microscopy_shading = nodes.new("ShaderNodeGroup")
+        microscopy_shading.node_tree = microscopy_shading_node()
         microscopy_shading.name = "[microscopy_shading]"
         microscopy_shading.location = (150, 0)
         microscopy_shading.width = 300

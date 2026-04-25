@@ -3,11 +3,14 @@ import bpy
 from .base import *
 from ..handle_blender_structs import *
 from .. import min_nodes
+from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 
 
-class SurfaceObject(ChannelObject):
+class SurfaceObject(MeshChannelObject):
     min_type = min_keys.SURFACE
-    import_node_name = "Import Microscopy Volume"   
+
+    def import_node_tree(self):
+        return import_microscopy_volume_node_group()
 
     # identical to VolumeObject but annoyign to import
     def update_import_node(self, import_node, file_constructors, ch):
@@ -57,8 +60,7 @@ class SurfaceObject(ChannelObject):
         princ.inputs.get('Alpha').default_value = 0.8
         return mat
 
-    def channel_nodes(self, x, y, ch, in_ch, out_ch):
-        mat_in, mat_out = super().channel_nodes(x, y, ch, in_ch, out_ch)
+    def channel_nodes(self, x, y, ch, in_ch):
         nodes = self.node_group.nodes
         links = self.node_group.links
 
@@ -66,8 +68,7 @@ class SurfaceObject(ChannelObject):
         v2m.name = f"VOL_TO_MESH_{ch.identifier}"
         v2m.location = (x + 400, y)
         links.new(in_ch, v2m.inputs.get('Volume'))
-        links.new(v2m.outputs.get('Mesh'), mat_in)
-        
+
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
         threshold_socket.min_value = 0.0
@@ -76,7 +77,7 @@ class SurfaceObject(ChannelObject):
 
         self.gn_mod[threshold_socket.identifier] =  ch.metadata[self.min_type]['threshold']      
         links.new(self.node_group.nodes.get('Group Input').outputs.get(threshold_socket.name), v2m.inputs.get("Threshold"))  
-        return
+        return self.store_channel_attribute(x + 650, y, ch, v2m.outputs.get('Mesh'))
 
     def update_gn(self, ch):
         if f"VOL_TO_MESH_{ch.identifier}" not in [node.name for node in self.node_group.nodes]:
@@ -120,4 +121,3 @@ class SurfaceObject(ChannelObject):
             print(e, 'in update surface shader')
             pass
         return
-        

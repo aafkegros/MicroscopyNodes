@@ -145,6 +145,7 @@ def insert_slicing(group, slice_obj):
     nodes = group.nodes
     links = group.links
     lastnode, outnode, output_input = get_nodes_last_output(group)
+
     texcoord = nodes.new('ShaderNodeTexCoord')
     texcoord.object = slice_obj
     texcoord.width = 200
@@ -165,13 +166,3 @@ def insert_slicing(group, slice_obj):
     links.new(slicecube.outputs.get("Shader"), output_input)
     outnode.location = (outnode.location[0]+550, outnode.location[1])
     return
-
-def nodegroup_from_blend(name, nodes, tree_type = "GeometryNodeGroup", link=False):
-    node = nodes.new(tree_type) 
-    node_group = min_nodes.node_group(name)
-    if node_group is None:
-        node_group = bpy.data.node_groups.get(name)
-    if node_group is None:
-        raise ValueError(f"No Microscopy Nodes node group builder found for {name}")
-    node.node_tree = node_group
-    return node
