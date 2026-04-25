@@ -39,20 +39,6 @@ class Axes(MiNObject):
         item = self._interface_input_item(name)
         self.min_gn[item.identifier] = value
 
-    def _dataset_extent_and_location(self, dataset_model):
-        bbox = dataset_model.intermediate_bbox
-        mins = np.array([b[0] for b in bbox], dtype=float)
-        maxs = np.array([b[1] for b in bbox], dtype=float)
-
-        extent_unit = maxs - mins
-        extent_world = extent_unit * float(dataset_model.scale)
-        relative_loc = np.array(dataset_model.relative_loc, dtype=float)
-
-        location_unit = mins + (relative_loc + np.array([0.5,0.5,0])) * extent_unit
-        location_world = location_unit * float(dataset_model.scale)
-
-        return tuple(extent_unit), tuple(extent_world), tuple(location_world)
-
     def _line_thickness(self, extent_unit):
         max_extent = float(np.max(extent_unit))
         if max_extent <= 0:
@@ -84,12 +70,13 @@ class Axes(MiNObject):
         return
         
     def set_settings(self, dataset_model):
-        extent_unit, extent_world, location_world = self._dataset_extent_and_location(dataset_model)
+        _, _, extent_unit = dataset_model.intermediate_bbox
+        mins_world, _, extent_world = dataset_model.final_bbox
         
         tick_step = self._nice_tick_step(extent_unit)
         line_thickness = 0.25
 
-        self.object.location = location_world
+        self.object.location = mins_world
         self.object.scale = np.maximum(extent_world, 1e-6)
 
         self._set_modifier_input("Tick Step (unit)", tick_step)

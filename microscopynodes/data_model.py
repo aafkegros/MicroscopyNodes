@@ -162,7 +162,18 @@ class DatasetModel(BaseModel):
         bbs = [ch.transformed_bbox for ch in self.channels]
         mins = [min(b[i][0] for b in bbs) for i in range(3)]
         maxs = [max(b[i][1] for b in bbs) for i in range(3)]
-        return tuple((mins[i], maxs[i]) for i in range(3))
+        mins = np.array(mins, dtype=float)
+        maxs = np.array(maxs, dtype=float)
+        return mins, maxs, maxs - mins
+
+    @property
+    def final_bbox(self):
+        mins, _, extent_unit = self.intermediate_bbox
+        extent_world = extent_unit * float(self.scale)
+        relative_loc = np.array(self.relative_loc, dtype=float)
+        mins_world = (mins + (relative_loc + np.array([0.5, 0.5, 0.0])) * extent_unit) * float(self.scale)
+        maxs_world = mins_world + extent_world
+        return mins_world, maxs_world, extent_world
 
     @model_validator(mode="after")
     def set_defaults(self):
