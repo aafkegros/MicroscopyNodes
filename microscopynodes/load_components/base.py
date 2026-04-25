@@ -68,16 +68,8 @@ class MiNObject(BlenderObject):
     def gn_mod(self):
         return self.min_gn
 
-
-def dataset_extent(dataset_model):
-    bbox = dataset_model.intermediate_bbox
-    mins = np.array([b[0] for b in bbox], dtype=float)
-    maxs = np.array([b[1] for b in bbox], dtype=float)
-    return mins, maxs, maxs - mins
-
-
 def channel_world_matrix(ch, dataset_model):
-    _, _, extent = dataset_extent(dataset_model)
+    _, _, extent = dataset_model.intermediate_bbox
     matrix = np.array(ch.affine, dtype=float)
     matrix[:3, 3] += np.array(dataset_model.relative_loc, dtype=float) * extent
     matrix[:3, :] *= float(dataset_model.scale)
