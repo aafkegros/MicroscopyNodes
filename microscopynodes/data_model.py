@@ -175,6 +175,12 @@ class DatasetModel(BaseModel):
         maxs_world = mins_world + extent_world
         return mins_world, maxs_world, extent_world
 
+    @property
+    def final_center(self):
+        mins, _, extent_unit = self.intermediate_bbox
+        relative_loc = np.array(self.relative_loc, dtype=float)
+        return (mins + (relative_loc + 0.5) * extent_unit) * float(self.scale)
+
     @model_validator(mode="after")
     def set_defaults(self):
         if not self.name:
