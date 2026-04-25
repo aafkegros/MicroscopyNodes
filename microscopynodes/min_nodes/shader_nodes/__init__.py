@@ -2,6 +2,7 @@ from . import cmap_menus
 from .nodeVolumeAlpha import volume_alpha_node
 from .nodeNormalizeLuminance import normalize_luminance_node
 from .nodeMicroscopyShading import microscopy_shading_node
+from .nodeChannelIndex import channel_index_node
 from .handle_cmap import set_color_ramp_from_ch, get_lut
 from .nodeRemapObjectID import remap_oid_node
 from . import ops
@@ -41,6 +42,7 @@ CLASSES = [MIN_MT_CMAP_ADD, MIN_MT_CMAP_REPLACE] + cmap_menus.CLASSES + ops.CLAS
 NODE_GROUPS = {
     "Normalize Luminance": normalize_luminance_node,
     "Microscopy Shading": microscopy_shading_node,
+    "Channel index": channel_index_node,
 }
 
 
