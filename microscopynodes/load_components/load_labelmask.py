@@ -111,21 +111,22 @@ class LabelmaskObject(MeshChannelObject):
         frame = nodes[f"[frame_{ch.identifier}]"]
         color_lut = nodes[f"[color_lut_{ch.identifier}]"]
 
-        idnode = nodes.new("ShaderNodeVertexColor")
+        idnode = nodes.new("ShaderNodeAttribute")
         idnode.name = f"[oid_{ch.identifier}]"
-        idnode.layer_name = 'oid'
-        idnode.location = (-800, y_offset + 300)
+        idnode.attribute_name = 'oid'
+        idnode.attribute_type = 'GEOMETRY'
+        idnode.location = (-760, y_offset - 35)
         idnode.parent = frame
 
         remap = nodes.new('ShaderNodeGroup')
         remap.node_tree = min_nodes.shader_nodes.remap_oid_node()
         remap.name = f"[remap_oid_{ch.identifier}]"
-        remap.location = (-600, y_offset + 300)
+        remap.location = (-420, y_offset - 35)
         remap.show_options = False
         remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
         remap.parent = frame
 
-        links.new(idnode.outputs.get('Color'), remap.inputs.get('Value'))
+        links.new(idnode.outputs.get('Fac'), remap.inputs.get('Value'))
         links.new(remap.outputs[0], color_lut.inputs[0])
         return
 
