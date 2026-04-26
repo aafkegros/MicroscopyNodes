@@ -13,7 +13,7 @@ import zmesh
 
 class LabelmaskIO(DataIO):
     min_type = min_keys.LABELMASK
-    MASK_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "mask_{resolution}" / "c{channel_ix}_t{t}"
+    MASK_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "mask_{resolution}" / "c{channel_ix}_t{t}"
 
     def generate_file_constructors(self, ch):
         file_constructors = []
@@ -22,6 +22,7 @@ class LabelmaskIO(DataIO):
                 break
             file_constructors.append({
                 **self.base_constructor(ch),
+                "scale": ch.dataset_resolution,
                 "resolution": ch.surf_resolution,
                 "t": t, 
                 "channel_ix" : ch.ix,
