@@ -5,7 +5,7 @@ import yaml
 
 from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
-from microscopynodes.load_components import *
+from microscopynodes.blender_objects import *
 import microscopynodes
 
 import numpy as np
@@ -84,45 +84,45 @@ def prep_load(arrtype=None):
     return
 
 def do_load():
-    params = microscopynodes.parse_inputs.parse_initial()
-    # if platform.system() == 'Linux':
-    bpy.context.scene.MiN_remake = True
-    params = microscopynodes.load.load_threaded(params)
-    microscopynodes.load.load_blocking(params)
-    return params[0]
+    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
+    microscopynodes.load.Scene.from_blender_ui()
+    dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    dataset.set_state(dataset_model)
+    return dataset_model
 
 
-def check_channels(ch_dicts, test_render=True):
+def check_channels(dataset_model, test_render=True):
     img1 = None
-    objs = microscopynodes.load.parse_reload(bpy.data.objects[str(Path(bpy.context.scene.MiN_input_file).stem)])
+    holder = bpy.context.scene.MiN_reload
+    dataset = microscopynodes.load.Dataset(holder=holder)
     if test_render:
         img1 = quick_render('1')
-        objs[min_keys.AXES].hide_render = True
+        dataset.axes.object.hide_render = True
         img2 = quick_render('2')
-        objs[min_keys.AXES].hide_render = False
+        dataset.axes.object.hide_render = False
         assert(not np.array_equal(img1, img2))
 
-    for ch in ch_dicts:
+    toggled = []
+    for ch in dataset_model.channels:
         for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
-            if ch[min_type]:
-                if objs[min_type] is None:
-                    raise ValueError(f"{min_type} not in objs, while setting is {ch[min_type]}")
-                ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+            if ch.visible_as.get(min_type, False):
+                ch_obj = getattr(dataset, min_type.name.lower())
+                if ch_obj is None:
+                    raise ValueError(f"{min_type} not in dataset, while setting is {ch.visible_as[min_type]}")
                 assert(ch_obj.ch_present(ch))
                 socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
                 ch_obj.gn_mod[socket.identifier] = False
+                toggled.append((ch_obj, socket.identifier))
 
-    for ch in ch_dicts:
-        for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
-            if ch[min_type]and test_render:
-                # print(socket)
-                img1 = quick_render('1')
-                ch_obj.gn_mod[socket.identifier] = True
-                img2 = quick_render('2')
-                ch_obj.gn_mod[socket.identifier] = False
-                if np.array_equal(img1, img2):
-                    raise ValueError(f"{socket}, ")
-                assert(not np.array_equal(img1, img2))
+    if test_render:
+        for ch_obj, socket_identifier in toggled:
+            img1 = quick_render('1')
+            ch_obj.gn_mod[socket_identifier] = True
+            img2 = quick_render('2')
+            ch_obj.gn_mod[socket_identifier] = False
+            if np.array_equal(img1, img2):
+                raise ValueError(f"{socket_identifier}, ")
+            assert(not np.array_equal(img1, img2))
                 
                 
 
@@ -154,4 +154,3 @@ def quick_render(name):
     data = np.array(iio.imread(output_file))
     # os.remove(output_file)
     return data
-

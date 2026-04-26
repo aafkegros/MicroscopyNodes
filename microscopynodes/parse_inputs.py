@@ -130,6 +130,8 @@ def parse_unit(string):
         return 1e-3
     if string == "METER":
         return 1
+    if string == "AU":
+        return 1
 
 def parse_output_unit(world_scale):
     if world_scale == "MOLECULAR_NODES":

@@ -143,7 +143,6 @@ class ArrayLoader():
         
         chunks = ['auto' if dim in 'xyz' else 1 for dim in axes_order] # time and channels are always loadable as separate chunks as they go to separate vdbs
         imgdata = da.from_zarr(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks)
-        #  imgdata = da.from_array(self.load_array(bpy.context.scene.MiN_input_file, selected_array_option()), chunks=chunks) 
         
         if len(axes_order) != len(imgdata.shape):
             raise ValueError("axes_order length does not match data shape: " + str(imgdata.shape))
