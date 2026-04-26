@@ -1,6 +1,6 @@
 import bpy
 from ..handle_blender_structs import *
-from .. import min_nodes
+from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
 from databpy import BlenderObject
 from pathlib import Path
 import numpy as np
@@ -203,13 +203,13 @@ class ChannelObject(MiNObject):
         texcoord.location = (770, 140)
 
         add_shaders = nodes.new("ShaderNodeGroup")
-        add_shaders.node_tree = min_nodes.shader_nodes.add_shaders_node(self.shader_count)
+        add_shaders.node_tree = add_shaders_node(self.shader_count)
         add_shaders.name = "Add Shaders"
         add_shaders.width = 100
         add_shaders.location = (620, 0)
 
         slicecube = nodes.new("ShaderNodeGroup")
-        slicecube.node_tree = min_nodes.slice_cube_node_group()
+        slicecube.node_tree = slice_cube_node_group()
         slicecube.name = "Slice Cube"
         slicecube.width = 250
         slicecube.location = (1070, 0)
@@ -403,7 +403,7 @@ class MeshChannelObject(ChannelObject):
 
         channel_index = nodes.new("ShaderNodeGroup")
         channel_index.name = f"[channel_index_{ch.identifier}]"
-        channel_index.node_tree = min_nodes.shader_nodes.channel_index_node()
+        channel_index.node_tree = channel_index_node()
         channel_index.label = "Channel index"
         channel_index.location = (710, y_offset - 65)
         channel_index.inputs["Index"].default_value = ch.ix

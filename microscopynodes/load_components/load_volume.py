@@ -8,10 +8,10 @@ import string
 
 from .base import *
 from ..handle_blender_structs import *
-from .. import min_nodes
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
+from ..min_nodes.shader_nodes import set_color_ramp_from_ch, volume_alpha_node
 
 
 NR_HIST_BINS = 2**16
@@ -245,7 +245,7 @@ class VolumeObject(ChannelObject):
 
         color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
         if color_lut is not None:
-            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, color_lut)
+            set_color_ramp_from_ch(ch, color_lut)
 
         if self.min_type in ch.metadata:
             histnode = nodes.get(f'[Histogram_{ch.identifier}]')
@@ -292,7 +292,7 @@ class VolumeObject(ChannelObject):
         histnode.name = f'[Histogram_{ch.identifier}]'
 
         alphanode =  nodes.new('ShaderNodeGroup')
-        alphanode.node_tree = min_nodes.shader_nodes.volume_alpha_node()
+        alphanode.node_tree = volume_alpha_node()
         alphanode.name = f'[volume_alpha_{ch.identifier}]'
         alphanode.location = (-300, y_offset - 120)
         alphanode.show_options = False

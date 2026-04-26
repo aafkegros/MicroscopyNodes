@@ -7,8 +7,8 @@ import os
 
 from ..handle_blender_structs import *
 from .base import *
-from .. import min_nodes
 from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
+from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 import zmesh
 
 class LabelmaskIO(DataIO):
@@ -120,7 +120,7 @@ class LabelmaskObject(MeshChannelObject):
         idnode.parent = frame
 
         remap = nodes.new('ShaderNodeGroup')
-        remap.node_tree = min_nodes.shader_nodes.remap_oid_node()
+        remap.node_tree = remap_oid_node()
         remap.name = f"[remap_oid_{ch.identifier}]"
         remap.location = (-420, y_offset - 35)
         remap.show_options = False
@@ -137,7 +137,7 @@ class LabelmaskObject(MeshChannelObject):
             nodes =  mat.node_tree.nodes
             color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
             remap = nodes.get(f'[remap_oid_{ch.identifier}]')
-            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, color_lut)
+            set_color_ramp_from_ch(ch, color_lut)
             if remap is not None and color_lut is not None:
                 remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
                 remap.inputs.get('Revolving Colormap').default_value = (color_lut.color_ramp.interpolation == 'CONSTANT')
