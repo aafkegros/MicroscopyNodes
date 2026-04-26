@@ -17,8 +17,10 @@ def parse_blender_ui():
         scn.MiN_update_data = True
         scn.MiN_update_settings = True
 
+    import_scale = addon_preferences(bpy.context).import_scale
     channels = parse_channellist()
-    output_unit = parse_output_unit(addon_preferences(bpy.context).import_scale)
+    output_unit = parse_output_unit(import_scale)
+    explicit_scale = parse_explicit_scale(import_scale)
     relative_loc = parse_relative_loc()
     name = Path(scn.MiN_input_file).name
 
@@ -27,6 +29,7 @@ def parse_blender_ui():
         name=name,
         channels=channels,
         output_unit = output_unit,
+        explicit_scale=explicit_scale,
         relative_loc = relative_loc,
 
         update_settings=scn.MiN_update_settings,
@@ -44,6 +47,7 @@ def parse_blender_ui():
 def parse_channellist() -> List[ChannelModel]:
     channel_models = []
     scn = bpy.context.scene
+    import_scale = addon_preferences(bpy.context).import_scale
     for ch_desc in bpy.context.scene.MiN_channelList:
         channel_settings = {
             "ix":                   ch_desc.ix,
@@ -74,7 +78,7 @@ def parse_channellist() -> List[ChannelModel]:
             "cache_path":           get_cache_dir(),
             "axes_order":           scn.MiN_axes_order.replace("c", ""),
             "unit":                 parse_unit(bpy.context.scene.MiN_unit),
-            "affine":               parse_pixel_size(),
+            "affine":               parse_pixel_size(import_scale),
             "frame_start":          scn.MiN_load_start_frame,
             "frame_end":            scn.MiN_load_end_frame,
             }
@@ -104,10 +108,14 @@ def hash_path(path):
 # ----------------------------------------------------------------
 
 
-def parse_pixel_size():
+def parse_pixel_size(world_scale):
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
     if not bpy.context.scene.MiN_pixel_sizes_are_rescaled: 
         pixel_size *= selected_array_option().scale() 
+    if world_scale == "DEFAULT": # This  is a bit hacky, may deprecate this later
+        xy_size = pixel_size[0] if pixel_size[0] != 0 else 1.0
+        anisotropy = np.array([1.0, 1.0, pixel_size[2] / xy_size], dtype=float)
+        return np.diag([*anisotropy, 1]).tolist()
     return  np.diag([*pixel_size, 1]).tolist()
 
 
@@ -129,6 +137,12 @@ def parse_output_unit(world_scale):
     if "_SCALE" not in world_scale:
         return 1e-2 # THIS DOESNT FULLY WORK RN
     return parse_unit(world_scale.removesuffix("_SCALE")) 
+
+
+def parse_explicit_scale(world_scale):
+    if world_scale == "DEFAULT":
+        return 1e-2
+    return None
     
 
 def parse_relative_loc():

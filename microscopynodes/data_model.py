@@ -127,6 +127,7 @@ class DatasetModel(BaseModel):
 
     name : Optional[str] 
     output_unit: float = 1e-2 
+    explicit_scale: float | None = None
     relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
 
     local_files_exist: bool = False
@@ -139,6 +140,8 @@ class DatasetModel(BaseModel):
 
     @property
     def scale(self):
+        if self.explicit_scale is not None:
+            return self.explicit_scale
         return self.channels[0].unit / self.output_unit
 
     @field_validator("channels")
