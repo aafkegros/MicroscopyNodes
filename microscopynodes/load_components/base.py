@@ -221,10 +221,10 @@ class ChannelObject(MiNObject):
         return
 
     def shader_output_name(self):
-        return "Surface"
+        raise NotImplementedError(f"{type(self).__name__} must implement shader_output_name()")
 
     def shader_y_step(self):
-        return 950
+        raise NotImplementedError(f"{type(self).__name__} must implement shader_y_step()")
 
     def material_name(self):
         dataset_name = getattr(self, "dataset_name", None)
@@ -245,6 +245,9 @@ class ChannelObject(MiNObject):
 
     def attach_channel_output(self, join_node, ch, out_ch):
         raise NotImplementedError(f"{type(self).__name__} must implement attach_channel_output()")
+
+    def import_output_socket(self, import_node):
+        return import_node.outputs[0]
 
     def init_gn(self):
         node_group = self.node_group
@@ -284,7 +287,7 @@ class ChannelObject(MiNObject):
         import_node.label = ch.name
 
         self.node_group.links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
-        out_ch = self.channel_nodes(x, y, ch, import_node.outputs[0])
+        out_ch = self.channel_nodes(x, y, ch, self.import_output_socket(import_node))
         self.attach_channel_output(join_node, ch, out_ch)
         return
 
@@ -329,6 +332,9 @@ class ChannelObject(MiNObject):
 
 
 class MeshChannelObject(ChannelObject):
+    def shader_output_name(self):
+        return "Surface"
+
     def shader_y_step(self):
         return 500
 

@@ -162,6 +162,9 @@ class VolumeObject(ChannelObject):
     def shader_output_name(self):
         return "Volume"
 
+    def shader_y_step(self):
+        return 750
+
     def init_shader(self, mat):
         super().init_shader(mat)
         return
@@ -185,15 +188,15 @@ class VolumeObject(ChannelObject):
         join_node.name = "Join"
         join_node.location = (800, -100)
         join_node.hide = True
-        join_node.inputs["Total channels"].default_value = 10
+        join_node.inputs["Total channels"].default_value = self.shader_count
         return join_node
 
     def attach_channel_output(self, join_node, ch, out_ch):
         join_node.inputs["Total channels"].default_value = max(
             join_node.inputs["Total channels"].default_value,
-            min(ch.ix + 1, 10),
+            min(ch.ix + 1, self.shader_count),
         )
-        self.node_group.links.new(out_ch, join_node.inputs[str(min(ch.ix, 9))])
+        self.node_group.links.new(out_ch, join_node.inputs[str(min(ch.ix, self.shader_count - 1))])
         return
 
     def update_import_node(self, import_node, file_constructors, ch):
@@ -203,9 +206,12 @@ class VolumeObject(ChannelObject):
             import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
+
+    def import_output_socket(self, import_node):
+        return import_node.outputs["Grid"]
     
     def channel_nodes(self, x, y, ch, in_ch):
-        return self.node_group.nodes[f"channel_load_{ch.identifier}"].outputs["Grid"]
+        return in_ch
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
@@ -259,7 +265,7 @@ class VolumeObject(ChannelObject):
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -700 * ch.ix
+        y_offset = -self.shader_y_step() * ch.ix
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1600, y_offset)
