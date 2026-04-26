@@ -48,6 +48,7 @@ def import_microscopy_meshes_node_group():
     _new_input(interface, "template_str", 'NodeSocketString', "")
     _new_input(interface, "cache_dir", 'NodeSocketString', "")
     _new_input(interface, "dataset_hash", 'NodeSocketString', "")
+    _new_input(interface, "scale", 'NodeSocketInt', 0)
     _new_input(interface, "resolution", 'NodeSocketInt', 0)
     _new_input(interface, "channel_ix", 'NodeSocketInt', 0)
     _new_input(interface, "Frame", 'NodeSocketInt', 0)
@@ -71,6 +72,7 @@ def import_microscopy_meshes_node_group():
     for item_type, name in (
         ('STRING', "cache_dir"),
         ('STRING', "dataset_hash"),
+        ('INT', "scale"),
         ('INT', "resolution"),
         ('INT', "channel_ix"),
         ('INT', "t"),
@@ -80,6 +82,7 @@ def import_microscopy_meshes_node_group():
     links.new(group_input.outputs["template_str"], format_string.inputs["Format"])
     links.new(group_input.outputs["cache_dir"], format_string.inputs["cache_dir"])
     links.new(group_input.outputs["dataset_hash"], format_string.inputs["dataset_hash"])
+    links.new(group_input.outputs["scale"], format_string.inputs["scale"])
     links.new(group_input.outputs["resolution"], format_string.inputs["resolution"])
     links.new(group_input.outputs["channel_ix"], format_string.inputs["channel_ix"])
     links.new(group_input.outputs["Frame"], format_string.inputs["t"])
