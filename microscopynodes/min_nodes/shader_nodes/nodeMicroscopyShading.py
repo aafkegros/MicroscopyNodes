@@ -34,12 +34,14 @@ def microscopy_shading_node():
     interface.items_tree[-1].default_value = 1.0
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 1.0
+    interface.items_tree[-1].subtype = 'FACTOR'
     interface.items_tree[-1].attribute_domain = 'POINT'
 
     interface.new_socket("Emission / Scattering", in_out="INPUT", socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 0.0
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 1.0
+    interface.items_tree[-1].subtype = 'FACTOR'
     interface.items_tree[-1].attribute_domain = 'POINT'
 
     group_input = nodes.new("NodeGroupInput")

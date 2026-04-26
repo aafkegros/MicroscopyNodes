@@ -29,6 +29,7 @@ def volume_alpha_node():
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 1.0
+    interface.items_tree[-1].subtype = 'FACTOR'
 
     interface.new_socket("Alpha", in_out="OUTPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'

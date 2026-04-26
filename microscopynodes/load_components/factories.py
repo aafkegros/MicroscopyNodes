@@ -6,8 +6,6 @@ from .axes import Axes
 from .holder_object import Holder
 from .slice_cube_object import SliceCubeObject
 
-
-
 OBJECT_MAP = {
     min_keys.HOLDER: Holder,
     min_keys.AXES: Axes,
