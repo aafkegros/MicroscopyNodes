@@ -110,10 +110,6 @@ def parse_pixel_size():
         pixel_size *= selected_array_option().scale() 
     return  np.diag([*pixel_size, 1]).tolist()
 
-# def parse_size_px():
-#     size_px = np.array([selected_array_option().shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
-#     size_px = tuple([max(ax, 1) for ax in size_px])
-#     return size_px
 
 def parse_unit(string):
     if string == "ANGSTROM":
@@ -133,29 +129,6 @@ def parse_output_unit(world_scale):
     if "_SCALE" not in world_scale:
         return 1e-2 # THIS DOESNT FULLY WORK RN
     return parse_unit(world_scale.removesuffix("_SCALE")) 
-
-# def parse_scale(size_px, pixel_size):
-#     scale = None
-#     world_scale = addon_preferences(bpy.context).import_scale
-
-#     isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
-#     if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'AU': # cm / px
-#         scale = isotropic*0.01
-    
-#     if world_scale == "MOLECULAR_NODES" and bpy.context.scene.MiN_unit != 'AU': # cm / nm
-#         physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
-#         scale = physical_size / 1e-7
-#     if "_SCALE" in world_scale and bpy.context.scene.MiN_unit != 'AU': # m / unit
-#         physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
-#         scale = physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
-
-#     # # TODO do this with databpy in the respective objects
-#     # if objs[min_keys.AXES] is not None:
-#     #     old_size_px, old_scale = get_previous_scale(objs[min_keys.AXES], size_px)
-#     #     if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
-#     #         scale = (np.array(old_size_px) / np.array(size_px)) * old_scale
-#     #     scale_factor = (np.array(size_px) / np.array(old_size_px)) * (scale / old_scale)
-#     return scale
     
 
 def parse_relative_loc():
@@ -172,34 +145,3 @@ def parse_relative_loc():
 def parse_cmap(name, single_color):
     from .min_nodes.shader_nodes import get_lut
     return get_lut(name, single_color)
-
-    # if name.lower() == "single_color":
-    #     lut = [[*single_color,1]]
-    #     linear = True
-    # else:
-    #     lut = cmap.Colormap(name.lower()).lut(min(len(cmap.Colormap(name.lower()).lut()), 32))
-    #     linear = (cmap.Colormap(name.lower()).interpolation == 'linear')
-    # return lut, linear
-
-# def get_previous_scale(axes_obj, size_px):
-#     try:
-#         mod = get_min_gn(axes_obj)
-#         nodes = mod.node_group.nodes
-#         old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-#         old_scale = nodes['[Microscopy Nodes scale]'].vector
-#         return old_size_px, old_scale
-#     except KeyError as e:
-#         print(e)
-#         pass
-
-
-# def parse_reload(container_obj):
-#     objs = {}
-#     for key in min_keys:
-#         objs[key] = None
-#         if container_obj is not None:
-#             for child in container_obj.children:
-#                 if get_min_gn(child) is not None and key.name.lower() in get_min_gn(child).name:
-#                     objs[key] = child
-
-#     return objs
