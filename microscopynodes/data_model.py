@@ -127,7 +127,7 @@ class DatasetModel(BaseModel):
 
     name : Optional[str] 
     output_unit: float = 1e-2 
-    explicit_scale: float | None = None
+    explicit_scale: float | None = None # this is only to make px -> cm work
     relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
 
     local_files_exist: bool = False
