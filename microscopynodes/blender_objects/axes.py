@@ -40,23 +40,10 @@ class Axes(MiNObject):
         item = self._interface_input_item(name)
         self.min_gn[item.identifier] = value
 
-    def _unit_label(self, unit_value):
-        labels = {
-            1e-10: "Å",
-            1e-9: "nm",
-            1e-6: "µm",
-            1e-3: "mm",
-            1.0: "m",
-        }
-        for value, label in labels.items():
-            if np.isclose(float(unit_value), value):
-                return label
-        return "unit"
-
     def _tick_step_input_name(self, dataset_model=None):
         if dataset_model is None or not dataset_model.channels:
             return f"{self.TICK_STEP_PREFIX} (unit)"
-        return f"{self.TICK_STEP_PREFIX} ({self._unit_label(dataset_model.channels[0].unit)})"
+        return f"{self.TICK_STEP_PREFIX} ({dataset_model.axes_unit_label})"
 
     def _rename_tick_step_input(self, dataset_model):
         interface = self.node_group.interface
