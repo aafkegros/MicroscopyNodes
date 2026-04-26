@@ -9,7 +9,7 @@ from .load_components.factories import DataIOFactory
 #     affine: 
 #     
 
-# TODO maybe rename this?
+
 class ChannelModel(BaseModel):
     # allow arbitrary types to parse dask arrays - might remove
     model_config = ConfigDict(arbitrary_types_allowed=True)

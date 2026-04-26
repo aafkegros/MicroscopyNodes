@@ -54,6 +54,7 @@ class TifLoadOperator(bpy.types.Operator):
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
                 if len(self.dataset_model.exception) > 0: 
+                    handle_blender_structs.clear_progress()
                     raise(Exception(self.dataset_model.exception))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
@@ -61,12 +62,14 @@ class TifLoadOperator(bpy.types.Operator):
                 dataset = Dataset(holder=context.scene.MiN_reload)
                 dataset.set_state(self.dataset_model)
                 select_post_load_object(context, dataset, self.prev_active_obj)
+                handle_blender_structs.clear_progress()
                 return {'FINISHED'}
             if not self.thread.is_alive():
                 self.thread = None # update UI for one timer-round
             return {"RUNNING_MODAL"}
         if event.type in {'RIGHTMOUSE', 'ESC'}:  # Cancel
             # Revert all changes that have been made
+            handle_blender_structs.clear_progress()
             return {'CANCELLED'}
 
         return {"RUNNING_MODAL"}
@@ -92,6 +95,7 @@ class TifLoadOperator(bpy.types.Operator):
     def cancel(self, context):
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
+        handle_blender_structs.clear_progress()
         return
 
 
@@ -107,6 +111,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
         dataset = Dataset(holder=context.scene.MiN_reload)
         dataset.set_state(dataset_model)
         select_post_load_object(context, dataset, context.active_object)
+        handle_blender_structs.clear_progress()
         return {'FINISHED'}
 
 
