@@ -2,37 +2,8 @@ import bpy
 from ..handle_blender_structs import *
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
 from databpy import BlenderObject
-from pathlib import Path
 import numpy as np
 from mathutils import Matrix
-
-class DataIO():
-    min_type = None
-    TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "res{resolution}_c{channel_ix}_t{t}"
-
-    def base_constructor(self, ch):
-        cache_path = Path(ch.cache_path)
-        return {
-            "cache_path": str(cache_path),
-            "cache_dir": str(cache_path.parent),
-            "dataset_hash": cache_path.name,
-            "original_path": ch.source,
-        }
-
-    def generate_file_constructors(self, ch):
-        return [] #Todo make this default? only if chunking get actually removed
-
-    def export_ch(self, ch, file_constructors):
-        # return 
-        return []
-
-    def make_local_files(self, ch):
-        file_constructors = self.generate_file_constructors(ch)
-        self.export_ch(ch, file_constructors)
-        return file_constructors
-    
-    def get_metadata(self, file_constructors):
-        return {}
 
 
 class MiNObject(BlenderObject):

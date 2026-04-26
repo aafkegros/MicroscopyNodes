@@ -1,1 +1,1 @@
-from .factories import *
+from ..blender_objects import *
