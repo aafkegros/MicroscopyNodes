@@ -2,10 +2,6 @@ from ..handle_blender_structs.props import min_keys
 from .load_volume import VolumeObject, VolumeIO
 from .load_surfaces import SurfaceObject
 from .load_labelmask import LabelmaskObject, LabelmaskIO
-
-
-print('importing from factories')
-from .test import Test
 from .axes import Axes
 from .holder_object import Holder
 from .slice_cube_object import SliceCubeObject
