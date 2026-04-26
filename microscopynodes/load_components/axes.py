@@ -21,6 +21,7 @@ AXIS_ITEM_NAMES = [
 
 class Axes(MiNObject):
     min_type = min_keys.AXES
+    TICK_STEP_PREFIX = "Tick Step"
 
     def init_obj(self):
         super().init_obj()
@@ -38,6 +39,36 @@ class Axes(MiNObject):
     def _set_modifier_input(self, name, value):
         item = self._interface_input_item(name)
         self.min_gn[item.identifier] = value
+
+    def _unit_label(self, unit_value):
+        labels = {
+            1e-10: "Å",
+            1e-9: "nm",
+            1e-6: "µm",
+            1e-3: "mm",
+            1.0: "m",
+        }
+        for value, label in labels.items():
+            if np.isclose(float(unit_value), value):
+                return label
+        return "unit"
+
+    def _tick_step_input_name(self, dataset_model=None):
+        if dataset_model is None or not dataset_model.channels:
+            return f"{self.TICK_STEP_PREFIX} (unit)"
+        return f"{self.TICK_STEP_PREFIX} ({self._unit_label(dataset_model.channels[0].unit)})"
+
+    def _rename_tick_step_input(self, dataset_model):
+        interface = self.node_group.interface
+        current_item = None
+        for item in interface.items_tree:
+            if getattr(item, "item_type", None) != 'SOCKET' or item.in_out != 'INPUT':
+                continue
+            if item.name.startswith(f"{self.TICK_STEP_PREFIX} ("):
+                current_item = item
+                break
+        if current_item is not None:
+            current_item.name = self._tick_step_input_name(dataset_model)
 
     def _line_thickness(self, extent_unit):
         max_extent = float(np.max(extent_unit))
@@ -66,10 +97,12 @@ class Axes(MiNObject):
         return float(candidates[np.argmin(np.abs(counts - target_ticks))])
 
     def set_data(self, dataset_model):
+        self._rename_tick_step_input(dataset_model)
         self.node_group.nodes["Scale Bars"].inputs["World per Unit"].default_value = float(dataset_model.scale)
         return
         
     def set_settings(self, dataset_model):
+        self._rename_tick_step_input(dataset_model)
         _, _, extent_unit = dataset_model.intermediate_bbox
         mins_world, _, extent_world = dataset_model.final_bbox
         
@@ -79,7 +112,7 @@ class Axes(MiNObject):
         self.object.location = mins_world
         self.object.scale = np.maximum(extent_world, 1e-6)
 
-        self._set_modifier_input("Tick Step (unit)", tick_step)
+        self._set_modifier_input(self._tick_step_input_name(dataset_model), tick_step)
         self._set_modifier_input("Grid", True)
         self._set_modifier_input("Line thickness", line_thickness)
         for i in AXIS_ITEM_NAMES:
@@ -103,7 +136,7 @@ class Axes(MiNObject):
         outputnode = nodes.new("NodeGroupOutput")
         outputnode.location = (700, 0)
 
-        interface.new_socket(name="Tick Step (unit)", in_out="INPUT", socket_type='NodeSocketFloat')
+        interface.new_socket(name=f"{self.TICK_STEP_PREFIX} (unit)", in_out="INPUT", socket_type='NodeSocketFloat')
         interface.items_tree[-1].default_value = 1.0
         interface.items_tree[-1].min_value = 0.0
         interface.items_tree[-1].max_value = 3.4028234663852886e+38
