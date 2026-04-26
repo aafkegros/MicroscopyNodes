@@ -144,6 +144,24 @@ class DatasetModel(BaseModel):
             return self.explicit_scale
         return self.channels[0].unit / self.output_unit
 
+    @property
+    def axes_unit_label(self):
+        if self.explicit_scale is not None:
+            return "px"
+
+        labels = {
+            1e-10: "Å",
+            1e-9: "nm",
+            1e-6: "µm",
+            1e-3: "mm",
+            1.0: "m",
+        }
+        unit_value = float(self.channels[0].unit)
+        for value, label in labels.items():
+            if np.isclose(unit_value, value):
+                return label
+        return "unit"
+
     @field_validator("channels")
     def no_duplicate_channel_names(cls, channels):
         names = [ch.name for ch in channels]
