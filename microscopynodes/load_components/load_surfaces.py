@@ -2,8 +2,8 @@ import bpy
 
 from .base import *
 from ..handle_blender_structs import *
-from .. import min_nodes
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
+from ..min_nodes.shader_nodes import set_color_ramp_from_ch
 
 
 class SurfaceObject(MeshChannelObject):
@@ -81,7 +81,7 @@ class SurfaceObject(MeshChannelObject):
         try:
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
             colornode = mat.node_tree.nodes.get(f"[color_lut_{ch.identifier}]")
-            min_nodes.shader_nodes.set_color_ramp_from_ch(ch, colornode)
+            set_color_ramp_from_ch(ch, colornode)
             if princ is not None and ch.emission and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
             elif princ is not None and not ch.emission and princ.inputs[28].default_value == 0.5:

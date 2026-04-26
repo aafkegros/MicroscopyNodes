@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 
 from ..handle_blender_structs import *
-from .. import min_nodes
+from ..min_nodes.geo_nodes import crosshatch_node_group, scale_node_group
 from .base import MiNObject
 
 print("imported axes")
@@ -172,11 +172,11 @@ class Axes(MiNObject):
             links.new(inputnode.outputs[name], combine_axes.inputs[name])
 
         crosshatch = nodes.new("GeometryNodeGroup")
-        crosshatch.node_tree = min_nodes.crosshatch_node_group()
+        crosshatch.node_tree = crosshatch_node_group()
         crosshatch.location = (-650, 150)
 
         scale_node = nodes.new("GeometryNodeGroup")
-        scale_node.node_tree = min_nodes.scale_node_group()
+        scale_node.node_tree = scale_node_group()
         scale_node.name = "Scale Bars"
         scale_node.label = "Scale Bars"
         scale_node.width = 260
