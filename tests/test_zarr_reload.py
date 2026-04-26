@@ -46,11 +46,8 @@ def test_reload(which_not_update):
         assert(len(objects2 - objects1) == 5 + 1) # new data (n channels) and surfaces were added
     else:
         # surfaces were not created, so should not be checked
-        for ch in ch_dicts2:    
-            ch[min_keys.SURFACE] = 0
+        for ch in ch_dicts2.channels:
+            ch.visible_as[min_keys.SURFACE] = False
 
     if bpy.context.scene.MiN_update_settings:
         check_channels(ch_dicts2, test_render=False)
-
-
-    
