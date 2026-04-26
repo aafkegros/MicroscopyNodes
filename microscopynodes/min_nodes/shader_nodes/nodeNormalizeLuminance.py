@@ -28,6 +28,7 @@ def normalize_luminance_node():
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 1.0
+    interface.items_tree[-1].subtype = 'FACTOR'
 
     group_input = nodes.new("NodeGroupInput")
     group_input.location = (-440, 0)
