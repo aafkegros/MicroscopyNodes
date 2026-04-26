@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator, ConfigD
 import numpy as np
 from .handle_blender_structs.props import min_keys
 import dask.array as da
-from .load_components.factories import DataIOFactory
+from .io.factories import DataIOFactory
 
 # class ChannelTransform(BaseModel)
 #     affine: 

@@ -4,7 +4,7 @@ import numpy as np
 
 from .handle_blender_structs import *
 from .handle_blender_structs import dependent_props
-from .load_components import *
+from .blender_objects import *
 # from .parse_inputs import *
 from .file_to_array import load_array, arr_shape
 from mathutils import Matrix
