@@ -15,28 +15,18 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        blender-version: ["4.4.0"]
         os: [ubuntu-latest, windows-latest, macos-13]
-        # os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-      # - run: pip install bpy==${{ matrix.blender-version }}
+          python-version: '3.13.9'
 
-            
       - name: Install poetry
         run: pip install poetry
-      - name: Install
-        run: poetry install --with=dev
-      - name: install
-        run: pip install -r requirements.txt
-      
-      - name: Install microscopy nodes
-        run: pip install .
 
-     
+      - name: Install dependencies
+        run: poetry install --with=dev
+
       - name: Run Tests
-        run: pytest --verbose 
+        run: poetry run pytest --verbose
