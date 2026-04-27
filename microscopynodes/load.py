@@ -1,13 +1,7 @@
 import bpy
-from pathlib import Path
-import numpy as np
 
 from .handle_blender_structs import *
-from .handle_blender_structs import dependent_props
 from .blender_objects.factories import MinObjectFactory
-# from .parse_inputs import *
-from .file_to_array import load_array, arr_shape
-from mathutils import Matrix
 
 class Scene():
     # wraps the blender scene and can hold Microscopy Nodes Datasets

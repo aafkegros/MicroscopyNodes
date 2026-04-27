@@ -1,5 +1,4 @@
 from .base import *
-from pathlib import Path
 from ..handle_blender_structs.props import min_keys
 
 class Holder(MiNObject):
