@@ -4,7 +4,7 @@ import bpy
 import dask.array as da
 import numpy as np
 import pytest
-import yaml
+import json
 
 import microscopynodes
 from microscopynodes.data_model import ChannelModel, DatasetModel
@@ -14,12 +14,12 @@ from ..utils import prep_load
 
 
 def _set_import_scale(scale_name):
-    pref_path = Path(bpy.context.scene.MiN_yaml_preferences)
+    pref_path = Path(bpy.context.scene.MiN_json_preferences)
     with open(pref_path) as f:
-        prefs = yaml.safe_load(f)
+        prefs = json.load(f)
     prefs["import_scale"] = scale_name
     with open(pref_path, "w") as f:
-        yaml.safe_dump(prefs, f)
+        json.dump(prefs, f)
 
 
 def _make_channel(name="Channel 0", affine=None):

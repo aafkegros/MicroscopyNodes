@@ -3,7 +3,7 @@ from .. import __package__
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 import tempfile
-import yaml
+import json
 
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
@@ -108,12 +108,12 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        if context.scene.MiN_yaml_preferences != "":
-            row.label(text=f"Preferences are overriden from {context.scene.MiN_yaml_preferences}", icon="ERROR")
+        if context.scene.MiN_json_preferences != "":
+            row.label(text=f"Preferences are overriden from {context.scene.MiN_json_preferences}", icon="ERROR")
             row= layout.row()
-            row.prop(bpy.context.scene, 'MiN_yaml_preferences', text="")
+            row.prop(bpy.context.scene, 'MiN_json_preferences', text="")
             row = layout.row()
-            row.operator("microscopynodes.reset_yaml")
+            row.operator("microscopynodes.reset_json")
             return
         
         row.prop(self, 'cache_path', text='Data storage "Path" default:')
@@ -133,13 +133,13 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
                         text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
 
 
-class ResetPreferenceYamlOperator(bpy.types.Operator):
-    """ Unsets the preference yaml path """
-    bl_idname ="microscopynodes.reset_yaml"
+class ResetPreferenceJsonOperator(bpy.types.Operator):
+    """ Unsets the preference json path """
+    bl_idname ="microscopynodes.reset_json"
     bl_label = "Use Blender Preferences"
 
     def execute(self, context):
-        context.scene.MiN_yaml_preferences = ""
+        context.scene.MiN_json_preferences = ""
         return {'FINISHED'}
 
 class DictWithElements:
@@ -152,9 +152,9 @@ def addon_preferences(context: bpy.types.Context | None = None):
     if context is None:
         context = bpy.context
     try:
-        if hasattr(context, 'scene') and context.scene.MiN_yaml_preferences != "":
-            with open(context.scene.MiN_yaml_preferences) as stream:
-                return DictWithElements(yaml.safe_load(stream))
+        if hasattr(context, 'scene') and context.scene.MiN_json_preferences != "":
+            with open(context.scene.MiN_json_preferences) as stream:
+                return DictWithElements(json.load(stream))
     except KeyError as e:
         print(e)
     try:
@@ -175,4 +175,4 @@ INIT_COLORS = [
 ]
 
 
-CLASSES = [MicroscopyNodesPreferences, ResetPreferenceYamlOperator]
+CLASSES = [MicroscopyNodesPreferences, ResetPreferenceJsonOperator]
