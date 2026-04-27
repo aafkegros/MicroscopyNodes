@@ -85,14 +85,14 @@ class Axes(MiNObject):
 
     def set_data(self, dataset_model):
         self._rename_tick_step_input(dataset_model)
-        self.node_group.nodes["Scale Bars"].inputs["World per Unit"].default_value = float(dataset_model.scale)
+        self.node_group.nodes["Scale Bars"].inputs["World per Unit"].default_value = float(dataset_model.scale) / float(dataset_model.axis_unit_scale)
         return
         
     def set_settings(self, dataset_model):
         self._rename_tick_step_input(dataset_model)
         _, _, extent_unit = dataset_model.intermediate_bbox
         
-        tick_step = self._nice_tick_step(extent_unit)
+        tick_step = self._nice_tick_step(extent_unit * float(dataset_model.axis_unit_scale))
         line_thickness = 0.25
 
         self.object.location = dataset_model.axes_location
