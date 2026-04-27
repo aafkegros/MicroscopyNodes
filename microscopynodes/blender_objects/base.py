@@ -3,7 +3,6 @@ from ..handle_blender_structs import *
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
 from databpy import BlenderObject
 import numpy as np
-from ..min_nodes.geo_nodes.affine_matrix import affine_socket_names
 
 
 class MiNObject(BlenderObject):
@@ -157,10 +156,13 @@ class ChannelObject(MiNObject):
 
     def update_import_affine(self, import_node, ch):
         affine = np.array(ch.affine, dtype=float)
-        for socket_name, value in zip(affine_socket_names(), affine.reshape(-1)):
-            socket = import_node.inputs.get(socket_name)
-            if socket is not None:
-                socket.default_value = float(value)
+        affine_node = self.node_group.nodes.get(f"channel_affine_{ch.identifier}")
+        if affine_node is None:
+            return
+        for row in range(4):
+            for column in range(4):
+                # Combine Matrix exposes sockets by column, with four row values per column.
+                affine_node.inputs[column * 4 + row].default_value = float(affine[row, column])
         return
 
     def ch_present(self, ch):
@@ -272,6 +274,15 @@ class ChannelObject(MiNObject):
         import_node.location = (x, y + 100)
         import_node.name = f"channel_load_{ch.identifier}"
         import_node.label = ch.name
+
+        affine_node = self.node_group.nodes.new("FunctionNodeCombineMatrix")
+        affine_node.name = f"channel_affine_{ch.identifier}"
+        affine_node.label = f"{ch.name} affine"
+        affine_node.location = (x - 180, y - 90)
+        for affine_socket in affine_node.inputs:
+            if not affine_socket.is_linked:
+                affine_socket.hide = True
+        self.node_group.links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
 
         self.node_group.links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
         out_ch = self.channel_nodes(x, y, ch, self.import_output_socket(import_node))

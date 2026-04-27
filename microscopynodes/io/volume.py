@@ -51,9 +51,9 @@ class VolumeIO(DataIO):
 
     def export_ch(self, ch, file_constructors):
         if np.issubdtype(ch.data.dtype, np.floating):
-            max_val = ch.data.max()
+            max_val = float(ch.data.max().compute())
         else:
-            max_val = min(np.iinfo(ch.data.dtype).max, np.iinfo(np.int32).max)
+            max_val = float(min(np.iinfo(ch.data.dtype).max, np.iinfo(np.int32).max))
         for constructor in file_constructors:
             vdbfname = Path(str(self.VDB_TEMPLATE).format(**constructor))
             histfname = vdbfname.with_suffix(".npz")
@@ -71,7 +71,7 @@ class VolumeIO(DataIO):
                 arr = arr.astype(np.float32) / max_val
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.0, 1.0))[0]
                 histogram[0] = 0
-                np.savez(histfname, data=histogram, metadata={"data_max": max_val}, allow_pickle=False)
+                np.savez(histfname, data=histogram, data_max=np.array(max_val, dtype=np.float64), allow_pickle=False)
                 log(f"write vdb {vdbfname.name}")
                 self.make_vdb(vdbfname, arr)
         return []
@@ -109,8 +109,13 @@ class VolumeIO(DataIO):
         for constructor in file_constructors:
             histfname = Path(str(constructor["template_str"]).format(**constructor)).with_suffix(".npz")
             try:
-                hist += np.load(histfname, allow_pickle=False)["data"]
-                data_max = np.load(histfname, allow_pickle=True)["metadata"].item()["data_max"]
+                with np.load(histfname, allow_pickle=False) as histfile:
+                    hist += histfile["data"]
+                    if "data_max" in histfile:
+                        data_max = float(histfile["data_max"].item())
+                    else:
+                        with np.load(histfname, allow_pickle=True) as legacy_histfile:
+                            data_max = legacy_histfile["metadata"].item()["data_max"]
             except Exception as e:
                 print(e, " in reading histogram, skipping chunk")
                 hist += np.zeros(NR_HIST_BINS)
