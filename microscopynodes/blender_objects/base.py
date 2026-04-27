@@ -44,6 +44,14 @@ class MiNObject(BlenderObject):
 class ChannelObject(MiNObject):
     shader_count = 10
 
+    def expand_node_ui(self, node):
+        if hasattr(node, "show_options"):
+            node.show_options = True
+        for socket in getattr(node, "inputs", []):
+            if hasattr(socket, "show_expanded"):
+                socket.show_expanded = True
+        return node
+
     def init_obj(self):
         if self.min_type == min_keys.VOLUME: # makes the icon show up
             bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -178,13 +186,14 @@ class ChannelObject(MiNObject):
         add_shaders.name = "Add Shaders"
         add_shaders.width = 100
         add_shaders.location = (620, 0)
+        self.expand_node_ui(add_shaders)
 
         slicecube = nodes.new("ShaderNodeGroup")
         slicecube.node_tree = slice_cube_node_group()
         slicecube.name = "Slice Cube"
         slicecube.width = 250
         slicecube.location = (1070, 0)
-        slicecube.inputs[0].show_expanded = True
+        self.expand_node_ui(slicecube)
 
         links.new(texcoord.outputs.get("Object"), slicecube.inputs.get("Slicing Object"))
         links.new(add_shaders.outputs[0], slicecube.inputs.get("Shader"))
@@ -378,6 +387,7 @@ class MeshChannelObject(ChannelObject):
         channel_index.label = "Channel index"
         channel_index.location = (710, y_offset - 65)
         channel_index.inputs["Index"].default_value = ch.ix
+        self.expand_node_ui(channel_index)
 
         frame, _ = self.add_ch_to_shader(mat, ch, channel_index.outputs["Shader"])
 

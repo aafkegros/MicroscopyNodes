@@ -28,7 +28,7 @@ def test_reload(which_not_update):
     ch_dicts1 = do_load()
     objects1 = set([obj.name for obj in bpy.data.objects])
 
-    bpy.context.scene.MiN_reload = bpy.data.objects[str(Path(bpy.context.scene.MiN_input_file).stem)]
+    assert bpy.context.scene.MiN_reload is not None
     for setting in which_not_update:
         bpy.context.scene[setting] = False
     
@@ -42,8 +42,8 @@ def test_reload(which_not_update):
     objects2 = set([obj.name for obj in bpy.data.objects])
     
     if bpy.context.scene.MiN_update_data:
-        assert(len(objects1 - objects2) == 1) # only old data was deleted
-        assert(len(objects2 - objects1) == 5 + 1) # new data (n channels) and surfaces were added
+        assert(len(objects1 - objects2) == 0) # existing objects are reused
+        assert(objects2 - objects1 == {"surface"}) # only the newly required surface object is added
     else:
         # surfaces were not created, so should not be checked
         for ch in ch_dicts2.channels:
