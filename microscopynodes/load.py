@@ -102,6 +102,7 @@ class Dataset():
             min_obj = getattr(self, min_key.name.lower())
             if min_obj is not None:
                 min_obj.object.parent = self.holder.object
+                min_obj.object.matrix_parent_inverse.identity()
 
         if self.slicecube is not None:
             for min_obj in (self.volume, self.surface, self.labelmask):

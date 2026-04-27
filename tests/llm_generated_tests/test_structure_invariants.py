@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import bpy
+import numpy as np
 
 import microscopynodes
 from microscopynodes.handle_blender_structs import get_socket
@@ -11,6 +12,33 @@ from ..utils import prep_load, do_load
 
 def _dataset_from_reload():
     return microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+
+
+def _load_single_surface_with_affine_translation(translation):
+    prep_load("5D_5cube")
+    for ch in bpy.context.scene.MiN_channelList:
+        ch["volume"] = False
+        ch["surface"] = (ch.ix == 0)
+        ch["labelmask"] = False
+
+    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
+    affine = np.array(dataset_model.channels[0].affine, dtype=float)
+    affine[:3, 3] = np.array(translation, dtype=float)
+    dataset_model.channels[0].affine = affine.tolist()
+
+    microscopynodes.load.Scene.from_blender_ui()
+    dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    dataset.set_state(dataset_model)
+
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    eval_obj = dataset.surface.object.evaluated_get(depsgraph)
+    mesh = eval_obj.to_mesh()
+    try:
+        coords = np.array([v.co[:] for v in mesh.vertices], dtype=float)
+    finally:
+        eval_obj.to_mesh_clear()
+
+    return coords.min(axis=0), coords.max(axis=0)
 
 
 def test_volume_load_builds_expected_geometry_and_shader_structure():
@@ -89,3 +117,11 @@ def test_visibility_socket_matches_channel_visibility():
         socket = get_socket(dataset.volume.node_group, ch, min_type="SWITCH")
         assert socket is not None
         assert dataset.volume.gn_mod[socket.identifier] == True
+
+
+def test_surface_affine_translation_offsets_local_mesh_vertices():
+    base_mins, base_maxs = _load_single_surface_with_affine_translation((0.0, 0.0, 0.0))
+    translated_mins, translated_maxs = _load_single_surface_with_affine_translation((7.0, 11.0, 13.0))
+
+    np.testing.assert_allclose(translated_mins - base_mins, np.array([7.0, 11.0, 13.0]), atol=1e-4)
+    np.testing.assert_allclose(translated_maxs - base_maxs, np.array([7.0, 11.0, 13.0]), atol=1e-4)

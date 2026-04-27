@@ -186,21 +186,21 @@ class DatasetModel(BaseModel):
         mins = np.array(mins, dtype=float)
         maxs = np.array(maxs, dtype=float)
         return mins, maxs, maxs - mins
+        
+    @property
+    def channel_object_location(self):
+        mins, _, extent = self.intermediate_bbox
+        return np.array(self.relative_loc, dtype=float) * extent - mins
 
     @property
-    def final_bbox(self):
-        mins, _, extent_unit = self.intermediate_bbox
-        extent_world = extent_unit * float(self.scale)
-        relative_loc = np.array(self.relative_loc, dtype=float)
-        mins_world = (mins + (relative_loc + np.array([0.5, 0.5, 0.0])) * extent_unit) * float(self.scale)
-        maxs_world = mins_world + extent_world
-        return mins_world, maxs_world, extent_world
+    def axes_location(self):
+        _, _, extent = self.intermediate_bbox
+        return (np.array(self.relative_loc, dtype=float) + np.array([0.5, 0.5, 0.0])) * extent
 
     @property
-    def final_center(self):
-        mins, _, extent_unit = self.intermediate_bbox
-        relative_loc = np.array(self.relative_loc, dtype=float)
-        return (mins + (relative_loc + 0.5) * extent_unit) * float(self.scale)
+    def slice_cube_location(self):
+        _, _, extent = self.intermediate_bbox
+        return (np.array(self.relative_loc, dtype=float) + 0.5) * extent
 
     @model_validator(mode="after")
     def set_defaults(self):
