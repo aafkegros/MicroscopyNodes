@@ -17,3 +17,6 @@ class Holder(MiNObject):
         self.object.hide_render = True
         self.object.display_type = 'WIRE'
         self.object.name = dataset_model.name
+        self.object.location = (0.0, 0.0, 0.0)
+        self.object.rotation_euler = (0.0, 0.0, 0.0)
+        self.object.scale = (float(dataset_model.scale),) * 3

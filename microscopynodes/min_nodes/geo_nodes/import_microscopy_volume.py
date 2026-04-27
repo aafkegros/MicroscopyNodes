@@ -1,5 +1,7 @@
 import bpy
 
+from .affine_matrix import _link_affine_matrix, _new_affine_inputs
+
 
 GROUP_NAME = "Import Microscopy Volume"
 
@@ -71,6 +73,7 @@ def import_microscopy_volume_node_group():
     _new_input(interface, "channel_ix", 'NodeSocketInt', 0)
     _new_input(interface, "Frame", 'NodeSocketInt', 0)
     _new_input(interface, "original_path", 'NodeSocketString', "")
+    _new_affine_inputs(interface, _new_input)
 
     group_input = nodes.new("NodeGroupInput")
     group_input.name = "Group Input"
@@ -182,7 +185,25 @@ def import_microscopy_volume_node_group():
     links.new(include_switch.outputs["Output"], output_grid.inputs["Volume"])
     links.new(group_input.outputs["Grid Name"], output_grid.inputs["Name"])
 
-    links.new(output_grid.outputs["Volume"], group_output.inputs["Volume"])
-    links.new(output_grid.outputs["Grid"], group_output.inputs["Grid"])
+    affine_matrix = _link_affine_matrix(nodes, links, group_input, (1130, -220))
+
+    set_grid_transform = nodes.new("GeometryNodeSetGridTransform")
+    set_grid_transform.name = "Set Channel Affine Transform"
+    set_grid_transform.location = (1560, 250)
+    set_grid_transform.data_type = 'FLOAT'
+    links.new(output_grid.outputs["Grid"], set_grid_transform.inputs["Grid"])
+    links.new(affine_matrix, set_grid_transform.inputs["Transform"])
+
+    store_transformed_grid = nodes.new("GeometryNodeStoreNamedGrid")
+    store_transformed_grid.name = "Store Transformed Grid"
+    store_transformed_grid.location = (1770, 80)
+    store_transformed_grid.data_type = 'FLOAT'
+    links.new(output_grid.outputs["Volume"], store_transformed_grid.inputs["Volume"])
+    links.new(group_input.outputs["Grid Name"], store_transformed_grid.inputs["Name"])
+    links.new(set_grid_transform.outputs["Grid"], store_transformed_grid.inputs["Grid"])
+
+    group_output.location = (2020, 20)
+    links.new(store_transformed_grid.outputs["Volume"], group_output.inputs["Volume"])
+    links.new(set_grid_transform.outputs["Grid"], group_output.inputs["Grid"])
 
     return node_group

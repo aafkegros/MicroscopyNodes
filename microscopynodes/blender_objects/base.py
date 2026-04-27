@@ -3,7 +3,7 @@ from ..handle_blender_structs import *
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
 from databpy import BlenderObject
 import numpy as np
-from mathutils import Matrix
+from ..min_nodes.geo_nodes.affine_matrix import affine_socket_names
 
 
 class MiNObject(BlenderObject):
@@ -118,11 +118,9 @@ class ChannelObject(MiNObject):
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if ch.visible_as.get(self.min_type, False)), None)
         if ch is not None:
-            _, _, extent = dataset_model.intermediate_bbox
-            matrix = np.array(ch.affine, dtype=float)
-            matrix[:3, 3] += np.array(dataset_model.relative_loc, dtype=float) * extent
-            matrix[:3, :] *= float(dataset_model.scale)
-            self.object.matrix_world = Matrix(matrix.tolist())
+            self.object.location = dataset_model.channel_object_location
+            self.object.rotation_euler = (0.0, 0.0, 0.0)
+            self.object.scale = (1.0, 1.0, 1.0)
 
 
     def update_ch_settings(self, ch):
@@ -154,6 +152,15 @@ class ChannelObject(MiNObject):
             except Exception:
                 import_node.inputs.get(key).default_value = str(val)
         import_node.label = ch.name
+        self.update_import_affine(import_node, ch)
+        return
+
+    def update_import_affine(self, import_node, ch):
+        affine = np.array(ch.affine, dtype=float)
+        for socket_name, value in zip(affine_socket_names(), affine.reshape(-1)):
+            socket = import_node.inputs.get(socket_name)
+            if socket is not None:
+                socket.default_value = float(value)
         return
 
     def ch_present(self, ch):
@@ -303,12 +310,14 @@ class ChannelObject(MiNObject):
 
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
+        self.object.matrix_parent_inverse.identity()
         for mat in self.object.data.materials:
             texcoord = mat.node_tree.nodes.get("Texture Coordinate")
             if texcoord is not None:
                 texcoord.object = slice_cube
         for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
             obj.parent = parent
+            obj.matrix_parent_inverse.identity()
 
 
 class MeshChannelObject(ChannelObject):

@@ -91,13 +91,12 @@ class Axes(MiNObject):
     def set_settings(self, dataset_model):
         self._rename_tick_step_input(dataset_model)
         _, _, extent_unit = dataset_model.intermediate_bbox
-        mins_world, _, extent_world = dataset_model.final_bbox
         
         tick_step = self._nice_tick_step(extent_unit)
         line_thickness = 0.25
 
-        self.object.location = mins_world
-        self.object.scale = np.maximum(extent_world, 1e-6)
+        self.object.location = dataset_model.axes_location
+        self.object.scale = np.maximum(extent_unit, 1e-6)
 
         self._set_modifier_input(self._tick_step_input_name(dataset_model), tick_step)
         self._set_modifier_input("Grid", True)
