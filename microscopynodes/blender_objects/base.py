@@ -117,7 +117,7 @@ class ChannelObject(MiNObject):
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if ch.visible_as.get(self.min_type, False)), None)
         if ch is not None:
-            self.object.location = dataset_model.channel_object_location
+            self.object.location = dataset_model.dataset_origin_world
             self.object.rotation_euler = (0.0, 0.0, 0.0)
             self.object.scale = (1.0, 1.0, 1.0)
 

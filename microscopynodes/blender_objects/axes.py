@@ -95,7 +95,7 @@ class Axes(MiNObject):
         tick_step = self._nice_tick_step(extent_unit * float(dataset_model.axis_unit_scale))
         line_thickness = 0.25
 
-        self.object.location = dataset_model.axes_location
+        self.object.location = dataset_model.dataset_center_world
         self.object.scale = np.maximum(extent_unit, 1e-6)
 
         self._set_modifier_input(self._tick_step_input_name(dataset_model), tick_step)

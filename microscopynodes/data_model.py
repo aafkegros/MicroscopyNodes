@@ -198,17 +198,12 @@ class DatasetModel(BaseModel):
         return mins, maxs, maxs - mins
         
     @property
-    def channel_object_location(self):
+    def dataset_origin_world(self):
         mins, _, extent = self.intermediate_bbox
         return np.array(self.relative_loc, dtype=float) * extent - mins
 
     @property
-    def axes_location(self):
-        _, _, extent = self.intermediate_bbox
-        return (np.array(self.relative_loc, dtype=float) + np.array([0.5, 0.5, 0.0])) * extent
-
-    @property
-    def slice_cube_location(self):
+    def dataset_center_world(self):
         _, _, extent = self.intermediate_bbox
         return (np.array(self.relative_loc, dtype=float) + 0.5) * extent
 

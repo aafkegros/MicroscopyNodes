@@ -80,13 +80,13 @@ def scalebox_node_group():
     loc_0.operation = "MULTIPLY"
     loc_0.location = (-700, -300)
     links.new(extent_world.outputs[0], loc_0.inputs[0])
-    loc_0.inputs[1].default_value = (-0.5, -0.5, 0.0)
+    loc_0.inputs[1].default_value = (-0.5, -0.5, -0.5)
 
     loc_max = node_group.nodes.new("ShaderNodeVectorMath")
     loc_max.operation = "MULTIPLY"
     loc_max.location = (-540, -300)
     links.new(extent_world.outputs[0], loc_max.inputs[0])
-    loc_max.inputs[1].default_value = (0.5, 0.5, 1.0)
+    loc_max.inputs[1].default_value = (0.5, 0.5, 0.5)
 
     ticks_float = node_group.nodes.new("ShaderNodeVectorMath")
     ticks_float.operation = "DIVIDE"
