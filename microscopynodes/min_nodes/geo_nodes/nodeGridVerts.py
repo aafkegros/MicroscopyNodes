@@ -51,7 +51,7 @@ def grid_verts_node_group():
         loc.operation = "MULTIPLY"
         loc.location = (-620, -80 - 170 * ix)
         links.new(extent_world.outputs[0], loc.inputs[0])
-        loc.inputs[1].default_value = (-0.5, -0.5, 0.0) if side == "min" else (0.5, 0.5, 1.0)
+        loc.inputs[1].default_value = (-0.5, -0.5, -0.5) if side == "min" else (0.5, 0.5, 0.5)
 
         loc_xyz = node_group.nodes.new("ShaderNodeSeparateXYZ")
         loc_xyz.location = (-420, -80 - 170 * ix)

@@ -35,7 +35,7 @@ class SliceCubeObject(MiNObject):
         slicecube = self.object
         _, _, extent_unit = dataset_model.intermediate_bbox
 
-        slicecube.location = dataset_model.slice_cube_location
+        slicecube.location = dataset_model.dataset_center_world
         slicecube.scale = np.maximum(extent_unit / 2.0, 1e-6)
         slicecube.display_type = 'BOUNDS'
     
