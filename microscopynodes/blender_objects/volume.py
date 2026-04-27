@@ -140,6 +140,7 @@ class VolumeObject(ChannelObject):
         ramp_node.color_ramp.elements[1].position = 1
         ramp_node.name = f'[alpha_ramp_{ch.identifier}]'
         ramp_node.label = "Pixel Intensities"
+        ramp_node.show_options = True
         if 'threshold_upper' in ch.metadata[self.min_type]:
             ramp_node.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
         ramp_node.outputs[0].hide = True
@@ -152,16 +153,17 @@ class VolumeObject(ChannelObject):
         alphanode.node_tree = volume_alpha_node()
         alphanode.name = f'[volume_alpha_{ch.identifier}]'
         alphanode.location = (-300, y_offset - 120)
-        alphanode.show_options = False
         alphanode.inputs.get("Alpha").default_value = 1
         alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
+        self.expand_node_ui(alphanode)
 
         color_lut = nodes.new(type="ShaderNodeValToRGB")
         color_lut.location = (-300, y_offset + 120)
         color_lut.width = 300
         color_lut.name = f"[color_lut_{ch.identifier}]"
+        color_lut.show_options = True
         color_lut.outputs[1].hide = True
         links.new(ramp_node.outputs[1], color_lut.inputs[0])
 
@@ -173,6 +175,7 @@ class VolumeObject(ChannelObject):
         microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.emission)
         for socket_name in ("Color", "Alpha", "Alpha-Intensity Coupling"):
             microscopy_shading.inputs[socket_name].hide_value = True
+        self.expand_node_ui(microscopy_shading)
 
         frame, _ = self.add_ch_to_shader(mat, ch, microscopy_shading.outputs["Shader"])
         for node in (node_attr, ramp_node, histnode, alphanode, color_lut, microscopy_shading):

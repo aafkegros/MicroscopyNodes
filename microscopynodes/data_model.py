@@ -145,7 +145,7 @@ class DatasetModel(BaseModel):
         return self.channels[0].unit / self.output_unit
 
     @property
-    def axes_unit_label(self):
+    def unit_label(self):
         if self.explicit_scale is not None:
             return "px"
 
@@ -156,7 +156,7 @@ class DatasetModel(BaseModel):
             1e-3: "mm",
             1.0: "m",
         }
-        unit_value = float(self.channels[0].unit)
+        unit_value = float(self.output_unit)
         for value, label in labels.items():
             if np.isclose(unit_value, value):
                 return label

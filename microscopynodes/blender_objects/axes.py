@@ -43,7 +43,7 @@ class Axes(MiNObject):
     def _tick_step_input_name(self, dataset_model=None):
         if dataset_model is None or not dataset_model.channels:
             return f"{self.TICK_STEP_PREFIX} (unit)"
-        return f"{self.TICK_STEP_PREFIX} ({dataset_model.axes_unit_label})"
+        return f"{self.TICK_STEP_PREFIX} ({dataset_model.unit_label})"
 
     def _rename_tick_step_input(self, dataset_model):
         interface = self.node_group.interface
