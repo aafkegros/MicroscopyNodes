@@ -1,0 +1,20 @@
+{
+  "import_scale": "DEFAULT",
+  "import_loc": "XY_CENTER",
+  "surf_resolution": 0,
+  "invert_color": false,
+  "channels": [
+    {
+      "ix": 0,
+      "name": "test_channel_default",
+      "volume": true,
+      "surface": false,
+      "labelmask": false,
+      "emission": true,
+      "cmap": "SINGLE_COLOR",
+      "single_color": [1, 1, 1]
+    }
+  ],
+  "cache_option": "TEMPORARY",
+  "cache_path": "/example/path"
+}

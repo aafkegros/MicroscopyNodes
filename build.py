@@ -1,5 +1,7 @@
 import glob
 import os
+from pathlib import Path
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -7,9 +9,11 @@ from typing import List, Union
 # import bpy
 
 import tomlkit
+import tomllib
 
 toml_path = "microscopynodes/blender_manifest.toml"
 whl_path = "./microscopynodes/wheels"
+pyproject_path = Path("pyproject.toml")
 blender_path =r"/Applications/Blender_5a.app/Contents/MacOS/Blender"
 blender_path = "/Users/oanegros/Documents/blenderBuilds/stable/blender-5.0.0-macos-arm64+stable.a37564c4df7a/Blender/Blender.app/Contents/MacOS/Blender"
 # permanent_whls = ["./microscopynodes/wheels/asciitree-0.3.4.dev1-py3-none-any.whl"]
@@ -29,21 +33,41 @@ linux_x64 = Platform(pypi_suffix="manylinux2014_x86_64", metadata="linux-x64")
 macos_arm = Platform(pypi_suffix="macosx_12_0_arm64", metadata="macos-arm64")
 macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
+EXCLUDED_POETRY_PACKAGES = {"python", "bpy"}
 
-required_packages = [
-    "dask==2025.5.1",
-    "importlib-metadata==8.7.0", # this seemed to no longer be standard included since Blender 4.3? People had bugs with this but it's confusing
-    "tifffile==2025.6.11",
-    "imagecodecs==2025.3.30", # allows LZW compressed tif loading
-    "zarr==3.0.8",
-    "fsspec==2025.5.1",
-    'cmap==0.6.0',
-    's3fs==2025.5.1',
-    'pyyaml==6.0.2', # needed for preference yaml loading and writing
-    'zmesh==1.8.0', # for fast mesh generation from labeled data
-    'databpy==0.3.0', 
-    'pydantic==2.12.4', 
-]
+
+def _pyproject() -> dict:
+    with pyproject_path.open("rb") as f:
+        return tomllib.load(f)
+
+
+def python_download_version() -> str:
+    deps = _pyproject()["tool"]["poetry"]["dependencies"]
+    python_spec = deps["python"]
+    match = re.search(r"(\d+)\.(\d+)", python_spec)
+    if match is None:
+        raise ValueError(f"Could not parse python version from {python_spec!r}")
+    return f"{match.group(1)}.{match.group(2)}"
+
+
+def runtime_packages() -> List[str]:
+    deps = _pyproject()["tool"]["poetry"]["dependencies"]
+    packages: List[str] = []
+    for name, spec in deps.items():
+        if name in EXCLUDED_POETRY_PACKAGES:
+            continue
+        if isinstance(spec, str):
+            if spec.strip() == "*":
+                packages.append(name)
+            else:
+                packages.append(f"{name}{spec}")
+        else:
+            raise ValueError(
+                f"Unsupported dependency spec for {name!r}: {spec!r}. "
+                "build.py currently expects string versions in [tool.poetry.dependencies]."
+            )
+    return packages
+
 # this is deprecated - for non buildable wheels, will remove in the future
 nodeps_packages = [ 
 ]
@@ -70,10 +94,17 @@ def remove_whls():
 
 def download_whls(
     platforms: Union[Platform, List[Platform]],
-    required_packages: List[str] = required_packages,
-    python_version="3.11",
+    required_packages: List[str] | None = None,
+    python_version: str | None = None,
     clean: bool = True,
 ):
+    if required_packages is None:
+        required_packages_from_pyproject = runtime_packages()
+    else:
+        required_packages_from_pyproject = required_packages
+    if python_version is None:
+        python_version = python_download_version()
+
     if isinstance(platforms, Platform):
         platforms = [platforms]
 
@@ -81,9 +112,9 @@ def download_whls(
         remove_whls()
 
     for platform in platforms:
-        print(required_packages, nodeps_packages, f"-m pip download {' '.join(required_packages)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}")
+        print(required_packages_from_pyproject, nodeps_packages, f"-m pip download {' '.join(required_packages_from_pyproject)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}")
         run_python(
-            f"-m pip download {' '.join(required_packages)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}"
+            f"-m pip download {' '.join(required_packages_from_pyproject)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}"
         )
         # run_python(
         #     f"-m pip download {' '.join(nodeps_packages)} --dest ./microscopynodes/wheels --python-version={python_version} --platform={platform.pypi_suffix} --no-deps"
