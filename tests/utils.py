@@ -5,7 +5,6 @@ import yaml
 
 from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
-from microscopynodes.blender_objects import *
 import microscopynodes
 
 import numpy as np
