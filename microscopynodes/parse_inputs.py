@@ -2,7 +2,6 @@ import bpy
 import numpy as np
 from pathlib import Path
 
-from .ui import preferences
 from .handle_blender_structs import *
 from .file_to_array import selected_array_option, channel_data
 from .ui.preferences import addon_preferences

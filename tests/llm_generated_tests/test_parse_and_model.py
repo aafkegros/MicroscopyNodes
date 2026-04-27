@@ -78,13 +78,8 @@ def test_dataset_bbox_and_center_properties():
     )
 
     mins, maxs, extent = dataset_model.intermediate_bbox
-    final_mins, final_maxs, final_extent = dataset_model.final_bbox
-    final_center = dataset_model.final_center
-
     np.testing.assert_allclose(mins, np.array([0.0, 0.0, 0.0]))
     np.testing.assert_allclose(maxs, np.array([4.0, 6.0, 8.0]))
     np.testing.assert_allclose(extent, np.array([4.0, 6.0, 8.0]))
-    np.testing.assert_allclose(final_mins, np.array([0.0, 0.0, 0.0]))
-    np.testing.assert_allclose(final_maxs, np.array([4.0, 6.0, 8.0]))
-    np.testing.assert_allclose(final_extent, np.array([4.0, 6.0, 8.0]))
-    np.testing.assert_allclose(final_center, np.array([0.0, 0.0, 4.0]))
+    np.testing.assert_allclose(dataset_model.dataset_origin_world, np.array([-2.0, -3.0, 0.0]))
+    np.testing.assert_allclose(dataset_model.dataset_center_world, np.array([0.0, 0.0, 4.0]))
