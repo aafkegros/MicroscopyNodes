@@ -1,7 +1,5 @@
 import bpy
 
-from .affine_matrix import _link_affine_matrix, _new_affine_inputs
-
 
 GROUP_NAME = "Import Microscopy Meshes"
 
@@ -55,7 +53,7 @@ def import_microscopy_meshes_node_group():
     _new_input(interface, "channel_ix", 'NodeSocketInt', 0)
     _new_input(interface, "Frame", 'NodeSocketInt', 0)
     _new_input(interface, "original_path", 'NodeSocketString', "")
-    _new_affine_inputs(interface, _new_input)
+    _new_input(interface, "Channel Affine Matrix", 'NodeSocketMatrix')
 
     group_input = nodes.new("NodeGroupInput")
     group_input.name = "Group Input"
@@ -171,14 +169,12 @@ def import_microscopy_meshes_node_group():
     links.new(sample_oid.outputs["Value"], store_oid.inputs[3])
     links.new(store_oid.outputs["Geometry"], foreach_out.inputs[1])
 
-    affine_matrix = _link_affine_matrix(nodes, links, group_input, (1430, -350))
-
     transform_geometry = nodes.new("GeometryNodeTransform")
     transform_geometry.name = "Apply Channel Affine"
     transform_geometry.location = (1810, -105)
     transform_geometry.inputs[1].default_value = 'Matrix'
     links.new(foreach_out.outputs[2], transform_geometry.inputs["Geometry"])
-    links.new(affine_matrix, transform_geometry.inputs["Transform"])
+    links.new(group_input.outputs["Channel Affine Matrix"], transform_geometry.inputs["Transform"])
 
     include_switch = nodes.new("GeometryNodeSwitch")
     include_switch.name = "Include Switch"

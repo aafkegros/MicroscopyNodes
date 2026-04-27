@@ -1,7 +1,5 @@
 import bpy
 
-from .affine_matrix import _link_affine_matrix, _new_affine_inputs
-
 
 GROUP_NAME = "Import Microscopy Volume"
 
@@ -73,7 +71,7 @@ def import_microscopy_volume_node_group():
     _new_input(interface, "channel_ix", 'NodeSocketInt', 0)
     _new_input(interface, "Frame", 'NodeSocketInt', 0)
     _new_input(interface, "original_path", 'NodeSocketString', "")
-    _new_affine_inputs(interface, _new_input)
+    _new_input(interface, "Channel Affine Matrix", 'NodeSocketMatrix')
 
     group_input = nodes.new("NodeGroupInput")
     group_input.name = "Group Input"
@@ -185,14 +183,12 @@ def import_microscopy_volume_node_group():
     links.new(include_switch.outputs["Output"], output_grid.inputs["Volume"])
     links.new(group_input.outputs["Grid Name"], output_grid.inputs["Name"])
 
-    affine_matrix = _link_affine_matrix(nodes, links, group_input, (1130, -220))
-
     set_grid_transform = nodes.new("GeometryNodeSetGridTransform")
     set_grid_transform.name = "Set Channel Affine Transform"
     set_grid_transform.location = (1560, 250)
     set_grid_transform.data_type = 'FLOAT'
     links.new(output_grid.outputs["Grid"], set_grid_transform.inputs["Grid"])
-    links.new(affine_matrix, set_grid_transform.inputs["Transform"])
+    links.new(group_input.outputs["Channel Affine Matrix"], set_grid_transform.inputs["Transform"])
 
     store_transformed_grid = nodes.new("GeometryNodeStoreNamedGrid")
     store_transformed_grid.name = "Store Transformed Grid"
