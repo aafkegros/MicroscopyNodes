@@ -128,6 +128,7 @@ class DatasetModel(BaseModel):
     name : Optional[str] 
     output_unit: float = 1e-2 
     explicit_scale: float | None = None # this is only to make px -> cm work
+    axis_unit_scale: float = 1.0 # axis-label units per dataset coordinate unit
     relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
 
     local_files_exist: bool = False
@@ -147,8 +148,18 @@ class DatasetModel(BaseModel):
     @property
     def unit_label(self):
         if self.explicit_scale is not None:
+            if not np.isclose(float(self.axis_unit_scale), 1.0):
+                unit_label = self._unit_label_from_value(self.channels[0].unit)
+                if unit_label is not None:
+                    return unit_label
             return "px"
 
+        unit_label = self._unit_label_from_value(self.output_unit)
+        if unit_label is not None:
+            return unit_label
+        return "unit"
+
+    def _unit_label_from_value(self, unit_value):
         labels = {
             1e-10: "Å",
             1e-9: "nm",
@@ -156,11 +167,10 @@ class DatasetModel(BaseModel):
             1e-3: "mm",
             1.0: "m",
         }
-        unit_value = float(self.output_unit)
         for value, label in labels.items():
-            if np.isclose(unit_value, value):
+            if np.isclose(float(unit_value), value):
                 return label
-        return "unit"
+        return None
 
     @field_validator("channels")
     def no_duplicate_channel_names(cls, channels):

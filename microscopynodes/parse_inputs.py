@@ -21,6 +21,7 @@ def parse_blender_ui():
     channels = parse_channellist()
     output_unit = parse_output_unit(import_scale)
     explicit_scale = parse_explicit_scale(import_scale)
+    axis_unit_scale = parse_axis_unit_scale(import_scale)
     relative_loc = parse_relative_loc()
     name = Path(scn.MiN_input_file).name
 
@@ -30,6 +31,7 @@ def parse_blender_ui():
         channels=channels,
         output_unit = output_unit,
         explicit_scale=explicit_scale,
+        axis_unit_scale=axis_unit_scale,
         relative_loc = relative_loc,
 
         update_settings=scn.MiN_update_settings,
@@ -109,14 +111,23 @@ def hash_path(path):
 
 
 def parse_pixel_size(world_scale):
-    pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
-    if not bpy.context.scene.MiN_pixel_sizes_are_rescaled: 
-        pixel_size *= selected_array_option().scale() 
+    pixel_size = parse_pixel_size_values()
     if world_scale == "DEFAULT": # This  is a bit hacky, may deprecate this later
         xy_size = pixel_size[0] if pixel_size[0] != 0 else 1.0
         anisotropy = np.array([1.0, 1.0, pixel_size[2] / xy_size], dtype=float)
         return np.diag([*anisotropy, 1]).tolist()
     return  np.diag([*pixel_size, 1]).tolist()
+
+def parse_pixel_size_values():
+    pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
+    if not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
+        pixel_size *= selected_array_option().scale()
+    return pixel_size
+
+def parse_axis_unit_scale(world_scale):
+    if world_scale == "DEFAULT" and bpy.context.scene.MiN_unit != "AU":
+        return float(parse_pixel_size_values()[0])
+    return 1.0
 
 
 def parse_unit(string):
