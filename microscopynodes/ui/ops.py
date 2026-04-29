@@ -48,14 +48,19 @@ class TifLoadOperator(bpy.types.Operator):
     thread = None
     params = None
     dataset_model: DatasetModel = None
+    local_files_result = None
+
+    def _make_local_files(self):
+        self.local_files_result = self.dataset_model.make_local_files()
+        return
 
     def modal(self, context, event):
         if event.type == 'TIMER':
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
-                if len(self.dataset_model.exception) > 0: 
+                if self.local_files_result is not None and not self.local_files_result["ok"]:
                     handle_blender_structs.clear_progress()
-                    raise(Exception(self.dataset_model.exception))
+                    raise(Exception(self.local_files_result["error"]))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
                 Scene.from_blender_ui(context)
@@ -80,9 +85,10 @@ class TifLoadOperator(bpy.types.Operator):
         self._timer = wm.event_timer_add(0.1, window=context.window)
 
         self.dataset_model = parse_blender_ui()
+        self.local_files_result = None
         # self.min_scene = Scene()
         print(self.dataset_model)
-        self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files)
+        self.thread = threading.Thread(name='loading thread', target=self._make_local_files)
         self.prev_active_obj = bpy.context.active_object
         # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))
         
@@ -106,7 +112,9 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
 
     def execute(self, context):
         dataset_model = parse_blender_ui()
-        dataset_model.make_local_files()
+        result = dataset_model.make_local_files()
+        if not result["ok"]:
+            raise RuntimeError(result["error"])
         Scene.from_blender_ui(context)
         dataset = Dataset(holder=context.scene.MiN_reload)
         dataset.set_state(dataset_model)

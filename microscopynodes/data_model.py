@@ -5,10 +5,6 @@ from .handle_blender_structs.props import min_keys
 import dask.array as da
 from .io.factories import DataIOFactory
 
-# class ChannelTransform(BaseModel)
-#     affine: 
-#     
-
 
 class ChannelModel(BaseModel):
     # allow arbitrary types to parse dask arrays - might remove
@@ -137,8 +133,6 @@ class DatasetModel(BaseModel):
     # only for updates
     update_settings: bool = True
     update_data: bool = True
-    
-    exception : Optional[str] = ""
 
     @property
     def scale(self):
@@ -225,6 +219,6 @@ class DatasetModel(BaseModel):
                     ch.file_constructors[min_type] = file_constructors
                     ch.metadata[min_type] = data_io.get_metadata(file_constructors)
             self.local_files_exist = True
+            return {"ok": True, "error": ""}
         except Exception as e:
-            self.exception = str(e)
-        return self
+            return {"ok": False, "error": str(e)}

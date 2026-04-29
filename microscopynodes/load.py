@@ -62,9 +62,9 @@ class Dataset():
 
     def set_state(self, dataset_model):
         if not dataset_model.local_files_exist:
-            dataset_model.make_local_files()
-        if dataset_model.exception:
-            raise RuntimeError(dataset_model.exception)
+            result = dataset_model.make_local_files()
+            if not result["ok"]:
+                raise RuntimeError(result["error"])
 
         required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}
         for ch in dataset_model.channels:
