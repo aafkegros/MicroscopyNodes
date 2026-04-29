@@ -1,10 +1,6 @@
 import bpy
 
 
-GROUP_NAME = "Join Grids"
-MAX_CHANNELS = 10
-
-
 def _set_common_socket_defaults(socket):
     socket.attribute_domain = 'POINT'
     if hasattr(socket, "default_input"):
@@ -29,12 +25,14 @@ def _new_output(interface, name, socket_type, default=None):
     return socket
 
 
-def join_grids_node_group():
-    node_group = bpy.data.node_groups.get(GROUP_NAME)
+def join_grids_node_group(count=10):
+    count = max(int(count), 1)
+    group_name = f"Join Grids {count}"
+    node_group = bpy.data.node_groups.get(group_name)
     if node_group:
         return node_group
 
-    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name=GROUP_NAME)
+    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name=group_name)
     node_group.color_tag = 'NONE'
     node_group.description = ""
     node_group.default_group_node_width = 140
@@ -50,7 +48,7 @@ def join_grids_node_group():
     total_channels.min_value = -2147483648
     total_channels.max_value = 2147483647
 
-    for ix in range(MAX_CHANNELS):
+    for ix in range(count):
         channel_socket = _new_input(interface, str(ix), 'NodeSocketFloat', 0.0)
         channel_socket.min_value = -3.4028234663852886e+38
         channel_socket.max_value = 3.4028234663852886e+38
@@ -75,7 +73,7 @@ def join_grids_node_group():
     repeat_output.inspection_index = 0
     repeat_output.repeat_items.clear()
     repeat_output.repeat_items.new('GEOMETRY', "Geometry")
-    for ix in range(MAX_CHANNELS):
+    for ix in range(count):
         repeat_output.repeat_items.new('FLOAT', str(ix))
 
     repeat_input.pair_with_output(repeat_output)
@@ -85,7 +83,7 @@ def join_grids_node_group():
     index_switch.location = (-260, 30)
     index_switch.data_type = 'FLOAT'
     index_switch.index_switch_items.clear()
-    for _ in range(MAX_CHANNELS):
+    for _ in range(count):
         index_switch.index_switch_items.new()
 
     format_string = nodes.new("FunctionNodeFormatString")
@@ -109,7 +107,7 @@ def join_grids_node_group():
     links.new(index_switch.outputs["Output"], store_grid.inputs["Grid"])
     links.new(store_grid.outputs["Volume"], repeat_output.inputs["Geometry"])
 
-    for ix in range(MAX_CHANNELS):
+    for ix in range(count):
         socket_name = str(ix)
         links.new(group_input.outputs[socket_name], repeat_input.inputs[socket_name])
         links.new(repeat_input.outputs[socket_name], index_switch.inputs[ix + 1])
