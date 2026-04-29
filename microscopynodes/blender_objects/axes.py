@@ -5,8 +5,6 @@ from ..handle_blender_structs import *
 from ..min_nodes.geo_nodes import crosshatch_node_group, scale_node_group
 from .base import MiNObject
 
-print("imported axes")
-
 
 AXIS_ITEM_NAMES = [
     "frontface culling",

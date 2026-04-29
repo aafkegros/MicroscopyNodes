@@ -68,7 +68,6 @@ class ArrayLoader():
         try: 
             bpy.context.scene.MiN_axes_order = axes_order
         except:
-            print('did not parse axis order')
             bpy.context.scene.property_unset("MiN_axes_order")
     
     def _set_ch_names(self, lst):
