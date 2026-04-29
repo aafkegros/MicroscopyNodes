@@ -41,12 +41,19 @@ class VolumeObject(ChannelObject):
 
     def create_join_node(self):
         join_node = self.node_group.nodes.new("GeometryNodeGroup")
-        join_node.node_tree = join_grids_node_group()
+        join_node.node_tree = join_grids_node_group(self.shader_count)
         join_node.name = "Join"
         join_node.location = (800, -100)
         join_node.hide = True
         join_node.inputs["Total channels"].default_value = self.shader_count
         return join_node
+
+    def ensure_channel_capacity(self):
+        super().ensure_channel_capacity()
+        join_node = self.node_group.nodes.get("Join")
+        if join_node is not None:
+            join_node.node_tree = join_grids_node_group(self.shader_count)
+            join_node.inputs["Total channels"].default_value = self.shader_count
 
     def attach_channel_output(self, join_node, ch, out_ch):
         join_node.inputs["Total channels"].default_value = max(

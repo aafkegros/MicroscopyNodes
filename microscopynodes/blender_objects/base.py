@@ -1,6 +1,7 @@
 import bpy
 from ..handle_blender_structs import *
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
+from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
 import numpy as np
 
@@ -42,6 +43,21 @@ class MiNObject(BlenderObject):
 
 class ChannelObject(MiNObject):
     shader_count = 10
+
+    def set_channel_capacity(self, dataset_model):
+        pref_buffer = int(getattr(addon_preferences(bpy.context), "extra_channel_slots", 2))
+        self.shader_count = max(len(dataset_model.channels) + pref_buffer, 1)
+        self.ensure_channel_capacity()
+
+    def ensure_channel_capacity(self):
+        if self.object is None or not hasattr(self.object.data, "materials"):
+            return
+        for mat in self.object.data.materials:
+            if mat is None or not mat.use_nodes or mat.node_tree is None:
+                continue
+            add_shaders = mat.node_tree.nodes.get("Add Shaders")
+            if add_shaders is not None:
+                add_shaders.node_tree = add_shaders_node(self.shader_count)
 
     def expand_node_ui(self, node):
         if hasattr(node, "show_options"):
@@ -95,6 +111,7 @@ class ChannelObject(MiNObject):
 
     def set_data(self, dataset_model):
         self.dataset_name = dataset_model.name
+        self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
             if not getattr(ch.viz, self.min_type.name.lower(), False):
                 continue
@@ -113,6 +130,7 @@ class ChannelObject(MiNObject):
 
     def set_settings(self, dataset_model):
         self.dataset_name = dataset_model.name
+        self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if getattr(ch.viz, self.min_type.name.lower(), False)), None)

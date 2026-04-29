@@ -12,6 +12,8 @@ website = "https://aafkegros.github.io/MicroscopyNodes/"
 
 platforms = [
 	"macos-arm64",
+	"windows-x64",
+	"linux-x64",
 ]
 tags = [
 	"Import-Export"
@@ -28,6 +30,7 @@ wheels = [
 	"./wheels/aiobotocore-3.5.0-py3-none-any.whl",
 	"./wheels/aiohappyeyeballs-2.6.1-py3-none-any.whl",
 	"./wheels/aiohttp-3.13.5-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/aiohttp-3.13.5-cp313-cp313-win_amd64.whl",
 	"./wheels/aioitertools-0.13.0-py3-none-any.whl",
 	"./wheels/aiosignal-1.4.0-py3-none-any.whl",
 	"./wheels/annotated_types-0.7.0-py3-none-any.whl",
@@ -40,22 +43,30 @@ wheels = [
 	"./wheels/databpy-0.7.0-py3-none-any.whl",
 	"./wheels/donfig-0.8.1.post1-py3-none-any.whl",
 	"./wheels/frozenlist-1.8.0-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/frozenlist-1.8.0-cp313-cp313-win_amd64.whl",
 	"./wheels/fsspec-2026.2.0-py3-none-any.whl",
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_arm64.whl",
+	"./wheels/google_crc32c-1.8.0-cp313-cp313-win_amd64.whl",
 	"./wheels/idna-3.13-py3-none-any.whl",
 	"./wheels/imagecodecs-2026.1.14-cp311-abi3-macosx_11_0_arm64.whl",
+	"./wheels/imagecodecs-2026.1.14-cp311-abi3-win_amd64.whl",
 	"./wheels/importlib_metadata-8.7.0-py3-none-any.whl",
 	"./wheels/jmespath-1.1.0-py3-none-any.whl",
 	"./wheels/locket-1.0.0-py2.py3-none-any.whl",
 	"./wheels/multidict-6.7.1-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/multidict-6.7.1-cp313-cp313-win_amd64.whl",
 	"./wheels/numcodecs-0.16.5-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/numcodecs-0.16.5-cp313-cp313-win_amd64.whl",
 	"./wheels/packaging-26.2-py3-none-any.whl",
 	"./wheels/partd-1.4.2-py3-none-any.whl",
 	"./wheels/propcache-0.4.1-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/propcache-0.4.1-cp313-cp313-win_amd64.whl",
 	"./wheels/pydantic-2.13.3-py3-none-any.whl",
 	"./wheels/pydantic_core-2.46.3-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/pydantic_core-2.46.3-cp313-cp313-win_amd64.whl",
 	"./wheels/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
 	"./wheels/pyyaml-6.0.3-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/pyyaml-6.0.3-cp313-cp313-win_amd64.whl",
 	"./wheels/s3fs-2026.2.0-py3-none-any.whl",
 	"./wheels/six-1.17.0-py2.py3-none-any.whl",
 	"./wheels/tifffile-2026.2.24-py3-none-any.whl",
@@ -64,10 +75,13 @@ wheels = [
 	"./wheels/typing_inspection-0.4.2-py3-none-any.whl",
 	"./wheels/urllib3-2.6.3-py3-none-any.whl",
 	"./wheels/wrapt-2.1.2-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/wrapt-2.1.2-cp313-cp313-win_amd64.whl",
 	"./wheels/yarl-1.23.0-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/yarl-1.23.0-cp313-cp313-win_amd64.whl",
 	"./wheels/zarr-3.1.5-py3-none-any.whl",
 	"./wheels/zipp-3.23.1-py3-none-any.whl",
 	"./wheels/zmesh-1.10.0-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/zmesh-1.10.0-cp313-cp313-win_amd64.whl",
 ]
 
 [permissions]

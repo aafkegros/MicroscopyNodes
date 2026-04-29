@@ -57,6 +57,13 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         default =6,
         update=set_channels
     )
+    extra_channel_slots : bpy.props.IntProperty(
+        name='Extra channel slots',
+        description='Additional channel slots to reserve beyond the current dataset channel count',
+        min=0,
+        max=20,
+        default=2,
+    )
 
     
     cache_path: StringProperty(
@@ -123,6 +130,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         col = layout.column(align=True)
         col.label(text="Default channel settings to set for new files.")
         col.prop(self, "n_default_channels")
+        col.prop(self, "extra_channel_slots")
         col.template_list("SCENE_UL_Channels", "", self, "channels", bpy.context.scene, "MiN_ch_index", rows=6,sort_lock=True)
         col = layout.column()
         # col.label(text="Transformations upon import:")

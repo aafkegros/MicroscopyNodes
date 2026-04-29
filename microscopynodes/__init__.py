@@ -35,14 +35,14 @@ from .min_nodes.shader_nodes import MIN_add_shader_node_menu, MIN_context_shader
 from .ui.preferences import addon_preferences
 
 
-print('getting classes')
+# print('getting classes')
 all_classes = (
     ui.CLASSES +
     file_to_array.CLASSES +
     min_nodes.CLASSES
 )
 
-print(all_classes)
+# print(all_classes)
 def _test_register():
     try:
         register()
@@ -53,13 +53,13 @@ def _test_register():
 
 
 def register():
-    print('in register')
+    # print('in register')
     for op in all_classes:
         try:
-            print(op)
+            # print(op)
             bpy.utils.register_class(op)
         except Exception as e:
-            print(op, e)
+            # print(op, e)
             pass
     bpy.types.Scene.MiN_array_options = bpy.props.CollectionProperty(type=file_to_array.ArrayOption)
     bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
@@ -79,7 +79,7 @@ def unregister():
         try:
             bpy.utils.unregister_class(op)
         except Exception as e:
-            print(op, e)
+            # print(op, e)
             pass
     bpy.types.NODE_MT_add.remove(MIN_add_shader_node_menu)
     bpy.types.NODE_MT_context_menu.remove(MIN_context_shader_node_menu)
