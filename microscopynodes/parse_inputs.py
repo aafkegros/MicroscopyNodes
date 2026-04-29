@@ -43,26 +43,24 @@ def parse_channellist() -> List[ChannelModel]:
     channel_models = []
     scn = bpy.context.scene
     import_scale = addon_preferences(bpy.context).import_scale
+    shared_data = {
+        "source": scn.MiN_input_file,
+        "dataset_resolution": selected_array_option().identifier,
+        "cache_path": get_cache_dir(),
+        "axes_order": scn.MiN_axes_order.replace("c", ""),
+        "unit": parse_unit(bpy.context.scene.MiN_unit),
+        "affine": parse_pixel_size(import_scale),
+        "frame_start": scn.MiN_load_start_frame,
+        "frame_end": scn.MiN_load_end_frame,
+    }
     for ch_desc in bpy.context.scene.MiN_channelList:
-        data_settings.update(
-            {
-            "ix":                   ch_desc.ix,
-            "name":                 ch_desc.name,
-            "data":                 channel_data(ch_desc.ix bpy.context.scene.MiN_axes_order),
-            "source":               scn.MiN_input_file,
-            "dataset_resolution":   selected_array_option().identifier,
-
-            "cache_path":           get_cache_dir(),
-            "axes_order":           scn.MiN_axes_order.replace("c", ""),
-            "unit":                 parse_unit(bpy.context.scene.MiN_unit),
-            "affine":               parse_pixel_size(import_scale),
-            "frame_start":          scn.MiN_load_start_frame,
-            "frame_end":            scn.MiN_load_end_frame,
-            }
-        )
         channel_models.append(ChannelModel(
             name=ch_desc.name,
-            data=data_settings,
+            data={
+                **shared_data,
+                "ix": ch_desc.ix,
+                "data": channel_data(ch_desc.ix, bpy.context.scene.MiN_axes_order),
+            },
             viz={
                 "volume": ch_desc.volume,
                 "surface": ch_desc.surface,

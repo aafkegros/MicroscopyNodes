@@ -11,6 +11,10 @@ def set_color_ramp_from_ch(ch, ramp_node):
 def colormap_to_lut(colormap, max_values=32):
     n_colors = min(max(len(colormap.color_stops), 1), max_values)
     lut = colormap.lut(n_colors)
+    # Work around cmap emitting a transparent-black stop for some single-color cases.
+    lut = [color for color in lut if list(color) != [0, 0, 0, 0]]
+    if not lut:
+        lut = [[0, 0, 0, 1]]
     linear = (colormap.interpolation == 'linear')
     return lut, linear
 
