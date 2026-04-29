@@ -79,8 +79,8 @@ def clear_keyframes(obj, data_path):
 
 
 def dataset_frame_bounds(dataset_model):
-    frame_starts = [ch.frame_start or 0 for ch in dataset_model.channels]
-    frame_ends = [ch.frame_end or 0 for ch in dataset_model.channels]
+    frame_starts = [ch.data.frame_start or 0 for ch in dataset_model.channels]
+    frame_ends = [ch.data.frame_end or 0 for ch in dataset_model.channels]
     return min(frame_starts, default=0), max(frame_ends, default=0)
 
 

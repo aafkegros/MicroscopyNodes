@@ -47,7 +47,7 @@ def test_reload(which_not_update):
     else:
         # surfaces were not created, so should not be checked
         for ch in ch_dicts2.channels:
-            ch.visible_as[min_keys.SURFACE] = False
+            ch.viz.surface = False
 
     if bpy.context.scene.MiN_update_settings:
         check_channels(ch_dicts2, test_render=False)

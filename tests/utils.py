@@ -108,10 +108,10 @@ def check_channels(dataset_model, test_render=True):
     toggled = []
     for ch in dataset_model.channels:
         for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
-            if ch.visible_as.get(min_type, False):
+            if getattr(ch.viz, min_type.name.lower(), False):
                 ch_obj = getattr(dataset, min_type.name.lower())
                 if ch_obj is None:
-                    raise ValueError(f"{min_type} not in dataset, while setting is {ch.visible_as[min_type]}")
+                    raise ValueError(f"{min_type} not in dataset, while setting is True")
                 assert(ch_obj.ch_present(ch))
                 socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
                 ch_obj.gn_mod[socket.identifier] = False

@@ -27,22 +27,24 @@ def _make_channel(name="Channel 0", affine=None):
         affine = np.eye(4).tolist()
     return ChannelModel(
         name=name,
-        dataset_resolution=0,
-        cache_path="/tmp/example",
-        ix=0,
-        data=da.zeros((4, 6, 8), dtype=np.uint16),
-        axes_order="xyz",
-        affine=affine,
-        unit=1e-6,
-        visible_as={
-            min_keys.VOLUME: True,
-            min_keys.SURFACE: False,
-            min_keys.LABELMASK: False,
+        data={
+            "dataset_resolution": 0,
+            "cache_path": "/tmp/example",
+            "ix": 0,
+            "data": da.zeros((4, 6, 8), dtype=np.uint16),
+            "axes_order": "xyz",
+            "affine": affine,
+            "unit": 1e-6,
+            "source": "test",
         },
-        emission=True,
-        cmap=[(1.0, 1.0, 1.0, 1.0)],
-        source="test",
-        surf_resolution=0,
+        viz={
+            "volume": True,
+            "surface": False,
+            "labelmask": False,
+            "emission": True,
+            "cmap": [(1.0, 1.0, 1.0, 1.0)],
+            "surf_resolution": 0,
+        },
     )
 
 
@@ -54,8 +56,8 @@ def test_parse_default_scale_mode_uses_pixel_unit_label():
 
     assert dataset_model.explicit_scale == pytest.approx(1e-2)
     assert dataset_model.unit_label == "px"
-    assert dataset_model.channels[0].affine[0][0] == pytest.approx(1.0)
-    assert dataset_model.channels[0].affine[1][1] == pytest.approx(1.0)
+    assert dataset_model.channels[0].data.affine[0][0] == pytest.approx(1.0)
+    assert dataset_model.channels[0].data.affine[1][1] == pytest.approx(1.0)
 
 
 def test_parse_physical_scale_mode_uses_physical_unit_label():

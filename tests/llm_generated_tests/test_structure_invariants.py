@@ -22,9 +22,9 @@ def _load_single_surface_with_affine_translation(translation):
         ch["labelmask"] = False
 
     dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
-    affine = np.array(dataset_model.channels[0].affine, dtype=float)
+    affine = np.array(dataset_model.channels[0].data.affine, dtype=float)
     affine[:3, 3] = np.array(translation, dtype=float)
-    dataset_model.channels[0].affine = affine.tolist()
+    dataset_model.channels[0].data.affine = affine.tolist()
 
     microscopynodes.load.Scene.from_blender_ui()
     dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
@@ -73,7 +73,7 @@ def test_volume_load_builds_expected_geometry_and_shader_structure():
     assert shader_nodes.get("Slice Cube") is not None
     assert shader_nodes.get("Material Output") is not None
 
-    visible_channels = [ch for ch in dataset_model.channels if ch.visible_as[min_keys.VOLUME]]
+    visible_channels = [ch for ch in dataset_model.channels if ch.viz.volume]
     for ch in visible_channels:
         assert gn_nodes.get(f"channel_load_{ch.identifier}") is not None
         assert shader_nodes.get(f"[frame_{ch.identifier}]") is not None
@@ -120,7 +120,7 @@ def test_visibility_socket_matches_channel_visibility():
     dataset = _dataset_from_reload()
 
     for ch in dataset_model.channels:
-        if not ch.visible_as[min_keys.VOLUME]:
+        if not ch.viz.volume:
             continue
         socket = get_socket(dataset.volume.node_group, ch, min_type="SWITCH")
         assert socket is not None

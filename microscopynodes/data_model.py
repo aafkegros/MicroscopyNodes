@@ -6,62 +6,23 @@ import dask.array as da
 from .io.factories import DataIOFactory
 
 
-class ChannelModel(BaseModel):
+class ChannelDataModel(BaseModel):
     # allow arbitrary types to parse dask arrays - might remove
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    name : str
 
     dataset_resolution: int # currently static resolution identifier 
     cache_path: str
 
-    ix: int # channel index in the original array used as unique identifier for the dataset
+    ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
     data: da.Array # Maybe make this optional again for if the link to the data is lost?
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
-    metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
-    file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict)
-    
     frame_start: int = None
     frame_end: int = None
 
-    # To visualize as volume/surface/labelmask
-    visible_as : Dict[min_keys, bool] 
-    emission: bool 
-    cmap: Annotated[list[Tuple[float, float, float, float]], Field(min_length=1, max_length=32)] # DISPLAY RGBA space(0-1 normalized rgb)
-    cmap_is_linear: bool = True
-
     source: str  #for logging
-    surf_resolution: int 
-    force_remaking_files: bool = False
 
-    @property
-    def identifier(self):
-        return f"ch_id{self.ix}"
-
-    # should implement transforms for Zarr RFC-5, will then turn to floats
-    @property
-    def intrinsic_bbox(self) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
-        upper_bound = [self.data.shape[self.axes_order.find(dim)] if dim in self.axes_order else 1 for dim in 'xyz']
-        return tuple((0.0, float(u)) for u in upper_bound)
-    
-    @property
-    def affine_matrix(self):
-        return np.asarray(self.affine)
-
-    @property
-    def transformed_bbox(self):
-        xs, ys, zs = self.intrinsic_bbox
-        corners = np.array([
-            [x, y, z, 1] 
-            for x in xs for y in ys for z in zs
-        ])
-        tc = (self.affine_matrix @ corners.T).T[:, :3]
-        mins = tc.min(0)
-        maxs = tc.max(0)
-        return (mins[0], maxs[0]), (mins[1], maxs[1]), (mins[2], maxs[2])
-    
     @field_validator("data")
     def validate_data_shape(cls, v, info):
         if v is not None:
@@ -117,6 +78,51 @@ class ChannelModel(BaseModel):
             raise ValueError("frame_start must not exceed frame_end")
         return self
 
+    # should implement transforms for Zarr RFC-5, will then turn to floats
+    @property
+    def intrinsic_bbox(self) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
+        upper_bound = [self.data.shape[self.axes_order.find(dim)] if dim in self.axes_order else 1 for dim in 'xyz']
+        return tuple((0.0, float(u)) for u in upper_bound)
+
+    @property
+    def affine_matrix(self):
+        return np.asarray(self.affine)
+
+    @property
+    def transformed_bbox(self):
+        xs, ys, zs = self.intrinsic_bbox
+        corners = np.array([
+            [x, y, z, 1]
+            for x in xs for y in ys for z in zs
+        ])
+        tc = (self.affine_matrix @ corners.T).T[:, :3]
+        mins = tc.min(0)
+        maxs = tc.max(0)
+        return (mins[0], maxs[0]), (mins[1], maxs[1]), (mins[2], maxs[2])
+
+
+class ChannelVizModel(BaseModel):
+    volume: bool = False
+    surface: bool = False
+    labelmask: bool = False
+    emission: bool
+    cmap: Annotated[list[Tuple[float, float, float, float]], Field(min_length=1, max_length=32)] # DISPLAY RGBA space(0-1 normalized rgb)
+    cmap_is_linear: bool = True
+    surf_resolution: int
+    force_remaking_files: bool = False
+
+
+class ChannelModel(BaseModel):
+    name: str
+    data: ChannelDataModel
+    viz: ChannelVizModel
+    metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
+    file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
+
+    @property
+    def identifier(self):
+        return f"ch_id{self.data.ix}"
+
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
@@ -134,13 +140,13 @@ class DatasetModel(BaseModel):
     def scale(self):
         if self.explicit_scale is not None:
             return self.explicit_scale
-        return self.channels[0].unit / self.output_unit
+        return self.channels[0].data.unit / self.output_unit
 
     @property
     def unit_label(self):
         if self.explicit_scale is not None:
             if not np.isclose(float(self.axis_unit_scale), 1.0):
-                unit_label = self._unit_label_from_value(self.channels[0].unit)
+                unit_label = self._unit_label_from_value(self.channels[0].data.unit)
                 if unit_label is not None:
                     return unit_label
             return "px"
@@ -173,7 +179,7 @@ class DatasetModel(BaseModel):
     # TODO this doesnt have to be here and could be parsed in gn    
     @field_validator("channels")
     def no_different_units(cls, channels):
-        units = [ch.unit for ch in channels]
+        units = [ch.data.unit for ch in channels]
         if len(set(units)) != 1:
             raise ValueError("All channel units need to currently be the same")
         return channels
@@ -181,7 +187,7 @@ class DatasetModel(BaseModel):
     @property
     def intermediate_bbox(self):
         # this is pre-loc and output transform, in channel units
-        bbs = [ch.transformed_bbox for ch in self.channels]
+        bbs = [ch.data.transformed_bbox for ch in self.channels]
         mins = [min(b[i][0] for b in bbs) for i in range(3)]
         maxs = [max(b[i][1] for b in bbs) for i in range(3)]
         mins = np.array(mins, dtype=float)
@@ -207,7 +213,8 @@ class DatasetModel(BaseModel):
     def make_local_files(self):
         try:
             for ch in self.channels:
-                for min_type, load in ch.visible_as.items():
+                for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
+                    load = getattr(ch.viz, min_type.name.lower(), False)
                     if not load:
                         continue
                     data_io = DataIOFactory(min_type)
