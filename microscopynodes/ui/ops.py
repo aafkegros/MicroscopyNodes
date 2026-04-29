@@ -65,7 +65,11 @@ class TifLoadOperator(bpy.types.Operator):
                 context.window_manager.event_timer_remove(self._timer)
                 Scene.from_blender_ui(context)
                 dataset = Dataset(holder=context.scene.MiN_reload)
-                dataset.set_state(self.dataset_model)
+                dataset.set_state(
+                    self.dataset_model,
+                    update_data=context.scene.MiN_update_data,
+                    update_settings=context.scene.MiN_update_settings,
+                )
                 select_post_load_object(context, dataset, self.prev_active_obj)
                 handle_blender_structs.clear_progress()
                 return {'FINISHED'}
@@ -117,7 +121,11 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
             raise RuntimeError(result["error"])
         Scene.from_blender_ui(context)
         dataset = Dataset(holder=context.scene.MiN_reload)
-        dataset.set_state(dataset_model)
+        dataset.set_state(
+            dataset_model,
+            update_data=context.scene.MiN_update_data,
+            update_settings=context.scene.MiN_update_settings,
+        )
         select_post_load_object(context, dataset, context.active_object)
         handle_blender_structs.clear_progress()
         return {'FINISHED'}

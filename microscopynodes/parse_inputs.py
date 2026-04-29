@@ -32,9 +32,6 @@ def parse_blender_ui():
         explicit_scale=explicit_scale,
         axis_unit_scale=axis_unit_scale,
         relative_loc = relative_loc,
-
-        update_settings=scn.MiN_update_settings,
-        update_data=scn.MiN_update_data,
     )
     return scene_model
 

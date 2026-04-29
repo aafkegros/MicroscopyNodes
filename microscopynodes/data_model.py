@@ -130,10 +130,6 @@ class DatasetModel(BaseModel):
 
     local_files_exist: bool = False
 
-    # only for updates
-    update_settings: bool = True
-    update_data: bool = True
-
     @property
     def scale(self):
         if self.explicit_scale is not None:
