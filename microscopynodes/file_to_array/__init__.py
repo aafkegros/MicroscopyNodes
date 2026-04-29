@@ -29,6 +29,9 @@ def change_path(self, context):
     if get_loader() is not None:
         try:
             get_loader().change_path(context)
+            t_max = max(selected_array_option().len_axis('t') - 1, 0)
+            context.scene.MiN_load_start_frame = 0
+            context.scene.MiN_load_end_frame = t_max
         except Exception as e:
             print(e)
             log(f"Error loading file: {e}")
@@ -41,8 +44,9 @@ def change_path(self, context):
 def change_array_option(self, context):
     if context.scene.MiN_channel_nr != selected_array_option().len_axis('c'):
         context.scene.MiN_channel_nr = selected_array_option().len_axis('c')
-    if bpy.context.scene.MiN_load_end_frame > selected_array_option().len_axis('t')-1:
-        bpy.context.scene.MiN_load_end_frame = selected_array_option().len_axis('t')-1
+    t_max = max(selected_array_option().len_axis('t') - 1, 0)
+    if bpy.context.scene.MiN_load_end_frame > t_max:
+        bpy.context.scene.MiN_load_end_frame = t_max
     level = selected_array_option()
     
     context.scene.MiN_xy_size = level['xy_size']
