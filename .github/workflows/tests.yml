@@ -4,11 +4,9 @@ on:
   push:
     branches: 
       - main
-      - b50-development
   pull_request:
     branches:
       - main
-      - b50-development
 
 jobs:
   build:
