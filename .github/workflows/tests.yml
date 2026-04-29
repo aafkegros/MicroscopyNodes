@@ -4,9 +4,11 @@ on:
   push:
     branches: 
       - main
+      - b50-development
   pull_request:
     branches:
       - main
+      - b50-development
 
 jobs:
   build:
@@ -23,10 +25,13 @@ jobs:
           python-version: '3.13.9'
 
       - name: Install poetry
-        run: pip install poetry
+        run: pip install poetry==2.3.2
 
       - name: Install dependencies
         run: poetry install --with=dev
+
+      - name: Align numpy with Blender
+        run: poetry run pip install --no-deps --force-reinstall numpy==2.3.4
 
       - name: Run Tests
         run: poetry run pytest --verbose
