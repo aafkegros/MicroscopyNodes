@@ -6,9 +6,14 @@ authors = ["Aafke Gros <aafke.gros@embl.de>"]
 include = [
     {path = "README.md"}
 ]
+[[tool.poetry.source]]
+name = "dailybpy"
+url = "https://bradyajohnston.github.io/dailybpy/"
+priority = "explicit"
 
 [tool.poetry.dependencies]
 python = "==3.13.9"
+# bpy = { version = "==5.1.0b", source = "dailybpy" }
 bpy = "==5.1.0"
 dask = "==2026.1.2"
 importlib-metadata = "==8.7.0"
