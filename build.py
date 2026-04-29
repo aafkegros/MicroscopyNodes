@@ -25,7 +25,6 @@ class Platform:
 windows_x64 = Platform(pypi_suffix="win_amd64", metadata="windows-x64")
 linux_x64 = Platform(pypi_suffix="manylinux2014_x86_64", metadata="linux-x64")
 macos_arm = Platform(pypi_suffix="macosx_12_0_arm64", metadata="macos-arm64")
-macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 
 EXCLUDED_POETRY_PACKAGES = {"python", "bpy"}
 
@@ -64,6 +63,8 @@ def runtime_packages() -> List[str]:
 
 build_platforms = [
     macos_arm,
+    windows_x64,
+    linux_x64
 ]
 
 
