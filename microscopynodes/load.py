@@ -68,7 +68,12 @@ class Dataset():
 
         required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}
         for ch in dataset_model.channels:
-            required_objects.update(min_type for min_type, visible in ch.visible_as.items() if visible)
+            if ch.viz.volume:
+                required_objects.add(min_keys.VOLUME)
+            if ch.viz.surface:
+                required_objects.add(min_keys.SURFACE)
+            if ch.viz.labelmask:
+                required_objects.add(min_keys.LABELMASK)
 
         for min_key in min_keys:
             min_obj = getattr(self, min_key.name.lower())
@@ -103,7 +108,7 @@ class Dataset():
                 if min_obj is None:
                     continue
                 for ch in dataset_model.channels:
-                    if ch.visible_as.get(min_obj.min_type, False):
+                    if getattr(ch.viz, min_obj.min_type.name.lower(), False):
                         min_obj.set_parent_and_slicer(self.holder.object, self.slicecube.object, ch)
 
         for min_obj in (self.volume, self.surface, self.labelmask):

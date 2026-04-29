@@ -20,4 +20,3 @@ def test_loading_types(arrtype, load_as):
     ch_dicts = do_load()
     check_channels(ch_dicts, test_render=True)
     return
-

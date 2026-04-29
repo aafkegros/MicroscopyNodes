@@ -12,15 +12,15 @@ class LabelmaskIO(DataIO):
 
     def generate_file_constructors(self, ch):
         file_constructors = []
-        for t in range(ch.frame_start, ch.frame_end + 1):
-            if t >= len_axis("t", ch.axes_order, ch.data.shape):
+        for t in range(ch.data.frame_start, ch.data.frame_end + 1):
+            if t >= len_axis("t", ch.data.axes_order, ch.data.data.shape):
                 break
             file_constructors.append({
                 **self.base_constructor(ch),
-                "scale": ch.dataset_resolution,
-                "resolution": ch.surf_resolution,
+                "scale": ch.data.dataset_resolution,
+                "resolution": ch.viz.surf_resolution,
                 "t": t,
-                "channel_ix": ch.ix,
+                "channel_ix": ch.data.ix,
                 "template_str": str(self.MASK_TEMPLATE),
             })
         return file_constructors
@@ -33,15 +33,15 @@ class LabelmaskIO(DataIO):
             fname.parent.mkdir(parents=True, exist_ok=True)
 
             if Path(fname).exists():
-                if ch.force_remaking_files:
+                if ch.viz.force_remaking_files:
                     Path(fname).unlink()
                 else:
                     continue
             with open(str(fname_ids), "ab+") as ofs:
                 ofs.write("oid\n".encode("utf-8"))
 
-            timeframe_arr = take_index(ch.data, constructor["t"], "t", ch.axes_order).compute()
-            timeframe_arr = to_xyz(timeframe_arr, ch.axes_order.replace("t", ""))
+            timeframe_arr = take_index(ch.data.data, constructor["t"], "t", ch.data.axes_order).compute()
+            timeframe_arr = to_xyz(timeframe_arr, ch.data.axes_order.replace("t", ""))
 
             log(f"Meshing timepoint {constructor['t']}")
             mesher.mesh(timeframe_arr, close=True)
@@ -52,8 +52,8 @@ class LabelmaskIO(DataIO):
                 zmeshed = mesher.get(
                     obj_id,
                     normals=False,
-                    reduction_factor=ch.surf_resolution * 30,
-                    max_error=ch.surf_resolution * 3,
+                    reduction_factor=ch.viz.surf_resolution * 30,
+                    max_error=ch.viz.surf_resolution * 3,
                     voxel_centered=False,
                 )
 

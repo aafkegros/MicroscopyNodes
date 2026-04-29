@@ -24,18 +24,18 @@ class VolumeIO(DataIO):
 
     def generate_file_constructors(self, ch):
         file_constructors = []
-        xyz_shape = [len_axis(dim, ch.axes_order, ch.data.shape) for dim in "xyz"]
+        xyz_shape = [len_axis(dim, ch.data.axes_order, ch.data.data.shape) for dim in "xyz"]
         maxlen = np.inf
         if bpy.context.scene.MiN_chunk:
             maxlen = 2048
-        slices_xyz = [self.split_axis_to_chunks(dimshape, ch.ix, maxlen) for dimshape in xyz_shape]
-        time_slices = [slice(t, t + 1) for t in range(ch.frame_start, min(ch.frame_end + 1, len_axis("t", ch.axes_order, ch.data.shape)))]
+        slices_xyz = [self.split_axis_to_chunks(dimshape, ch.data.ix, maxlen) for dimshape in xyz_shape]
+        time_slices = [slice(t, t + 1) for t in range(ch.data.frame_start, min(ch.data.frame_end + 1, len_axis("t", ch.data.axes_order, ch.data.data.shape)))]
         slices_xyzt = slices_xyz + [time_slices]
 
         for block in itertools.product(*slices_xyzt):
             file_constructors.append({
                 **self.base_constructor(ch),
-                "scale": ch.dataset_resolution,
+                "scale": ch.data.dataset_resolution,
                 "x": block[0].start,
                 "y": block[1].start,
                 "z": block[2].start,
@@ -44,30 +44,30 @@ class VolumeIO(DataIO):
                 "z_end": block[2].stop,
                 "t": block[3].start,
                 "t_end": block[3].stop,
-                "channel_ix": ch.ix,
+                "channel_ix": ch.data.ix,
                 "template_str": str(self.VDB_TEMPLATE),
             })
         return file_constructors
 
     def export_ch(self, ch, file_constructors):
-        if np.issubdtype(ch.data.dtype, np.floating):
-            max_val = float(ch.data.max().compute())
+        if np.issubdtype(ch.data.data.dtype, np.floating):
+            max_val = float(ch.data.data.max().compute())
         else:
-            max_val = float(min(np.iinfo(ch.data.dtype).max, np.iinfo(np.int32).max))
+            max_val = float(min(np.iinfo(ch.data.data.dtype).max, np.iinfo(np.int32).max))
         for constructor in file_constructors:
             vdbfname = Path(str(self.VDB_TEMPLATE).format(**constructor))
             histfname = vdbfname.with_suffix(".npz")
             vdbfname.parent.mkdir(parents=True, exist_ok=True)
 
-            if (not vdbfname.exists() or not histfname.exists()) or ch.force_remaking_files:
+            if (not vdbfname.exists() or not histfname.exists()) or ch.viz.force_remaking_files:
                 vdbfname.unlink(missing_ok=True)
                 histfname.unlink(missing_ok=True)
                 log(f"loading chunk {Path(vdbfname).stem}")
-                arr = ch.data[tuple(
-                    slice(constructor[dim], constructor[f"{dim}_end"]) for dim in ch.axes_order
+                arr = ch.data.data[tuple(
+                    slice(constructor[dim], constructor[f"{dim}_end"]) for dim in ch.data.axes_order
                 )].compute()
 
-                arr = to_xyz(arr, ch.axes_order)
+                arr = to_xyz(arr, ch.data.axes_order)
                 arr = arr.astype(np.float32) / max_val
                 histogram = np.histogram(arr, bins=NR_HIST_BINS, range=(0.0, 1.0))[0]
                 histogram[0] = 0

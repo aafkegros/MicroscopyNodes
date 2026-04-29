@@ -54,7 +54,7 @@ class SurfaceObject(MeshChannelObject):
             return
         v2m = self.node_group.nodes[f"VOL_TO_MESH_{ch.identifier}"]
 
-        if ch.surf_resolution == 0:
+        if ch.viz.surf_resolution == 0:
             v2m.inputs[1].default_value='Grid'
             return
         else:
@@ -63,17 +63,17 @@ class SurfaceObject(MeshChannelObject):
         for i in range(4):
             socket = get_socket(self.node_group, ch, min_type='VOXEL_SIZE', internal_append=str(i))
             if socket is not None:
-                if i == ch.surf_resolution:
+                if i == ch.viz.surf_resolution:
                     return
                 self.node_group.interface.remove(item=socket)
 
         socket_ix = get_socket(self.node_group, ch, min_type="SWITCH",return_ix=True)[1]
-        socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='VOXEL_SIZE',internal_append=f"{ch.surf_resolution}", ix=socket_ix+1)
+        socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='VOXEL_SIZE',internal_append=f"{ch.viz.surf_resolution}", ix=socket_ix+1)
 
         default_settings = [None, 0.5, 4, 15] # resolution step sizes
         in_node = get_safe_node_input(self.node_group)
         self.node_group.links.new(in_node.outputs.get(socket.name), v2m.inputs.get('Voxel Size'))
-        self.gn_mod[socket.identifier] = default_settings[ch.surf_resolution]
+        self.gn_mod[socket.identifier] = default_settings[ch.viz.surf_resolution]
         return
 
 
@@ -82,9 +82,9 @@ class SurfaceObject(MeshChannelObject):
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
             colornode = mat.node_tree.nodes.get(f"[color_lut_{ch.identifier}]")
             set_color_ramp_from_ch(ch, colornode)
-            if princ is not None and ch.emission and princ.inputs[28].default_value == 0.0:
+            if princ is not None and ch.viz.emission and princ.inputs[28].default_value == 0.0:
                 princ.inputs[28].default_value = 0.5
-            elif princ is not None and not ch.emission and princ.inputs[28].default_value == 0.5:
+            elif princ is not None and not ch.viz.emission and princ.inputs[28].default_value == 0.5:
                 princ.inputs[28].default_value = 0
         except Exception as e:
             print(e, 'in update surface shader')

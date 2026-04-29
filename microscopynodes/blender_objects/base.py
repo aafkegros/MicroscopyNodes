@@ -96,7 +96,7 @@ class ChannelObject(MiNObject):
     def set_data(self, dataset_model):
         self.dataset_name = dataset_model.name
         for ch in dataset_model.channels:
-            if not ch.visible_as.get(self.min_type, False):
+            if not getattr(ch.viz, self.min_type.name.lower(), False):
                 continue
             self.update_ch_data(ch)
 
@@ -115,7 +115,7 @@ class ChannelObject(MiNObject):
         self.dataset_name = dataset_model.name
         for ch in dataset_model.channels:
             self.update_ch_settings(ch)
-        ch = next((ch for ch in dataset_model.channels if ch.visible_as.get(self.min_type, False)), None)
+        ch = next((ch for ch in dataset_model.channels if getattr(ch.viz, self.min_type.name.lower(), False)), None)
         if ch is not None:
             self.object.location = dataset_model.dataset_origin_world
             self.object.rotation_euler = (0.0, 0.0, 0.0)
@@ -136,7 +136,7 @@ class ChannelObject(MiNObject):
 
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
-            self.gn_mod[socket.identifier] = bool(ch.visible_as.get(self.min_type, False))
+            self.gn_mod[socket.identifier] = bool(getattr(ch.viz, self.min_type.name.lower(), False))
         return
     
 
@@ -155,7 +155,7 @@ class ChannelObject(MiNObject):
         return
 
     def update_import_affine(self, import_node, ch):
-        affine = np.array(ch.affine, dtype=float)
+        affine = np.array(ch.data.affine, dtype=float)
         affine_node = self.node_group.nodes.get(f"channel_affine_{ch.identifier}")
         if affine_node is None:
             return
@@ -295,7 +295,7 @@ class ChannelObject(MiNObject):
     def add_ch_to_shader(self, mat, ch, shader_socket):
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.ix
+        y_offset = -self.shader_y_step() * ch.data.ix
         add_shaders = nodes["Add Shaders"]
 
         frame = nodes.new("NodeFrame")
@@ -306,7 +306,7 @@ class ChannelObject(MiNObject):
         frame.label_size = 50
         frame.shrink = True
 
-        links.new(shader_socket, add_shaders.inputs[min(ch.ix, self.shader_count - 1)])
+        links.new(shader_socket, add_shaders.inputs[min(ch.data.ix, self.shader_count - 1)])
         return frame, add_shaders
 
     def import_node(self, ch):
@@ -356,7 +356,7 @@ class MeshChannelObject(ChannelObject):
         store_channel.domain = 'FACE'
         store_channel.inputs["Selection"].default_value = True
         store_channel.inputs["Name"].default_value = "channel ix"
-        store_channel.inputs["Value"].default_value = ch.ix
+        store_channel.inputs["Value"].default_value = ch.data.ix
         self.node_group.links.new(geometry_socket, store_channel.inputs["Geometry"])
         return store_channel.outputs["Geometry"]
 
@@ -388,7 +388,7 @@ class MeshChannelObject(ChannelObject):
     def init_channel_shader(self, mat, ch):
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.ix
+        y_offset = -self.shader_y_step() * ch.data.ix
 
         color_lut = nodes.new("ShaderNodeValToRGB")
         color_lut.name = f"[color_lut_{ch.identifier}]"
@@ -406,7 +406,7 @@ class MeshChannelObject(ChannelObject):
         channel_index.node_tree = channel_index_node()
         channel_index.label = "Channel index"
         channel_index.location = (710, y_offset - 65)
-        channel_index.inputs["Index"].default_value = ch.ix
+        channel_index.inputs["Index"].default_value = ch.data.ix
         self.expand_node_ui(channel_index)
 
         frame, _ = self.add_ch_to_shader(mat, ch, channel_index.outputs["Shader"])

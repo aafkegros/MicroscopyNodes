@@ -51,9 +51,9 @@ class VolumeObject(ChannelObject):
     def attach_channel_output(self, join_node, ch, out_ch):
         join_node.inputs["Total channels"].default_value = max(
             join_node.inputs["Total channels"].default_value,
-            min(ch.ix + 1, self.shader_count),
+            min(ch.data.ix + 1, self.shader_count),
         )
-        self.node_group.links.new(out_ch, join_node.inputs[str(min(ch.ix, self.shader_count - 1))])
+        self.node_group.links.new(out_ch, join_node.inputs[str(min(ch.data.ix, self.shader_count - 1))])
         return
 
     def update_import_node(self, import_node, file_constructors, ch):
@@ -115,19 +115,19 @@ class VolumeObject(ChannelObject):
 
         microscopy_shading = nodes.get(f'[microscopy_shading_{ch.identifier}]')
         if microscopy_shading is not None:
-            microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.emission)
+            microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.viz.emission)
         return
 
     def init_channel_shader(self, mat, ch):
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.ix
+        y_offset = -self.shader_y_step() * ch.data.ix
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1600, y_offset)
         node_attr.name = f"[channel_load_{ch.identifier}]"
-        node_attr.attribute_name = f'Channel {ch.ix}'
+        node_attr.attribute_name = f'Channel {ch.data.ix}'
         node_attr.label = ch.name
         node_attr.hide = True
 
@@ -172,7 +172,7 @@ class VolumeObject(ChannelObject):
         microscopy_shading.name = f"[microscopy_shading_{ch.identifier}]"
         microscopy_shading.location = (150, y_offset)
         microscopy_shading.width = 300
-        microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.emission)
+        microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.viz.emission)
         for socket_name in ("Color", "Alpha", "Alpha-Intensity Coupling"):
             microscopy_shading.inputs[socket_name].hide_value = True
         self.expand_node_ui(microscopy_shading)

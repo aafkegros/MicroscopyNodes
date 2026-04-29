@@ -44,26 +44,13 @@ def parse_channellist() -> List[ChannelModel]:
     scn = bpy.context.scene
     import_scale = addon_preferences(bpy.context).import_scale
     for ch_desc in bpy.context.scene.MiN_channelList:
-        channel_settings = {
+        data_settings = {
             "ix":                   ch_desc.ix,
             "name":                 ch_desc.name,
-            
-            "visible_as": {
-                                    min_keys.VOLUME: ch_desc.volume,
-                                    min_keys.SURFACE: ch_desc.surface,
-                                    min_keys.LABELMASK: ch_desc.labelmask,
-            },
-            "emission":             ch_desc.emission,
-
-            "surf_resolution":      addon_preferences(bpy.context).surf_resolution,
-
-            "cmap":                 parse_cmap(ch_desc.cmap, ch_desc.single_color)[0],
-            "cmap_is_linear":       parse_cmap(ch_desc.cmap, ch_desc.single_color)[1],
         }
+        data = channel_data(data_settings['ix'], bpy.context.scene.MiN_axes_order)
 
-        data = channel_data(channel_settings['ix'], bpy.context.scene.MiN_axes_order)
-
-        channel_settings.update(
+        data_settings.update(
             {
             "data":                 data,
             # "data_shape":           data.shape, Consider doing this later for data optional
@@ -78,7 +65,19 @@ def parse_channellist() -> List[ChannelModel]:
             "frame_end":            scn.MiN_load_end_frame,
             }
         )
-        channel_models.append(ChannelModel(**channel_settings))
+        channel_models.append(ChannelModel(
+            name=ch_desc.name,
+            data=data_settings,
+            viz={
+                "volume": ch_desc.volume,
+                "surface": ch_desc.surface,
+                "labelmask": ch_desc.labelmask,
+                "emission": ch_desc.emission,
+                "surf_resolution": addon_preferences(bpy.context).surf_resolution,
+                "cmap": parse_cmap(ch_desc.cmap, ch_desc.single_color)[0],
+                "cmap_is_linear": parse_cmap(ch_desc.cmap, ch_desc.single_color)[1],
+            },
+        ))
     return channel_models
 
 
