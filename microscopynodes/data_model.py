@@ -1,6 +1,7 @@
 from typing import Annotated, Optional, Tuple, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import numpy as np
+from cmap import Colormap
 from .handle_blender_structs.props import min_keys
 import dask.array as da
 from .io.factories import DataIOFactory
@@ -102,14 +103,21 @@ class ChannelDataModel(BaseModel):
 
 
 class ChannelVizModel(BaseModel):
+    model_config = ConfigDict(json_encoders={Colormap: Colormap.as_dict})
+
     volume: bool = False
     surface: bool = False
     labelmask: bool = False
     emission: bool
-    cmap: Annotated[list[Tuple[float, float, float, float]], Field(min_length=1, max_length=32)] # DISPLAY RGBA space(0-1 normalized rgb)
-    cmap_is_linear: bool = True
+    cmap: Colormap
     surf_resolution: int
     force_remaking_files: bool = False
+
+    @field_validator("cmap", mode="before")
+    def validate_cmap(cls, v):
+        if isinstance(v, Colormap):
+            return v
+        return Colormap(v)
 
 
 class ChannelModel(BaseModel):

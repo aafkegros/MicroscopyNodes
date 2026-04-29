@@ -1,10 +1,24 @@
 import bpy
-import cmap
+from cmap import Colormap
 
 
 def set_color_ramp_from_ch(ch, ramp_node):
-    set_color_ramp(ramp_node, ch.viz.cmap, ch.viz.cmap_is_linear, "Colormap")
+    lut, linear = colormap_to_lut(ch.viz.cmap)
+    set_color_ramp(ramp_node, lut, linear, "Colormap")
     return
+
+
+def colormap_to_lut(colormap, max_values=32):
+    n_colors = min(max(len(colormap.color_stops), 1), max_values)
+    lut = colormap.lut(n_colors)
+    linear = (colormap.interpolation == 'linear')
+    return lut, linear
+
+
+def get_colormap(name, single_color=(1, 1, 1)):
+    if name.lower() == "single_color":
+        return Colormap([[*single_color, 1.0]])
+    return Colormap(name.lower())
 
 def set_color_ramp(ramp_node, lut, linear, name):
     from ...ui.preferences import addon_preferences
@@ -34,12 +48,3 @@ def set_color_ramp(ramp_node, lut, linear, name):
     ramp_node.color_ramp.interpolation = "LINEAR" if linear else "CONSTANT"
     ramp_node.label = name.capitalize()
     return
-
-def get_lut(name, single_color):
-    if name.lower() == "single_color":
-        lut = [[*single_color,1]]
-        linear = True
-    else:
-        lut = cmap.Colormap(name.lower()).lut(min(len(cmap.Colormap(name.lower()).lut()), 32))
-        linear = (cmap.Colormap(name.lower()).interpolation == 'linear')
-    return lut, linear

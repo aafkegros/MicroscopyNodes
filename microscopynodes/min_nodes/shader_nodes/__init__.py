@@ -6,7 +6,7 @@ from .nodeMicroscopyShading import microscopy_shading_node
 from .nodeChannelIndex import channel_index_node
 from .nodeSliceCube import slice_cube_node_group
 from .nodeAddShaders import add_shaders_node
-from .handle_cmap import set_color_ramp_from_ch, get_lut
+from .handle_cmap import set_color_ramp_from_ch, get_colormap, colormap_to_lut
 from .nodeRemapObjectID import remap_oid_node
 from . import ops
 import bpy

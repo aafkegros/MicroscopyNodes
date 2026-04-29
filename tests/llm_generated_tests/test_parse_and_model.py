@@ -5,10 +5,10 @@ import dask.array as da
 import numpy as np
 import pytest
 import json
+from cmap import Colormap
 
 import microscopynodes
 from microscopynodes.data_model import ChannelModel, DatasetModel
-from microscopynodes.handle_blender_structs.props import min_keys
 
 from ..utils import prep_load
 
@@ -42,7 +42,7 @@ def _make_channel(name="Channel 0", affine=None):
             "surface": False,
             "labelmask": False,
             "emission": True,
-            "cmap": [(1.0, 1.0, 1.0, 1.0)],
+            "cmap": Colormap([(1.0, 1.0, 1.0, 1.0)]),
             "surf_resolution": 0,
         },
     )

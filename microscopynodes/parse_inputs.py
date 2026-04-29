@@ -44,16 +44,11 @@ def parse_channellist() -> List[ChannelModel]:
     scn = bpy.context.scene
     import_scale = addon_preferences(bpy.context).import_scale
     for ch_desc in bpy.context.scene.MiN_channelList:
-        data_settings = {
-            "ix":                   ch_desc.ix,
-            "name":                 ch_desc.name,
-        }
-        data = channel_data(data_settings['ix'], bpy.context.scene.MiN_axes_order)
-
         data_settings.update(
             {
-            "data":                 data,
-            # "data_shape":           data.shape, Consider doing this later for data optional
+            "ix":                   ch_desc.ix,
+            "name":                 ch_desc.name,
+            "data":                 channel_data(ch_desc.ix bpy.context.scene.MiN_axes_order),
             "source":               scn.MiN_input_file,
             "dataset_resolution":   selected_array_option().identifier,
 
@@ -74,8 +69,7 @@ def parse_channellist() -> List[ChannelModel]:
                 "labelmask": ch_desc.labelmask,
                 "emission": ch_desc.emission,
                 "surf_resolution": addon_preferences(bpy.context).surf_resolution,
-                "cmap": parse_cmap(ch_desc.cmap, ch_desc.single_color)[0],
-                "cmap_is_linear": parse_cmap(ch_desc.cmap, ch_desc.single_color)[1],
+                "cmap": parse_cmap(ch_desc.cmap, ch_desc.single_color),
             },
         ))
     return channel_models
@@ -162,5 +156,5 @@ def parse_relative_loc():
 
 
 def parse_cmap(name, single_color):
-    from .min_nodes.shader_nodes import get_lut
-    return get_lut(name, single_color)
+    from .min_nodes.shader_nodes.handle_cmap import get_colormap
+    return get_colormap(name, single_color)
