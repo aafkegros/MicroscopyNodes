@@ -28,7 +28,11 @@ def _load_single_surface_with_affine_translation(translation):
 
     microscopynodes.load.Scene.from_blender_ui()
     dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
-    dataset.set_state(dataset_model)
+    dataset.set_state(
+        dataset_model,
+        update_data=bpy.context.scene.MiN_update_data,
+        update_settings=bpy.context.scene.MiN_update_settings,
+    )
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
     eval_obj = dataset.surface.object.evaluated_get(depsgraph)
@@ -96,7 +100,11 @@ def test_surface_reload_does_not_reconnect_removed_shader_link():
     assert len(output_input.links) == 0
 
     reloaded = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
-    reloaded.set_state(dataset_model)
+    reloaded.set_state(
+        dataset_model,
+        update_data=bpy.context.scene.MiN_update_data,
+        update_settings=bpy.context.scene.MiN_update_settings,
+    )
 
     assert len(material_output.inputs[surface.shader_output_name()].links) == 0
 

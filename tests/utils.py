@@ -86,7 +86,11 @@ def do_load():
     dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
     microscopynodes.load.Scene.from_blender_ui()
     dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
-    dataset.set_state(dataset_model)
+    dataset.set_state(
+        dataset_model,
+        update_data=bpy.context.scene.MiN_update_data,
+        update_settings=bpy.context.scene.MiN_update_settings,
+    )
     return dataset_model
 
 

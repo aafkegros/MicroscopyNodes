@@ -60,8 +60,8 @@ class Dataset():
                 setattr(self, key.name.lower(), min_obj)
         return
 
-    def set_state(self, dataset_model):
-        if not dataset_model.local_files_exist:
+    def set_state(self, dataset_model, update_data=True, update_settings=True):
+        if not dataset_model.local_files_exist and update_data:
             result = dataset_model.make_local_files()
             if not result["ok"]:
                 raise RuntimeError(result["error"])
@@ -77,9 +77,9 @@ class Dataset():
             if min_obj is None:
                 min_obj = MinObjectFactory(min_key)
                 setattr(self, min_key.name.lower(), min_obj)
-            if dataset_model.update_data:
+            if update_data:
                 min_obj.set_data(dataset_model)
-            if dataset_model.update_settings:
+            if update_settings:
                 min_obj.set_settings(dataset_model)
         self.ensure_links_of_objects(dataset_model)
         if self.holder is not None:
