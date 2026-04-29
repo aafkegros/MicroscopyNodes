@@ -19,9 +19,9 @@ class ChannelModel(BaseModel):
     dataset_resolution: int # currently static resolution identifier 
     cache_path: str
 
-    ix: int # channel index in the original array
+    ix: int # channel index in the original array used as unique identifier for the dataset
     data: da.Array # Maybe make this optional again for if the link to the data is lost?
-    axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis
+    axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
     metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
@@ -30,11 +30,10 @@ class ChannelModel(BaseModel):
     frame_start: int = None
     frame_end: int = None
 
-    visible_as : Dict[min_keys, bool] #maybe change this later
-
+    # To visualize as volume/surface/labelmask
+    visible_as : Dict[min_keys, bool] 
     emission: bool 
-    # DISPLAY RGBA space(0-1 normalized rgb)
-    cmap: Annotated[list[Tuple[float, float, float, float]], Field(min_length=1, max_length=32)] #RGBA
+    cmap: Annotated[list[Tuple[float, float, float, float]], Field(min_length=1, max_length=32)] # DISPLAY RGBA space(0-1 normalized rgb)
     cmap_is_linear: bool = True
 
     source: str  #for logging
@@ -127,9 +126,11 @@ class DatasetModel(BaseModel):
 
     name : Optional[str] 
     output_unit: float = 1e-2 
-    explicit_scale: float | None = None # this is only to make px -> cm work
-    axis_unit_scale: float = 1.0 # axis-label units per dataset coordinate unit
     relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
+
+    # These two are only to make the px -> cm work, this entire mode will be deprecated
+    explicit_scale: float | None = None 
+    axis_unit_scale: float = 1.0 # axis-label units per dataset coordinate unit
 
     local_files_exist: bool = False
 

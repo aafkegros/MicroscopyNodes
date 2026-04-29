@@ -35,9 +35,6 @@ def parse_blender_ui():
 
         update_settings=scn.MiN_update_settings,
         update_data=scn.MiN_update_data,
-        previous_holder_to_update = scn.MiN_reload,
-        start_frame = scn.MiN_load_start_frame,
-        end_frame = scn.MiN_load_end_frame,
     )
     return scene_model
 
