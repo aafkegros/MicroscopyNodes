@@ -112,44 +112,6 @@ class Dataset():
         return
 
 
-# def load_blocking(dataset_model):
-#     # loads from the modal/threaded implementation
-#     # ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
-#     prev_active_obj = bpy.context.active_object
-#     scn = bpy.context.scene
-
-#     # reads env variables
-#     base_coll = min_base_colls(Path(scn.MiN_input_file).stem[:50], scn.MiN_reload)    
-
-#     if scn.MiN_overwrite_background_color:
-#         set_background_color()
-#     if scn.MiN_overwrite_render_settings:
-#         set_render_settings()
-
-#     # --- Prepare  container ---
-#     container = scn.MiN_reload
-#     objs = parse_reload(container)
-
-#     if container is None:
-#         bpy.ops.object.empty_add(type="PLAIN_AXES")
-#         container = bpy.context.view_layer.objects.active
-#         container.name = Path(scn.MiN_input_file).stem[:50]
-
-
-#     try:
-#         if prev_active_obj is not None:
-#             prev_active_obj.select_set(True)
-#             bpy.context.view_layer.objects.active = prev_active_obj
-#     except:
-#         pass
-#     # after first load this should not be used again, to prevent overwriting user values
-#     scn.MiN_reload = container
-#     scn.MiN_overwrite_render_settings = False
-#     scn.MiN_enable_ui = True
-#     log('')
-#     return
-
-
 
 def set_background_color():
     bgcol = (0.2,0.2,0.2, 1)
