@@ -40,12 +40,17 @@ def make_tif(path, arrtype):
     if arrtype == '5D_nonrect':
         shape = [i for i in range(2,7)]
         arr = np.ones(tuple(shape), dtype=np.uint16)
+    if arrtype == '3D_sparse_value':
+        arr = np.zeros((24, 24, 24), dtype=np.uint16)
+        arr[8:16, 9:15, 10:14] = 1
+        axes = "ZYX"
     
-    shape = arr.shape
-    arr = arr.flatten()
-    for ix in range(len(arr)):
-        arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
-    arr = arr.reshape(shape) 
+    if arrtype != '3D_sparse_value':
+        shape = arr.shape
+        arr = arr.flatten()
+        for ix in range(len(arr)):
+            arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
+        arr = arr.reshape(shape)
     # if not Path(path).exists():
     tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
     return path, arr, axes.lower()
@@ -135,20 +140,24 @@ def quick_render(name):
     output_file = str(test_folder / f'tmp{name}.png')
     scn = bpy.context.scene
 
-    cam1 = bpy.data.cameras.new("Camera 1")
-    cam1.lens = 40
-
-    cam_obj1 = bpy.data.objects.new("Camera 1", cam1)
-    cam_obj1.location = (.1, .1, .2)
-    cam_obj1.rotation_euler = (0.7, 0, 2.3)
-    scn.collection.objects.link(cam_obj1)
-    bpy.context.scene.camera = cam_obj1
+    cam_obj = bpy.data.objects.get("MiN Test Camera")
+    if cam_obj is None:
+        cam = bpy.data.cameras.new("MiN Test Camera")
+        cam.lens = 40
+        cam_obj = bpy.data.objects.new("MiN Test Camera", cam)
+        scn.collection.objects.link(cam_obj)
+    cam_obj.location = (.1, .1, .2)
+    cam_obj.rotation_euler = (0.7, 0, 2.3)
+    bpy.context.scene.camera = cam_obj
     
     # Set the viewport resolution
     bpy.context.scene.render.resolution_x = 128
     bpy.context.scene.render.resolution_y = 128
     # Set the output format
     bpy.context.scene.render.image_settings.file_format = "PNG"
+    scn.cycles.seed = 0
+    if hasattr(scn.cycles, "use_animated_seed"):
+        scn.cycles.use_animated_seed = False
 
     # Render the viewport and save the result
     
@@ -157,3 +166,13 @@ def quick_render(name):
     data = np.array(iio.imread(output_file))
     # os.remove(output_file)
     return data
+
+
+def grayscale_histogram_distance(img1, img2, bins=32):
+    gray1 = img1[..., :3].astype(np.float32).mean(axis=-1)
+    gray2 = img2[..., :3].astype(np.float32).mean(axis=-1)
+    hist1, _ = np.histogram(gray1, bins=bins, range=(0.0, 255.0))
+    hist2, _ = np.histogram(gray2, bins=bins, range=(0.0, 255.0))
+    hist1 = hist1 / max(hist1.sum(), 1)
+    hist2 = hist2 / max(hist2.sum(), 1)
+    return 0.5 * np.abs(hist1 - hist2).sum()
