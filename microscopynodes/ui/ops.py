@@ -91,7 +91,6 @@ class TifLoadOperator(bpy.types.Operator):
         self.dataset_model = parse_blender_ui()
         self.local_files_result = None
         # self.min_scene = Scene()
-        print(self.dataset_model)
         self.thread = threading.Thread(name='loading thread', target=self._make_local_files)
         self.prev_active_obj = bpy.context.active_object
         # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))

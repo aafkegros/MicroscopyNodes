@@ -8,4 +8,3 @@ except Exception as e:
     raise(e)
 
 CLASSES = ops.CLASSES + channel_list.CLASSES + panel.CLASSES + preferences.CLASSES
-
