@@ -40,6 +40,7 @@ def set_shader_editor_context(obj, mat):
     space.shader_type = "OBJECT"
     if hasattr(space, "pin"):
         space.pin = False
+
     set_active_material_context(obj, mat)
     
     return window, screen, area, region, space
@@ -90,19 +91,6 @@ def screenshot_shader(filepath, obj, mat, node_names):
     ):
         bpy.ops.screen.screenshot_area(filepath=str(filepath))
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=2)
-
-
-def warmup_screenshot_system(obj, mat):
-    node_tree = mat.node_tree
-    if node_tree is None or len(node_tree.nodes) == 0:
-        return
-    first_node = next(iter(node_tree.nodes))
-    screenshot_shader(
-        OUT_DIR / "_warmup.png",
-        obj,
-        mat,
-        [first_node.name],
-    )
 
 
 def set_channel_load_modes():
@@ -203,10 +191,6 @@ def screenshot_labelmask_extras(obj, label):
             screenshot_shader(OUT_DIR / f"{label}_{ch_id}_oid_remap.png", obj, mat, node_names)
 
 
-def set_labelmask_tab10():
-    return
-
-
 def replace_labelmask_lut_tab10(obj):
     if obj is None or obj.data is None or not obj.data.materials or obj.data.materials[0] is None:
         return
@@ -234,15 +218,6 @@ def replace_labelmask_lut_tab10(obj):
         bpy.ops.microscopynodes.replace_lut(cmap_name="tab10")
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=4)
 
-
-def warmup_screenshot_system(obj, mat):
-    node_tree = mat.node_tree
-    if node_tree is None or len(node_tree.nodes) == 0:
-        return
-    first_node = next(iter(node_tree.nodes))
-    screenshot_shader(OUT_DIR / "_warmup.png", obj, mat, [first_node.name])
-
-
 def main():
     ensure_out_dir()
     purge_scene()
@@ -250,16 +225,6 @@ def main():
     volume_obj = child_by_name(holder, "volume")
     surface_obj = child_by_name(holder, "surface")
     labelmask_obj = child_by_name(holder, "labelmask")
-
-    warmup_target = next(
-        (
-            obj for obj in (volume_obj, surface_obj, labelmask_obj)
-            if obj is not None and obj.data is not None and obj.data.materials and obj.data.materials[0] is not None
-        ),
-        None,
-    )
-    if warmup_target is not None:
-        warmup_screenshot_system(warmup_target, warmup_target.data.materials[0])
 
     screenshot_material_set(volume_obj, "volume")
     screenshot_volume_extras(volume_obj, "volume")
