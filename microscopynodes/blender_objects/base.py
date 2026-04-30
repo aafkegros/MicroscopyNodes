@@ -207,6 +207,8 @@ class ChannelObject(MiNObject):
         texcoord.name = "Texture Coordinate"
         texcoord.width = 200
         texcoord.location = (770, 140)
+        for output_socket in texcoord.outputs:
+            output_socket.hide = (output_socket.name != "Object")
 
         add_shaders = nodes.new("ShaderNodeGroup")
         add_shaders.node_tree = add_shaders_node(self.shader_count)
