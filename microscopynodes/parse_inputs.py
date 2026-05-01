@@ -2,10 +2,76 @@ import bpy
 import numpy as np
 from pathlib import Path
 
-from .ui import preferences
 from .handle_blender_structs import *
-from .file_to_array import load_array, selected_array_option
+from .file_to_array import selected_array_option, channel_data
 from .ui.preferences import addon_preferences
+from .handle_blender_structs.props import min_keys
+
+from typing import List
+from .data_model import DatasetModel, ChannelModel
+
+def parse_blender_ui():
+    scn = bpy.context.scene
+    if scn.MiN_reload is None:
+        scn.MiN_update_data = True
+        scn.MiN_update_settings = True
+
+    import_scale = addon_preferences(bpy.context).import_scale
+    channels = parse_channellist()
+    output_unit = parse_output_unit(import_scale)
+    explicit_scale = parse_explicit_scale(import_scale)
+    axis_unit_scale = parse_axis_unit_scale(import_scale)
+    relative_loc = parse_relative_loc()
+    name = Path(scn.MiN_input_file).name
+
+    # Build DatasetModel
+    scene_model = DatasetModel(
+        name=name,
+        channels=channels,
+        output_unit = output_unit,
+        explicit_scale=explicit_scale,
+        axis_unit_scale=axis_unit_scale,
+        relative_loc = relative_loc,
+    )
+    return scene_model
+
+# ----------------------------------------------------------------
+# --- Channel Model Construction --------------------------------
+# ----------------------------------------------------------------
+
+def parse_channellist() -> List[ChannelModel]:
+    channel_models = []
+    scn = bpy.context.scene
+    import_scale = addon_preferences(bpy.context).import_scale
+    shared_data = {
+        "source": scn.MiN_input_file,
+        "dataset_resolution": selected_array_option().identifier,
+        "axes_order": scn.MiN_axes_order.replace("c", ""),
+        "unit": parse_unit(bpy.context.scene.MiN_unit),
+        "affine": parse_pixel_size(import_scale),
+        "frame_start": scn.MiN_load_start_frame,
+        "frame_end": scn.MiN_load_end_frame,
+    }
+    for ch_desc in bpy.context.scene.MiN_channelList:
+        channel_models.append(ChannelModel(
+            name=ch_desc.name,
+            cache_path=get_cache_dir(),
+            data={
+                **shared_data,
+                "ix": ch_desc.ix,
+                "data": channel_data(ch_desc.ix, bpy.context.scene.MiN_axes_order),
+            },
+            viz={
+                "volume": ch_desc.volume,
+                "surface": ch_desc.surface,
+                "labelmask": ch_desc.labelmask,
+                "emission": ch_desc.emission,
+                "surf_resolution": addon_preferences(bpy.context).surf_resolution,
+                "cmap": parse_cmap(ch_desc.cmap, ch_desc.single_color),
+            },
+        ))
+    return channel_models
+
 
 
 def get_cache_dir():
@@ -15,44 +81,38 @@ def get_cache_dir():
         path = addon_preferences().cache_path
     if addon_preferences().cache_option == 'WITH_PROJECT':
         path = bpy.path.abspath('//')
-    path = Path(path) / Path(bpy.context.scene.MiN_input_file).stem 
-    path = path / str(bpy.context.scene.MiN_selected_array_option)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    return str(Path(path) / hash_path(bpy.context.scene.MiN_input_file))
 
-def parse_initial():
-    # all parameters initialized here are shared between threaded and blocking load functions
-    check_input()
-    axes_order = bpy.context.scene.MiN_axes_order
+def hash_path(path):
+    import hashlib
+    h = hashlib.sha1(path.encode()).digest()
+    return str(int.from_bytes(h[:4], "big") % 10**8)
+
+
+# ----------------------------------------------------------------
+# --- Parsing helpers --------------------------------------------
+# ----------------------------------------------------------------
+
+
+def parse_pixel_size(world_scale):
+    pixel_size = parse_pixel_size_values()
+    if world_scale == "DEFAULT": # This  is a bit hacky, may deprecate this later
+        xy_size = pixel_size[0] if pixel_size[0] != 0 else 1.0
+        anisotropy = np.array([1.0, 1.0, pixel_size[2] / xy_size], dtype=float)
+        return np.diag([*anisotropy, 1]).tolist()
+    return  np.diag([*pixel_size, 1]).tolist()
+
+def parse_pixel_size_values():
     pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
-    if not bpy.context.scene.MiN_pixel_sizes_are_rescaled: 
-        pixel_size *= selected_array_option().scale() 
-    cache_dir = get_cache_dir() 
+    if not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
+        pixel_size *= selected_array_option().scale()
+    return pixel_size
 
-    ch_dicts = parse_channellist(bpy.context.scene.MiN_channelList)
-    size_px = np.array([selected_array_option().shape()[axes_order.find(dim)] if dim in axes_order else 0 for dim in 'xyz'])
-    size_px = tuple([max(ax, 1) for ax in size_px])
+def parse_axis_unit_scale(world_scale):
+    if world_scale == "DEFAULT" and bpy.context.scene.MiN_unit != "AU":
+        return float(parse_pixel_size_values()[0])
+    return 1.0
 
-    if bpy.context.scene.MiN_reload is None:
-        bpy.context.scene.MiN_update_data = True
-        bpy.context.scene.MiN_update_settings = True
-    return ch_dicts, (axes_order,  pixel_size, size_px), cache_dir
-
-def parse_channellist(channellist):
-    # initializes ch_dicts, which holds data and metadata, such as user settings, per channel
-    ch_dicts = []
-    for channel in bpy.context.scene.MiN_channelList:
-        ch_dicts.append({k:getattr(channel,k) for k in channel.keys()}) # take over settings from UI - uses getattr to get enum names
-        for key in min_keys: # rename ui-keys to enum for which objects to load
-            if key.name.lower() in ch_dicts[-1]:
-                ch_dicts[-1][key] = ch_dicts[-1][key.name.lower()]
-        ch_dicts[-1]['identifier'] = f"ch_id{channel['ix']}" # reload-identity
-        ch_dicts[-1]['data'] = None
-        ch_dicts[-1]['collections'] = {}
-        ch_dicts[-1]['metadata'] = {}
-        ch_dicts[-1]['local_files'] = {}
-        ch_dicts[-1]['surf_resolution'] = int(addon_preferences(bpy.context).surf_resolution)
-    return ch_dicts
 
 def parse_unit(string):
     if string == "ANGSTROM":
@@ -65,78 +125,34 @@ def parse_unit(string):
         return 1e-3
     if string == "METER":
         return 1
+    if string == "AU":
+        return 1
 
-def parse_scale(size_px, pixel_size, objs):
-    scale = None
-    scale_factor = 1
-    
-    world_scale = addon_preferences(bpy.context).import_scale
-    print(bpy.context.scene.MiN_unit, world_scale)
-    print('hey')
-    isotropic = np.array([1,1,pixel_size[-1]/pixel_size[0]]) 
-    if world_scale == "DEFAULT" or bpy.context.scene.MiN_unit == 'AU': # cm / px
-        scale = isotropic*0.01
-    
-    if world_scale == "MOLECULAR_NODES" and bpy.context.scene.MiN_unit != 'AU': # cm / nm
-        physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
-        scale = physical_size / 1e-7
-    if "_SCALE" in world_scale and bpy.context.scene.MiN_unit != 'AU': # m / unit
-        physical_size = parse_unit(bpy.context.scene.MiN_unit) * pixel_size
-        scale = physical_size / parse_unit(world_scale.removesuffix("_SCALE")) 
+def parse_output_unit(world_scale):
+    if world_scale == "MOLECULAR_NODES":
+        return 1e-7
+    if "_SCALE" not in world_scale:
+        return 1e-2 # THIS DOESNT FULLY WORK RN
+    return parse_unit(world_scale.removesuffix("_SCALE")) 
 
-    if objs[min_keys.AXES] is not None:
-        old_size_px, old_scale = get_previous_scale(objs[min_keys.AXES], size_px)
-        if bpy.context.scene.MiN_update_data and not bpy.context.scene.MiN_update_settings:
-            scale = (np.array(old_size_px) / np.array(size_px)) * old_scale
-        scale_factor = (np.array(size_px) / np.array(old_size_px)) * (scale / old_scale)
-    return scale, scale_factor
+
+def parse_explicit_scale(world_scale):
+    if world_scale == "DEFAULT":
+        return 1e-2
+    return None
     
 
-def get_previous_scale(axes_obj, size_px):
-    try:
-        mod = get_min_gn(axes_obj)
-        nodes = mod.node_group.nodes
-        old_size_px = nodes['[Microscopy Nodes size_px]'].vector
-        old_scale = nodes['[Microscopy Nodes scale]'].vector
-        return old_size_px, old_scale
-    except KeyError as e:
-        print(e)
-        pass
-
-
-def parse_loc(scale, size_px, container):
-    if not bpy.context.scene.MiN_update_settings:
-        try:
-            return container.location
-        except Exception as e:
-            pass
+def parse_relative_loc():
     prefloc = addon_preferences(bpy.context).import_loc
     if prefloc == "XY_CENTER":
-        return [-0.5,-0.5,0] * np.array(size_px) * scale 
+        # return [-0.5,-0.5,0] * np.array(size_px) * scale 
+        return [-0.5,-0.5,0] 
     if prefloc == "XYZ_CENTER":
-        return [-0.5,-0.5,-0.5] * np.array(size_px) * scale 
+        return [-0.5,-0.5,-0.5] 
     if prefloc == "ZERO":
-        return [0, 0, 0] * np.array(size_px) * scale 
+        return [0, 0, 0] 
 
 
-
-def check_input():
-    if bpy.context.scene.MiN_xy_size <= 0  or bpy.context.scene.MiN_z_size <= 0:
-        raise ValueError("cannot do zero-size pixels")
-    # TODO change this to a callback function on change channel name instead
-    ch_names = [ch["name"] for ch in bpy.context.scene.MiN_channelList]
-    if len(set(ch_names)) < len(ch_names):
-        raise ValueError("No duplicate channel names allowed")
-    return
-
-def parse_reload(container_obj):
-    objs = {}
-    for key in min_keys:
-        objs[key] = None
-        if container_obj is not None:
-            for child in container_obj.children:
-                if get_min_gn(child) is not None and key.name.lower() in get_min_gn(child).name:
-                    objs[key] = child
-
-    return objs
-
+def parse_cmap(name, single_color):
+    from .min_nodes.shader_nodes.handle_cmap import get_colormap
+    return get_colormap(name, single_color)

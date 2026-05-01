@@ -1,5 +1,5 @@
 import bpy 
-from .. import min_nodes
+from ..min_nodes.shader_nodes import slice_cube_node_group
 import re
 
 def  get_nodes_last_output(group):
@@ -52,8 +52,8 @@ def get_safe_node_input(group, make=False):
             innode = node
         xval = min(xval, node.location[0])
     if innode is None and make==True:
-        output = group.nodes.new('NodeGroupInput')
-        output.location = (xval - 300, 0)
+        innode = group.nodes.new('NodeGroupInput')
+        innode.location = (xval - 300, 0)
     return innode
 
 def insert_last_node(group, node, move = True, safe=False):
@@ -109,22 +109,23 @@ def new_socket(node_group, ch, type, min_type, internal_append="", ix=None):
     node_group.interface.new_socket(name="socket name not set", in_out="INPUT",socket_type=type)
     socket = node_group.interface.items_tree[-1]
 
-    internalname = f"{ch['identifier']}_{min_type}_{internal_append}"
+    internalname = f"{ch.identifier}_{min_type}_{internal_append}"
     socket.default_attribute_name = f"[{internalname}]"
-    set_name_socket(socket, ch['name'])
+    set_name_socket(socket, ch.name)
     if ix is not None:
         node_group.interface.move(socket, ix)
     return socket
 
 def set_name_socket(socket, ch_name):
     for min_type in MIN_SOCKET_TYPES:
-        if min_type in socket.default_attribute_name:
+        if min_type in getattr(socket, "default_attribute_name", ""):
             socket.name =  " ".join([ch_name, MIN_SOCKET_TYPES[min_type]])
     return
 
 def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
     for ix, socket in enumerate(node_group.interface.items_tree):
-        if re.search(string=socket.default_attribute_name, pattern=f"{ch['identifier']}_{min_type}_{internal_append}+") is not None:
+        default_attribute_name = getattr(socket, "default_attribute_name", "")
+        if re.search(string=default_attribute_name, pattern=f"{ch.identifier}_{min_type}_{internal_append}+") is not None:
             if return_ix:
                 return node_group.interface.items_tree[ix], ix
             return node_group.interface.items_tree[ix]
@@ -132,20 +133,29 @@ def get_socket(node_group, ch, min_type, return_ix=False, internal_append=""):
         return None, None
     return None
 
+def get_socket_by_name(node_group, name, return_ix=False):
+    for ix, socket in enumerate(node_group.interface.items_tree):
+        default_attribute_name = getattr(socket, "default_attribute_name", "")
+        if re.search(string=default_attribute_name, pattern=f"{name}") is not None:
+            if return_ix:
+                return node_group.interface.items_tree[ix], ix
+            return node_group.interface.items_tree[ix]
+
 def insert_slicing(group, slice_obj):
     nodes = group.nodes
     links = group.links
     lastnode, outnode, output_input = get_nodes_last_output(group)
+
     texcoord = nodes.new('ShaderNodeTexCoord')
     texcoord.object = slice_obj
     texcoord.width = 200
-    texcoord.location = (outnode.location[0], outnode.location[1]+100)
+    texcoord.location = (outnode.location[0] + 120, outnode.location[1] + 140)
 
     slicecube = nodes.new('ShaderNodeGroup')
-    slicecube.node_tree = min_nodes.slice_cube_node_group()
+    slicecube.node_tree = slice_cube_node_group()
     slicecube.name = "Slice Cube"
     slicecube.width = 250
-    slicecube.location = (outnode.location[0]+ 270, outnode.location[1])
+    slicecube.location = (outnode.location[0] + 420, outnode.location[1])
     links.new(texcoord.outputs.get('Object'),slicecube.inputs.get('Slicing Object'))
     
     slicecube.inputs[0].show_expanded = True
@@ -154,6 +164,5 @@ def insert_slicing(group, slice_obj):
 
     links.new(lastnode.outputs[0], slicecube.inputs.get("Shader"))
     links.new(slicecube.outputs.get("Shader"), output_input)
-    outnode.location = (outnode.location[0]+550, outnode.location[1])
+    outnode.location = (outnode.location[0] + 850, outnode.location[1])
     return
-

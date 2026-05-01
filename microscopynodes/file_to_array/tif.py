@@ -1,6 +1,8 @@
 from .arrayloading import ArrayLoader
 from .arrayoptions import add_array_option
 import tifffile
+import tifffile.zarr
+
 
 class TifLoader(ArrayLoader):
     suffixes = ['.tif', '.TIF', '.tiff', '.TIFF']
@@ -25,10 +27,7 @@ class TifLoader(ArrayLoader):
 
     def load_array(self, input_file, array_option):
         # return tifffile.imread(input_file, aszarr=True) # this can be tried in the future
-        return  tifffile.imread(input_file, aszarr=True)
-        with tifffile.TiffFile(input_file) as ifstif:
-            
-            return ifstif.asarray(out='memmap')
+        return tifffile.imread(input_file, aszarr=True)
 
     def _xy_size(self, input_file):
         try:
@@ -43,4 +42,3 @@ class TifLoader(ArrayLoader):
         except Exception as e:
             # print(e)
             return 1.0
-

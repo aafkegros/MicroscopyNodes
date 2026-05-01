@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import Context, Operator
-from .handle_cmap import get_lut, set_color_ramp
+from .handle_cmap import colormap_to_lut, get_colormap, set_color_ramp
 from bpy.props import (StringProperty, FloatProperty,
                         PointerProperty, IntProperty,
                         BoolProperty, EnumProperty
@@ -20,7 +20,7 @@ class MIN_OT_Replace_LUT_Node_Group(Operator):
 
     def execute(self, context):
         try:
-            lut, linear = get_lut(self.cmap_name, (1,1,1))
+            lut, linear = colormap_to_lut(get_colormap(self.cmap_name, (1,1,1)))
             set_color_ramp(context.selected_nodes[0], lut, linear, self.cmap_name)
         except RuntimeError:
             self.report(
@@ -105,7 +105,7 @@ def _add_cmap(cmap_name, context, show_options=False, material="default"):
     )
     node = context.active_node
     node.outputs[1].hide = True
-    lut, linear = get_lut(cmap_name, (1,1,1))
+    lut, linear = colormap_to_lut(get_colormap(cmap_name, (1,1,1)))
     set_color_ramp(node, lut, linear, cmap_name)
     node.width = 300
 

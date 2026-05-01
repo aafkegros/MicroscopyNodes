@@ -13,11 +13,10 @@ def test_loading_types(arrtype, load_as):
         load_ch_as = load_as
 
         if load_as == 'mixed':
-            load_ch_as = loadable[ch['ix'] % 4]
+            load_ch_as = loadable[ch.ix % 4]
         for setting in load_ch_as:
             ch[setting] = True
 
     ch_dicts = do_load()
     check_channels(ch_dicts, test_render=True)
     return
-

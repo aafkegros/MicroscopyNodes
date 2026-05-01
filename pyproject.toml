@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "microscopynodes"
-version = "2.2.6"
+version = "3.0.0"
 description = "Loading and handling microscopy data in Blender."
-authors = ["Oane Gros <oane.gros@embl.de>"]
+authors = ["Aafke Gros <aafke.gros@embl.de>"]
 include = [
     {path = "README.md"}
 ]
@@ -18,13 +18,14 @@ bpy = "==5.1.0"
 dask = "==2026.1.2"
 importlib-metadata = "==8.7.0"
 tifffile = "==2026.2.24"
-imagecodecs = "==2026.1.14"
+imagecodecs = "==2025.3.30"
 zarr = "==3.1.5"
 fsspec = "==2026.2.0"
 cmap = "==0.7.1"
 s3fs = "==2026.2.0"
-zmesh = "1.10.0"
-
+zmesh = "==1.9.0"
+databpy = "==0.7.0"
+pydantic = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -38,4 +39,3 @@ requires = ["poetry-core>=1.1.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.setuptools_scm]
-

@@ -10,18 +10,22 @@ def remap_oid_node():
 
     interface.new_socket("Value", in_out="INPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Object identifier attribute to remap into a LUT factor."
     interface.new_socket("Revolving Colormap", in_out="INPUT",socket_type='NodeSocketBool')
     interface.items_tree[-1].default_value = True
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Repeat colors cyclically instead of spreading them over all objects."
     interface.new_socket("# Colors", in_out="INPUT",socket_type='NodeSocketInt')
     interface.items_tree[-1].default_value = 10
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0
     interface.items_tree[-1].max_value = 32
+    interface.items_tree[-1].description = "Number of LUT colors available for mapping object IDs."
     interface.new_socket("# Objects", in_out="INPUT",socket_type='NodeSocketInt')
     interface.items_tree[-1].default_value = 100
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0
+    interface.items_tree[-1].description = "Highest object ID expected in the labelmask."
 
     interface.new_socket("Fac", in_out="OUTPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'

@@ -9,7 +9,7 @@ from enum import Enum
 import tempfile
 
 class min_keys(Enum): 
-    NONE = 0
+    HOLDER = 0
     AXES = 1
     VOLUME = 2
     SURFACE = 3
@@ -17,8 +17,6 @@ class min_keys(Enum):
     SLICECUBE = 5
 
 
-# # -- props --
-## Names start with MiN for Microscopy Nodes (MN = Molecular Nodes)
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 
@@ -123,11 +121,10 @@ bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
     default="",
 )
 
-bpy.types.Scene.MiN_yaml_preferences = StringProperty(
-    description = 'File path to a .yaml file that overrides the Microscopy Nodes preferences - use for bpy usage',
+bpy.types.Scene.MiN_json_preferences = StringProperty(
+    description = 'File path to a .json file that overrides the Microscopy Nodes preferences - use for bpy usage',
     default = "",
     subtype = 'FILE_PATH',
 )
-
 
 

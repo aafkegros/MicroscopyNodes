@@ -10,10 +10,36 @@ from bpy.types import (Panel,
                         )
 from bpy.types import UIList
 import threading
+from ..data_model import DatasetModel
+from ..load import Scene, Dataset
+from ..parse_inputs import parse_blender_ui
+
+
+def select_post_load_object(context, dataset, previous_active_obj):
+    try:
+        if previous_active_obj is not None and previous_active_obj.name in bpy.data.objects:
+            previous_active_obj.select_set(True)
+            context.view_layer.objects.active = previous_active_obj
+            return
+    except Exception:
+        pass
+
+    for min_obj in (dataset.volume, dataset.surface, dataset.labelmask, dataset.axes, dataset.slicecube):
+        if min_obj is None:
+            continue
+        obj = min_obj.object
+        if obj is None:
+            continue
+        try:
+            obj.select_set(True)
+            context.view_layer.objects.active = obj
+            return
+        except Exception:
+            continue
 
 
 class TifLoadOperator(bpy.types.Operator):
-    """ Load a microscopy image. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
+    """ Load a microscopy dataset. Resaves your data into vdb (volume) and abc (mask) formats into Cache Folder"""
     bl_idname ="microscopynodes.load"
     bl_label = "Load"
 
@@ -21,22 +47,38 @@ class TifLoadOperator(bpy.types.Operator):
     value = 0 
     thread = None
     params = None
+    dataset_model: DatasetModel = None
+    local_files_result = None
+
+    def _make_local_files(self):
+        self.local_files_result = self.dataset_model.make_local_files()
+        return
 
     def modal(self, context, event):
         if event.type == 'TIMER':
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
-                if 'EXCEPTION' in self.params[0][0]: # hacky
-                    raise(self.params[0][0]['EXCEPTION'])
+                if self.local_files_result is not None and not self.local_files_result["ok"]:
+                    handle_blender_structs.clear_progress()
+                    raise(Exception(self.local_files_result["error"]))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
-                load.load_blocking(self.params)
+                Scene.from_blender_ui(context)
+                dataset = Dataset(holder=context.scene.MiN_reload)
+                dataset.set_state(
+                    self.dataset_model,
+                    update_data=context.scene.MiN_update_data,
+                    update_settings=context.scene.MiN_update_settings,
+                )
+                select_post_load_object(context, dataset, self.prev_active_obj)
+                handle_blender_structs.clear_progress()
                 return {'FINISHED'}
             if not self.thread.is_alive():
                 self.thread = None # update UI for one timer-round
             return {"RUNNING_MODAL"}
         if event.type in {'RIGHTMOUSE', 'ESC'}:  # Cancel
             # Revert all changes that have been made
+            handle_blender_structs.clear_progress()
             return {'CANCELLED'}
 
         return {"RUNNING_MODAL"}
@@ -45,8 +87,16 @@ class TifLoadOperator(bpy.types.Operator):
     def execute(self, context):
         wm = context.window_manager
         self._timer = wm.event_timer_add(0.1, window=context.window)
-        self.params = parse_inputs.parse_initial()
-        self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
+
+        self.dataset_model = parse_blender_ui()
+        self.local_files_result = None
+        # self.min_scene = Scene()
+        self.thread = threading.Thread(name='loading thread', target=self._make_local_files)
+        self.prev_active_obj = bpy.context.active_object
+        # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))
+        
+        # self.params = parse_inputs.parse_initial()
+        # self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
         wm.modal_handler_add(self)
         self.thread.start()
         return {'RUNNING_MODAL'}
@@ -54,6 +104,7 @@ class TifLoadOperator(bpy.types.Operator):
     def cancel(self, context):
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
+        handle_blender_structs.clear_progress()
         return
 
 
@@ -63,9 +114,19 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
     bl_label = "Load"
 
     def execute(self, context):
-        params = parse_inputs.parse_initial()
-        load.load_threaded(params)
-        load.load_blocking(params)
+        dataset_model = parse_blender_ui()
+        result = dataset_model.make_local_files()
+        if not result["ok"]:
+            raise RuntimeError(result["error"])
+        Scene.from_blender_ui(context)
+        dataset = Dataset(holder=context.scene.MiN_reload)
+        dataset.set_state(
+            dataset_model,
+            update_data=context.scene.MiN_update_data,
+            update_settings=context.scene.MiN_update_settings,
+        )
+        select_post_load_object(context, dataset, context.active_object)
+        handle_blender_structs.clear_progress()
         return {'FINISHED'}
 
 

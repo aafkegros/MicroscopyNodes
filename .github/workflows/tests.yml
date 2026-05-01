@@ -1,8 +1,8 @@
 name: test-addon
 
-on:
+on: 
   push:
-    branches:
+    branches: 
       - main
   pull_request:
     branches:
@@ -15,29 +15,21 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        blender-version: ["5.1.0b"]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+        os: [ubuntu-latest, windows-latest, macos-14]
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.13.9"
-          cache: "pip"
+          python-version: '3.13.9'
 
-      - name: Install Poetry
-        run: pip install poetry
+      - name: Install poetry
+        run: pip install poetry==2.3.2
 
-      - name: Install dependencies with retries
-        shell: bash
-        run: |
-          for i in 1 2 3; do
-            poetry install --with dev && break
-            sleep 10
-          done
+      - name: Install dependencies
+        run: poetry install --with=dev
 
-      - name: Run tests
+      - name: Align numpy with Blender
+        run: poetry run pip install --no-deps --force-reinstall numpy==2.3.4
+
+      - name: Run Tests
         run: poetry run pytest --verbose

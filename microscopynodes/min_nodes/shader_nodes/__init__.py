@@ -1,6 +1,12 @@
 from . import cmap_menus
+from .nodeElementWiseCompare import element_wise_compare_node_group
 from .nodeVolumeAlpha import volume_alpha_node
-from .handle_cmap import set_color_ramp_from_ch, get_lut
+from .nodeNormalizeLuminance import normalize_luminance_node
+from .nodeMicroscopyShading import microscopy_shading_node
+from .nodeChannelIndex import channel_index_node
+from .nodeSliceCube import slice_cube_node_group
+from .nodeAddShaders import add_shaders_node
+from .handle_cmap import set_color_ramp_from_ch, get_colormap, colormap_to_lut
 from .nodeRemapObjectID import remap_oid_node
 from . import ops
 import bpy
@@ -35,3 +41,17 @@ def MIN_context_shader_node_menu(self, context):
 
 
 CLASSES = [MIN_MT_CMAP_ADD, MIN_MT_CMAP_REPLACE] + cmap_menus.CLASSES + ops.CLASSES
+
+NODE_GROUPS = {
+    "Normalize Luminance": normalize_luminance_node,
+    "Microscopy Shading": microscopy_shading_node,
+    "Channel index": channel_index_node,
+    "Slice Cube": slice_cube_node_group,
+}
+
+
+def shader_node_group(name):
+    builder = NODE_GROUPS.get(name)
+    if builder is None:
+        return None
+    return builder()

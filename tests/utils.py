@@ -1,11 +1,10 @@
 import os
 os.environ["MIN_TEST"] = "1"
 import bpy
-import yaml
+import json
 
 from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
-from microscopynodes.load_components import *
 import microscopynodes
 
 import numpy as np
@@ -41,12 +40,17 @@ def make_tif(path, arrtype):
     if arrtype == '5D_nonrect':
         shape = [i for i in range(2,7)]
         arr = np.ones(tuple(shape), dtype=np.uint16)
+    if arrtype == '3D_sparse_value':
+        arr = np.zeros((24, 24, 24), dtype=np.uint16)
+        arr[8:16, 9:15, 10:14] = 1
+        axes = "ZYX"
     
-    shape = arr.shape
-    arr = arr.flatten()
-    for ix in range(len(arr)):
-        arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
-    arr = arr.reshape(shape) 
+    if arrtype != '3D_sparse_value':
+        shape = arr.shape
+        arr = arr.flatten()
+        for ix in range(len(arr)):
+            arr[ix] = ix % 12 # don't let values get too big, as all should be handlable as labelmask
+        arr = arr.reshape(shape)
     # if not Path(path).exists():
     tifffile.imwrite(path, arr,metadata={"axes": axes}, imagej=True)
     return path, arr, axes.lower()
@@ -59,14 +63,14 @@ def prep_load(arrtype=None):
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-    pref_template = str(Path(test_folder).parent / "test_preferences_template.yaml")
+    pref_template = str(Path(test_folder).parent / "test_preferences_template.json")
     with open(pref_template) as f: 
-        prefdct = yaml.safe_load(f)
+        prefdct = json.load(f)
     prefdct['cache_path'] = str(test_folder)
-    pref_path = test_folder / 'pref.yaml'
+    pref_path = test_folder / 'pref.json'
     with open(pref_path, 'w') as f: 
-        yaml.safe_dump(prefdct, f)
-    bpy.context.scene.MiN_yaml_preferences = str(pref_path)
+        json.dump(prefdct, f)
+    bpy.context.scene.MiN_json_preferences = str(pref_path)
 
     if arrtype is None:
         arrtype = '5D_5cube'
@@ -84,45 +88,49 @@ def prep_load(arrtype=None):
     return
 
 def do_load():
-    params = microscopynodes.parse_inputs.parse_initial()
-    # if platform.system() == 'Linux':
-    bpy.context.scene.MiN_remake = True
-    params = microscopynodes.load.load_threaded(params)
-    microscopynodes.load.load_blocking(params)
-    return params[0]
+    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
+    microscopynodes.load.Scene.from_blender_ui()
+    dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    dataset.set_state(
+        dataset_model,
+        update_data=bpy.context.scene.MiN_update_data,
+        update_settings=bpy.context.scene.MiN_update_settings,
+    )
+    return dataset_model
 
 
-def check_channels(ch_dicts, test_render=True):
+def check_channels(dataset_model, test_render=True):
     img1 = None
-    objs = microscopynodes.load.parse_reload(bpy.data.objects[str(Path(bpy.context.scene.MiN_input_file).stem)])
+    holder = bpy.context.scene.MiN_reload
+    dataset = microscopynodes.load.Dataset(holder=holder)
     if test_render:
         img1 = quick_render('1')
-        objs[min_keys.AXES].hide_render = True
+        dataset.axes.object.hide_render = True
         img2 = quick_render('2')
-        objs[min_keys.AXES].hide_render = False
+        dataset.axes.object.hide_render = False
         assert(not np.array_equal(img1, img2))
 
-    for ch in ch_dicts:
+    toggled = []
+    for ch in dataset_model.channels:
         for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
-            if ch[min_type]:
-                if objs[min_type] is None:
-                    raise ValueError(f"{min_type} not in objs, while setting is {ch[min_type]}")
-                ch_obj = ChannelObjectFactory(min_type, objs[min_type])
+            if getattr(ch.viz, min_type.name.lower(), False):
+                ch_obj = getattr(dataset, min_type.name.lower())
+                if ch_obj is None:
+                    raise ValueError(f"{min_type} not in dataset, while setting is True")
                 assert(ch_obj.ch_present(ch))
                 socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
                 ch_obj.gn_mod[socket.identifier] = False
+                toggled.append((ch_obj, socket.identifier))
 
-    for ch in ch_dicts:
-        for min_type in [min_keys.SURFACE, min_keys.VOLUME, min_keys.LABELMASK]:
-            if ch[min_type]and test_render:
-                # print(socket)
-                img1 = quick_render('1')
-                ch_obj.gn_mod[socket.identifier] = True
-                img2 = quick_render('2')
-                ch_obj.gn_mod[socket.identifier] = False
-                if np.array_equal(img1, img2):
-                    raise ValueError(f"{socket}, ")
-                assert(not np.array_equal(img1, img2))
+    if test_render:
+        for ch_obj, socket_identifier in toggled:
+            img1 = quick_render('1')
+            ch_obj.gn_mod[socket_identifier] = True
+            img2 = quick_render('2')
+            ch_obj.gn_mod[socket_identifier] = False
+            if np.array_equal(img1, img2):
+                raise ValueError(f"{socket_identifier}, ")
+            assert(not np.array_equal(img1, img2))
                 
                 
 
@@ -132,20 +140,24 @@ def quick_render(name):
     output_file = str(test_folder / f'tmp{name}.png')
     scn = bpy.context.scene
 
-    cam1 = bpy.data.cameras.new("Camera 1")
-    cam1.lens = 40
-
-    cam_obj1 = bpy.data.objects.new("Camera 1", cam1)
-    cam_obj1.location = (.1, .1, .2)
-    cam_obj1.rotation_euler = (0.7, 0, 2.3)
-    scn.collection.objects.link(cam_obj1)
-    bpy.context.scene.camera = cam_obj1
+    cam_obj = bpy.data.objects.get("MiN Test Camera")
+    if cam_obj is None:
+        cam = bpy.data.cameras.new("MiN Test Camera")
+        cam.lens = 40
+        cam_obj = bpy.data.objects.new("MiN Test Camera", cam)
+        scn.collection.objects.link(cam_obj)
+    cam_obj.location = (.1, .1, .2)
+    cam_obj.rotation_euler = (0.7, 0, 2.3)
+    bpy.context.scene.camera = cam_obj
     
     # Set the viewport resolution
     bpy.context.scene.render.resolution_x = 128
     bpy.context.scene.render.resolution_y = 128
     # Set the output format
     bpy.context.scene.render.image_settings.file_format = "PNG"
+    scn.cycles.seed = 0
+    if hasattr(scn.cycles, "use_animated_seed"):
+        scn.cycles.use_animated_seed = False
 
     # Render the viewport and save the result
     
@@ -155,3 +167,12 @@ def quick_render(name):
     # os.remove(output_file)
     return data
 
+
+def grayscale_histogram_distance(img1, img2, bins=32):
+    gray1 = img1[..., :3].astype(np.float32).mean(axis=-1)
+    gray2 = img2[..., :3].astype(np.float32).mean(axis=-1)
+    hist1, _ = np.histogram(gray1, bins=bins, range=(0.0, 255.0))
+    hist2, _ = np.histogram(gray2, bins=bins, range=(0.0, 255.0))
+    hist1 = hist1 / max(hist1.sum(), 1)
+    hist2 = hist2 / max(hist2.sum(), 1)
+    return 0.5 * np.abs(hist1 - hist2).sum()

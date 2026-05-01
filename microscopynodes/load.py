@@ -1,118 +1,120 @@
 import bpy
-from pathlib import Path
-import numpy as np
 
 from .handle_blender_structs import *
-from .handle_blender_structs import dependent_props
-from .load_components import *
-from .parse_inputs import *
-from .file_to_array import load_array, arr_shape
+from .blender_objects.factories import MinObjectFactory
 
-from mathutils import Matrix
+class Scene():
+    # wraps the blender scene and can hold Microscopy Nodes Datasets
+    def __init__(self, scene=None, overwrite_background_color=False, overwrite_render_settings=False):
+        self.scene = scene or bpy.context.scene # TODO catch uninitialized scene
 
+        if overwrite_background_color:
+            set_background_color()
+        if overwrite_render_settings:
+            self.set_render_settings()
 
-def load_threaded(params):
-    try:
-        scn = bpy.context.scene
-        if not scn.MiN_update_data:
-            return params
-
-        ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
-
-        log('Loading file')
-        load_array(ch_dicts) # unpacks into ch_dicts
-        axes_order = axes_order.replace('c', "") # channels are separated
+    @classmethod
+    def from_blender_ui(cls, context=None):
+        context = context or bpy.context
+        scene = context.scene
+        return cls(
+            scene=scene,
+            overwrite_background_color=scene.MiN_overwrite_background_color,
+            overwrite_render_settings=scene.MiN_overwrite_render_settings,
+        )
         
-        for ch in ch_dicts:
-            if ch[min_keys.VOLUME] or ch[min_keys.SURFACE]:
-                ch["local_files"][min_keys.VOLUME] = VolumeIO().export_ch(ch, cache_dir, scn.MiN_remake,  axes_order)
-
-
-        progress = 'Loading objects to Blender'
-        if any([ch['surface'] for ch in ch_dicts]):
-            progress = 'Meshing surfaces, ' + progress.lower()
-        if any([ch['labelmask'] for ch in ch_dicts]):
-            progress = 'Making labelmasks, ' + progress.lower()
-        log(progress)
-    except Exception as e: # hacky way to track exceptions across threaded process
-        params[0][0]['EXCEPTION'] = e
-    return params
-
-def load_blocking(params):
-    # loads from the modal/threaded implementation
-    ch_dicts, (axes_order, pixel_size, size_px), cache_dir = params
-    prev_active_obj = bpy.context.active_object
-    scn = bpy.context.scene
-
-    # reads env variables
-    base_coll, cache_coll = min_base_colls(Path(scn.MiN_input_file).stem[:50], scn.MiN_reload)    
-
-    if scn.MiN_overwrite_background_color:
-        set_background_color()
-    if scn.MiN_overwrite_render_settings:
+    def set_background_color(self, bgcol):
+        try:
+            self.scene.world.node_tree.nodes["Background"].inputs[0].default_value = bgcol
+        except:
+            pass
+    
+    def set_render_settings(self):
         set_render_settings()
+        return
 
-    # --- Prepare  container ---
-    container = scn.MiN_reload
-    objs = parse_reload(container)
+class Dataset():
+    def __init__(self, holder=None, dataset_model=None):
+        self.holder = None
+        self.axes = None
+        self.slicecube = None
+        self.volume = None
+        self.surface = None
+        self.labelmask = None
 
+        if holder is not None:
+            self.initialize_from_previous(holder)
+        if dataset_model is not None:
+            self.set_state(dataset_model)
 
-    if container is None:
-        bpy.ops.object.empty_add(type="PLAIN_AXES")
-        container = bpy.context.view_layer.objects.active
-        container.name = Path(scn.MiN_input_file).stem[:50]
+    def initialize_from_previous(self, holder_obj):
+        # TODO sets objects as MiN objects, right now it is just pointers to blender objects
+        self.holder = MinObjectFactory(min_keys.HOLDER, obj=holder_obj)
+        for child in holder_obj.children:
+            min_gn = get_min_gn(child)
+            if min_gn is None:
+                continue
+            key = next((k for k in min_keys if k.name.lower() in min_gn.name.lower()), None)
+            if key:
+                min_obj = MinObjectFactory(key, obj=child)
+                setattr(self, key.name.lower(), min_obj)
+        return
 
-    # -- export labelmask --
-    # label mask exporting is hard to move outside of blocking functions, as it uses the Blender abc export
-    for ch in ch_dicts:
-        if ch[min_keys.LABELMASK] and scn.MiN_update_data:
-            ch["local_files"][min_keys.LABELMASK] = LabelmaskIO().export_ch(ch, cache_dir,  scn.MiN_remake,  axes_order)
+    def set_state(self, dataset_model, update_data=True, update_settings=True):
+        if not dataset_model.local_files_exist and update_data:
+            result = dataset_model.make_local_files()
+            if not result["ok"]:
+                raise RuntimeError(result["error"])
+
+        required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}
+        for ch in dataset_model.channels:
+            if ch.viz.volume:
+                required_objects.add(min_keys.VOLUME)
+            if ch.viz.surface:
+                required_objects.add(min_keys.SURFACE)
+            if ch.viz.labelmask:
+                required_objects.add(min_keys.LABELMASK)
+
+        for min_key in min_keys:
+            min_obj = getattr(self, min_key.name.lower())
+            if min_key not in required_objects and min_obj is None:
+                continue
+            if min_obj is None:
+                min_obj = MinObjectFactory(min_key)
+                setattr(self, min_key.name.lower(), min_obj)
+            if update_data:
+                min_obj.set_data(dataset_model)
+            if update_settings:
+                min_obj.set_settings(dataset_model)
+        self.ensure_links_of_objects(dataset_model)
+        if self.holder is not None:
+            bpy.context.scene.MiN_reload = self.holder.object
+        return    
     
-    # -- axes, slice cube and scales -- 
-    scale, scale_factor = parse_scale(size_px, pixel_size, objs) 
-    loc = parse_loc(scale, size_px, container)
-    axes_obj = load_axes(size_px, pixel_size, scale, scale_factor, axes_obj=objs[min_keys.AXES], container=container)
-    slice_cube = load_slice_cube(size_px, scale, scale_factor, container, slicecube=objs[min_keys.SLICECUBE])
+    def ensure_links_of_objects(self, dataset_model):
+        if self.holder is None:
+            return
 
-    for min_type in [min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK]:
-        if not any([ch[min_type] for ch in ch_dicts]) and objs[min_type] is None:
-            continue
-        data_io = DataIOFactory(min_type)
-        ch_obj = ChannelObjectFactory(min_type, objs[min_type])
-        # print(ch_obj.scale, scale)
-        ch_obj.obj.scale = scale
-        # print(ch_obj.scale, scale)
+        ensure_dataset_frame_property(self.holder.object, dataset_model)
 
-        for ch in ch_dicts:
-            if ch[min_type] and scn.MiN_update_data:
-                collection_activate(*cache_coll)
-                ch['collections'][min_type], ch['metadata'][min_type] = data_io.import_data(ch, scale)
-                collection_activate(*base_coll)
-                ch_obj.update_ch_data(ch)
-            if scn.MiN_update_settings:
-                ch_obj.update_ch_settings(ch)
-            ch_obj.set_parent_and_slicer(container, slice_cube, ch)
+        for min_key in (min_keys.AXES, min_keys.SLICECUBE, min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
+            min_obj = getattr(self, min_key.name.lower())
+            if min_obj is not None:
+                min_obj.object.parent = self.holder.object
+                min_obj.object.matrix_parent_inverse.identity()
 
-    container.location = loc
-    
-    # -- wrap up --
-    collection_deactivate_by_name('cache')
+        if self.slicecube is not None:
+            for min_obj in (self.volume, self.surface, self.labelmask):
+                if min_obj is None:
+                    continue
+                for ch in dataset_model.channels:
+                    if getattr(ch.viz, min_obj.min_type.name.lower(), False):
+                        min_obj.set_parent_and_slicer(self.holder.object, self.slicecube.object, ch)
 
-    if scn.frame_current < scn.MiN_load_start_frame or scn.frame_current > scn.MiN_load_end_frame:
-        scn.frame_set(scn.MiN_load_start_frame)
-
-    try:
-        if prev_active_obj is not None:
-            prev_active_obj.select_set(True)
-            bpy.context.view_layer.objects.active = prev_active_obj
-    except:
-        pass
-    # after first load this should not be used again, to prevent overwriting user values
-    scn.MiN_reload = container
-    scn.MiN_overwrite_render_settings = False
-    scn.MiN_enable_ui = True
-    log('')
-    return
+        for min_obj in (self.volume, self.surface, self.labelmask):
+            if min_obj is not None:
+                ensure_dataset_frame_driver(self.holder.object, min_obj)
+        return
 
 
 
@@ -131,16 +133,41 @@ def set_background_color():
 
 
 def set_render_settings():
-    bpy.context.scene.eevee.volumetric_tile_size = '1'
-    bpy.context.scene.cycles.preview_samples = 8
-    bpy.context.scene.cycles.samples = 64
-    bpy.context.scene.view_settings.view_transform = 'Standard'
-    bpy.context.scene.eevee.volumetric_end = 300
-    bpy.context.scene.eevee.taa_samples = 64
+    scn = bpy.context.scene
+    scn.render.engine = 'CYCLES'
 
-    bpy.context.scene.render.engine = 'CYCLES'
-    bpy.context.scene.cycles.transparent_max_bounces = 40 # less slicing artefacts
+    eevee = getattr(scn, "eevee", None)
+    if eevee is not None:
+        for attr, value in {
+            "volumetric_tile_size": '1',
+            "volumetric_end": 300,
+            "taa_samples": 64,
+        }.items():
+            if hasattr(eevee, attr):
+                setattr(eevee, attr, value)
+    # bpy.context.scene.cycles.preview_samples = 8
+    # bpy.context.scene.cycles.samples = 64
+    scn.view_settings.view_transform = 'Standard'
+
+    scn.cycles.transparent_max_bounces = 40 # less slicing artefacts
     # bpy.context.scene.cycles.volume_bounces = 32
     # bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
-    bpy.context.scene.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
+    scn.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
+    set_viewport_scene_world()
     return
+
+
+def set_viewport_scene_world():
+    screen = getattr(bpy.context, "screen", None)
+    if screen is None:
+        return
+    for area in screen.areas:
+        if area.type != 'VIEW_3D':
+            continue
+        for space in area.spaces:
+            if space.type != 'VIEW_3D':
+                continue
+            shading = space.shading
+            for attr in ("use_scene_world", "use_scene_world_render"):
+                if hasattr(shading, attr):
+                    setattr(shading, attr, True)

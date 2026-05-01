@@ -120,4 +120,3 @@ def append_uri(uri, append):
     if uri[-1] != '/':
         uri += "/"
     return urljoin(uri, append)
-

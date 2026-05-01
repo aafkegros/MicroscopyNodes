@@ -55,8 +55,9 @@ def min_base_colls(fname, min_reload):
     # make or get collections
     base_coll = collection_by_name('Microscopy Nodes', supercollections=[])
     collection_activate(*base_coll)
-    collection_by_name('cache',supercollections=[])
-    cache_coll = collection_by_name(fname, supercollections=['cache'], duplicate=(min_reload is None))
-    collection_activate(*base_coll)
-    return base_coll, cache_coll
+    # collection_by_name('cache',supercollections=[])
+    # cache_coll = collection_by_name(fname, supercollections=['cache'], duplicate=(min_reload is None))
+    # collection_activate(*base_coll)
+    # return base_coll, cache_coll
+    return base_coll
 
