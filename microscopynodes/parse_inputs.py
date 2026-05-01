@@ -46,7 +46,6 @@ def parse_channellist() -> List[ChannelModel]:
     shared_data = {
         "source": scn.MiN_input_file,
         "dataset_resolution": selected_array_option().identifier,
-        "cache_path": get_cache_dir(),
         "axes_order": scn.MiN_axes_order.replace("c", ""),
         "unit": parse_unit(bpy.context.scene.MiN_unit),
         "affine": parse_pixel_size(import_scale),
@@ -56,6 +55,7 @@ def parse_channellist() -> List[ChannelModel]:
     for ch_desc in bpy.context.scene.MiN_channelList:
         channel_models.append(ChannelModel(
             name=ch_desc.name,
+            cache_path=get_cache_dir(),
             data={
                 **shared_data,
                 "ix": ch_desc.ix,

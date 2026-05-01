@@ -27,9 +27,9 @@ def _make_channel(name="Channel 0", affine=None):
         affine = np.eye(4).tolist()
     return ChannelModel(
         name=name,
+        cache_path="/tmp/example",
         data={
             "dataset_resolution": 0,
-            "cache_path": "/tmp/example",
             "ix": 0,
             "data": da.zeros((4, 6, 8), dtype=np.uint16),
             "axes_order": "xyz",
