@@ -8,7 +8,11 @@ nav:
       - 1. First Use: tutorials/1_start.md
       - 2. Loading data: tutorials/2_loading_data.md
       - 3. Data objects: tutorials/3_objects.md
-      - 4. Shading: tutorials/4_shading.md
+      - 4. Shading:
+        - Overview: tutorials/4_shading.md
+        - Volume shading: tutorials/4_volume_shading.md
+        - Surface shading: tutorials/4_surface_shading.md
+        - Labelmask shading: tutorials/4_labelmask_shading.md
       - 5. Creating output: tutorials/5_creating_ouput.md
 
     - Extra tutorials:

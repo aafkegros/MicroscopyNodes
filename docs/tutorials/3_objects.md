@@ -54,7 +54,7 @@ The {{ svg("outliner_ob_volume") }} **Volume** holds channels of **volumetric** 
 -  {{ svg("modifier") }} Geometry options
     - Included channels
       > If channels are not included, they are also not loaded into RAM 
--  {{ svg("material") }} [Shader options](./4_shading.md#volume-shading)
+-  {{ svg("material") }} [Shader options](./4_volume_shading.md)
     - Pixel intensities
     - Opacity calculation
     - Color LUT
@@ -76,7 +76,7 @@ The {{ svg("outliner_ob_mesh") }} **Surface** object is a mesh extracted from a 
     - Voxel size *(only listed if {{ svg("preferences") }} [Mesh Resolution](./preferences.md) is not `Actual`)*
       > Interactive scalable unit for mesh detail
 
-- {{ svg("material") }} [Shader options](./4_shading.md#surface-shading)
+- {{ svg("material") }} [Shader options](./4_surface_shading.md)
     - Standard mesh shading parameters (color, opacity etc)
 
 
@@ -92,7 +92,7 @@ The {{ svg("outliner_ob_mesh") }} **Label Mask** object is a mesh generated from
 - {{ svg("modifier") }} Geometry options
     - Included channels
 
-- {{ svg("material") }} [Shader options](./4_shading.md#labelmask-shading)
+- {{ svg("material") }} [Shader options](./4_labelmask_shading.md)
     - Color per label 
     - Revolving colormap or linearly distributed among objects
     - Standard mesh shading parameters (color, opacity etc)

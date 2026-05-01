@@ -4,10 +4,55 @@ from pathlib import Path
 LOC = Path(bpy.path.abspath("//"))
 OUT_DIR = LOC / Path("shader_screenshots")
 INPUT_FILE = "/Users/oanegros/Documents/werk/blender_workshop/timenuc/nuc10_eugene.tif"
+USED_DOC_SCREENSHOTS = [
+    "volume_full.png",
+    "volume_frame_ch_id0.png",
+    "volume_ch_id0_data_loading_folded.png",
+    "volume_ch_id0_channel_input.png",
+    "volume_ch_id0_histogram_pixels.png",
+    "volume_ch_id0_color_lut_single.png",
+    "volume_ch_id0_color_lut_viridis.png",
+    "volume_ch_id0_cmap_transparency.png",
+    "volume_ch_id0_microscopy_shading.png",
+    "volume_slicecube_texcoord.png",
+    "surface_full.png",
+    "surface_ch_id0_color_lut.png",
+    "surface_slicecube_texcoord.png",
+    "labelmask_full.png",
+    "labelmask_ch_id1_oid_remap.png",
+    "labelmask_tab10_ch_id1_color_lut.png",
+    "labelmask_slicecube_texcoord.png",
+]
 
 
 def ensure_out_dir():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def used_doc_paths():
+    return [OUT_DIR / name for name in USED_DOC_SCREENSHOTS]
+
+
+def print_used_doc_paths():
+    print("[shader_screenshots] Files used in docs:")
+    for path in used_doc_paths():
+        print(f"  - {path}")
+
+
+def prune_unused_screenshots():
+    keep = {path.name for path in used_doc_paths()}
+    removed = []
+    for path in sorted(OUT_DIR.glob("*.png")):
+        if path.name not in keep:
+            path.unlink()
+            removed.append(path)
+
+    if removed:
+        print("[shader_screenshots] Removed unused screenshots:")
+        for path in removed:
+            print(f"  - {path}")
+    else:
+        print("[shader_screenshots] No unused screenshots to remove")
 
 
 def purge_scene():
@@ -131,6 +176,24 @@ def existing_nodes(node_tree, names):
     return [name for name in names if node_tree.nodes.get(name) is not None]
 
 
+def set_nodes_hide(node_tree, node_names, hide):
+    previous = {}
+    for name in node_names:
+        node = node_tree.nodes.get(name)
+        if node is None:
+            continue
+        previous[name] = node.hide
+        node.hide = hide
+    return previous
+
+
+def restore_nodes_hide(node_tree, previous):
+    for name, hide in previous.items():
+        node = node_tree.nodes.get(name)
+        if node is not None:
+            node.hide = hide
+
+
 def screenshot_material_set(obj, label):
     if obj is None or obj.data is None or not obj.data.materials or obj.data.materials[0] is None:
         return
@@ -167,13 +230,34 @@ def screenshot_volume_extras(obj, label):
         ch_id = channel_id_from_frame_name(frame_name)
         groups = {
             "channel_input": existing_nodes(node_tree, [f"[channel_load_{ch_id}]"]),
-            "histogram_pixels": existing_nodes(node_tree, [f"[Histogram_{ch_id}]", f"[alpha_ramp_{ch_id}]"]),
-            "cmap_transparency": existing_nodes(node_tree, [f"[color_lut_{ch_id}]", f"[volume_alpha_{ch_id}]"]),
+            "data_loading_folded": existing_nodes(node_tree, [f"[channel_load_{ch_id}]"]),
+            "histogram_pixels": existing_nodes(node_tree, [frame_name, f"[Histogram_{ch_id}]", f"[alpha_ramp_{ch_id}]"]),
+            "cmap_transparency": existing_nodes(node_tree, [f"[volume_alpha_{ch_id}]"]),
             "microscopy_shading": existing_nodes(node_tree, [f"[microscopy_shading_{ch_id}]"]),
         }
         for suffix, node_names in groups.items():
             if node_names:
-                screenshot_shader(OUT_DIR / f"{label}_{ch_id}_{suffix}.png", obj, mat, node_names)
+                if suffix == "data_loading_folded":
+                    previous = set_nodes_hide(node_tree, node_names, True)
+                    screenshot_shader(OUT_DIR / f"{label}_{ch_id}_{suffix}.png", obj, mat, node_names)
+                    restore_nodes_hide(node_tree, previous)
+                else:
+                    screenshot_shader(OUT_DIR / f"{label}_{ch_id}_{suffix}.png", obj, mat, node_names)
+
+
+def screenshot_surface_extras(obj, label):
+    if obj is None or obj.data is None or not obj.data.materials or obj.data.materials[0] is None:
+        return
+    mat = obj.data.materials[0]
+    node_tree = mat.node_tree
+    if node_tree is None:
+        return
+
+    for frame_name in channel_frame_nodes(node_tree):
+        ch_id = channel_id_from_frame_name(frame_name)
+        node_names = existing_nodes(node_tree, [f"[color_lut_{ch_id}]"])
+        if node_names:
+            screenshot_shader(OUT_DIR / f"{label}_{ch_id}_color_lut.png", obj, mat, node_names)
 
 
 def screenshot_labelmask_extras(obj, label):
@@ -186,12 +270,15 @@ def screenshot_labelmask_extras(obj, label):
 
     for frame_name in channel_frame_nodes(node_tree):
         ch_id = channel_id_from_frame_name(frame_name)
-        node_names = existing_nodes(node_tree, [f"[oid_{ch_id}]", f"[remap_oid_{ch_id}]"])
-        if node_names:
-            screenshot_shader(OUT_DIR / f"{label}_{ch_id}_oid_remap.png", obj, mat, node_names)
+        groups = {
+            "oid_remap": existing_nodes(node_tree, [f"[oid_{ch_id}]", f"[remap_oid_{ch_id}]"]),
+            "color_lut": existing_nodes(node_tree, [f"[color_lut_{ch_id}]"]),
+        }
+        for suffix, node_names in groups.items():
+            if node_names:
+                screenshot_shader(OUT_DIR / f"{label}_{ch_id}_{suffix}.png", obj, mat, node_names)
 
-
-def replace_labelmask_lut_tab10(obj):
+def replace_lut_on_node(obj, node_name_prefix, cmap_name):
     if obj is None or obj.data is None or not obj.data.materials or obj.data.materials[0] is None:
         return
     mat = obj.data.materials[0]
@@ -199,9 +286,9 @@ def replace_labelmask_lut_tab10(obj):
     if node_tree is None:
         return
 
-    lut_node = next((node for node in node_tree.nodes if node.name.startswith("[color_lut_")), None)
+    lut_node = next((node for node in node_tree.nodes if node.name.startswith(node_name_prefix)), None)
     if lut_node is None:
-        raise RuntimeError("Could not find labelmask color LUT node")
+        raise RuntimeError(f"Could not find LUT node with prefix {node_name_prefix}")
 
     window, screen, area, region, space = set_shader_editor_context(obj, mat)
     deselect_all_nodes(node_tree)
@@ -215,8 +302,29 @@ def replace_labelmask_lut_tab10(obj):
         region=region,
         space_data=space,
     ):
-        bpy.ops.microscopynodes.replace_lut(cmap_name="tab10")
+        bpy.ops.microscopynodes.replace_lut(cmap_name=cmap_name)
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=4)
+
+
+def screenshot_volume_lut_variants(obj, label, ch_id="ch_id0"):
+    if obj is None or obj.data is None or not obj.data.materials or obj.data.materials[0] is None:
+        return
+    mat = obj.data.materials[0]
+    node_tree = mat.node_tree
+    if node_tree is None:
+        return
+
+    node_names = existing_nodes(node_tree, [f"[color_lut_{ch_id}]"])
+    if not node_names:
+        return
+
+    screenshot_shader(OUT_DIR / f"{label}_{ch_id}_color_lut_single.png", obj, mat, node_names)
+    replace_lut_on_node(obj, f"[color_lut_{ch_id}]", "viridis")
+    screenshot_shader(OUT_DIR / f"{label}_{ch_id}_color_lut_viridis.png", obj, mat, node_names)
+
+
+def replace_labelmask_lut_tab10(obj):
+    replace_lut_on_node(obj, "[color_lut_", "tab10")
 
 def main():
     ensure_out_dir()
@@ -228,7 +336,9 @@ def main():
 
     screenshot_material_set(volume_obj, "volume")
     screenshot_volume_extras(volume_obj, "volume")
+    screenshot_volume_lut_variants(volume_obj, "volume")
     screenshot_material_set(surface_obj, "surface")
+    screenshot_surface_extras(surface_obj, "surface")
     screenshot_material_set(labelmask_obj, "labelmask")
     screenshot_labelmask_extras(labelmask_obj, "labelmask")
 
@@ -236,6 +346,8 @@ def main():
     screenshot_material_set(labelmask_obj, "labelmask_tab10")
     screenshot_labelmask_extras(labelmask_obj, "labelmask_tab10")
 
+    print_used_doc_paths()
+    prune_unused_screenshots()
     print(f"Saved screenshots to {OUT_DIR}")
 
 
