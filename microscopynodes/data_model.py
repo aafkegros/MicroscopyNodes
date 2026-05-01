@@ -12,7 +12,6 @@ class ChannelDataModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     dataset_resolution: int # currently static resolution identifier 
-    cache_path: str
 
     ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
     data: da.Array # Maybe make this optional again for if the link to the data is lost?
@@ -111,7 +110,6 @@ class ChannelVizModel(BaseModel):
     emission: bool
     cmap: Colormap
     surf_resolution: int
-    force_remaking_files: bool = False # TODO move this away
 
     @field_validator("cmap", mode="before")
     def validate_cmap(cls, v):
@@ -124,6 +122,8 @@ class ChannelModel(BaseModel):
     name: str
     data: ChannelDataModel
     viz: ChannelVizModel
+    cache_path: str
+    force_remaking_files: bool = False
     metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
     file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
 

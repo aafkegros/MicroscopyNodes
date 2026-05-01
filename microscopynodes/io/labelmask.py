@@ -33,7 +33,7 @@ class LabelmaskIO(DataIO):
             fname.parent.mkdir(parents=True, exist_ok=True)
 
             if Path(fname).exists():
-                if ch.viz.force_remaking_files:
+                if ch.force_remaking_files:
                     Path(fname).unlink()
                 else:
                     continue

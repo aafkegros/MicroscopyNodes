@@ -59,7 +59,7 @@ class VolumeIO(DataIO):
             histfname = vdbfname.with_suffix(".npz")
             vdbfname.parent.mkdir(parents=True, exist_ok=True)
 
-            if (not vdbfname.exists() or not histfname.exists()) or ch.viz.force_remaking_files:
+            if (not vdbfname.exists() or not histfname.exists()) or ch.force_remaking_files:
                 vdbfname.unlink(missing_ok=True)
                 histfname.unlink(missing_ok=True)
                 log(f"loading chunk {Path(vdbfname).stem}")

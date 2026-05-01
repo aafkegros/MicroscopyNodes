@@ -6,7 +6,7 @@ class DataIO:
     TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "res{resolution}_c{channel_ix}_t{t}"
 
     def base_constructor(self, ch):
-        cache_path = Path(ch.data.cache_path)
+        cache_path = Path(ch.cache_path)
         return {
             "cache_path": str(cache_path),
             "cache_dir": str(cache_path.parent),
