@@ -23,12 +23,14 @@ def microscopy_shading_node():
     interface.new_socket("Color", in_out="INPUT", socket_type='NodeSocketColor')
     interface.items_tree[-1].default_value = (1.0, 1.0, 1.0, 1.0)
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Channel color after LUT mapping."
 
     interface.new_socket("Alpha", in_out="INPUT", socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 1.0
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 100.0
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Overall channel strength. This translates to brightness for emission and density for scattering."
 
     interface.new_socket("Alpha-Intensity Coupling", in_out="INPUT", socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 1.0
@@ -36,6 +38,7 @@ def microscopy_shading_node():
     interface.items_tree[-1].max_value = 1.0
     interface.items_tree[-1].subtype = 'FACTOR'
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "The amount of intensity coupling, used for normalizing the colormap brightness to achieve linear values"
 
     interface.new_socket("Emission / Scattering", in_out="INPUT", socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 0.0
@@ -43,6 +46,7 @@ def microscopy_shading_node():
     interface.items_tree[-1].max_value = 1.0
     interface.items_tree[-1].subtype = 'FACTOR'
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Slide between emitting light (bright volume, at 0) and scattering light (dark volume, at 1)"
 
     group_input = nodes.new("NodeGroupInput")
     group_input.location = (-700, 0)
