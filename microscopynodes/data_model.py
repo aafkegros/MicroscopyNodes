@@ -111,7 +111,7 @@ class ChannelVizModel(BaseModel):
     emission: bool
     cmap: Colormap
     surf_resolution: int
-    force_remaking_files: bool = False
+    force_remaking_files: bool = False # TODO move this away
 
     @field_validator("cmap", mode="before")
     def validate_cmap(cls, v):
