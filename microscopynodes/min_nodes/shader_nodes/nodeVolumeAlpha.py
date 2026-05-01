@@ -13,23 +13,28 @@ def volume_alpha_node():
 
     interface.new_socket("Value", in_out="INPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Normalized voxel intensity used to compute transparency."
     interface.new_socket("Clip Min", in_out="INPUT",socket_type='NodeSocketBool')
     interface.items_tree[-1].default_value = True
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Hide voxels below the minimum intensity value."
     interface.new_socket("Clip Max", in_out="INPUT",socket_type='NodeSocketBool')
     interface.items_tree[-1].default_value = False
     interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].description = "Hide voxels above the maximum intensity value."
     interface.new_socket("Alpha", in_out="INPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 1.0
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 100.0
+    interface.items_tree[-1].description = "Overall transparency strength for the channel. This translates to brightness for emission and density for scattering."
     interface.new_socket("Alpha-Intensity Coupling", in_out="INPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 1.0
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].min_value = 0.0
     interface.items_tree[-1].max_value = 1.0
     interface.items_tree[-1].subtype = 'FACTOR'
+    interface.items_tree[-1].description = "Couples normalized pixel intensity to the alpha. If 0, all voxels shown have the same Alpha, if 1, the alpha is linear with pixel intensity."
 
     interface.new_socket("Alpha", in_out="OUTPUT",socket_type='NodeSocketFloat')
     interface.items_tree[-1].attribute_domain = 'POINT'
