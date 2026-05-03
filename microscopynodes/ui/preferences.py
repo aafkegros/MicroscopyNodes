@@ -171,16 +171,34 @@ def addon_preferences(context: bpy.types.Context | None = None):
         print('CANNOT FIND PREFERENCES')
         return None
     
+# subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
+# 1 008AE4
+# 2 4A5B00
+# 3 A12352
+# 4 D55800
+# 5 9061D9
+# 6 006C4D
+# 7 CF458F
+# 8 0093AF
 
+# INIT_COLORS = [
+#     (1.0, 1.0, 1.0),
+#     (0/255, 157/255, 224/255),
+#     (224/255, 0/255, 37/255),
+#     (224/255, 214/255, 0/255),
+#     (117/255, 0/255, 224/255),
+#     (0/255, 224/255, 87/255),
+# ]
 
 INIT_COLORS = [
-    (1.0, 1.0, 1.0),
-    (0/255, 157/255, 224/255),
-    (224/255, 0/255, 37/255),
-    (224/255, 214/255, 0/255),
-    (117/255, 0/255, 224/255),
-    (0/255, 224/255, 87/255),
+    (0.0, 0.541, 0.894),
+    (0.290, 0.357, 0.0),
+    (0.631, 0.137, 0.322),
+    (0.835, 0.345, 0.0),
+    (0.565, 0.380, 0.851),
+    (0.0, 0.424, 0.302),
+    (0.812, 0.271, 0.561),
+    (0.0, 0.576, 0.686),
 ]
-
 
 CLASSES = [MicroscopyNodesPreferences, ResetPreferenceJsonOperator]
