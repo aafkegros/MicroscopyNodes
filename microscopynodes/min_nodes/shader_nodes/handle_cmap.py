@@ -1,5 +1,5 @@
 import bpy
-from cmap import Colormap
+from cmap import Color, Colormap
 
 
 def set_color_ramp_from_ch(ch, ramp_node):
@@ -20,9 +20,12 @@ def colormap_to_lut(colormap, max_values=32):
 
 
 def get_colormap(name, single_color=(1, 1, 1)):
-    if name.lower() == "single_color":
+    name = name.lower()
+    if name.startswith("single_color:"):
+        return Colormap([Color(name.split(":", 1)[1]).rgba])
+    if name == "single_color":
         return Colormap([[*single_color, 1.0]])
-    return Colormap(name.lower())
+    return Colormap(name)
 
 def set_color_ramp(ramp_node, lut, linear, name):
     from ...ui.preferences import addon_preferences
@@ -50,5 +53,6 @@ def set_color_ramp(ramp_node, lut, linear, name):
             elem.color = tuple(color)
 
     ramp_node.color_ramp.interpolation = "LINEAR" if linear else "CONSTANT"
-    ramp_node.label = name.capitalize()
+    label = name.split(":", 1)[1] if name.startswith("single_color:") else name
+    ramp_node.label = label.capitalize()
     return

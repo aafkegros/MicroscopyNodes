@@ -13,6 +13,9 @@ CMAP_CATEGORIES =  {
     "miscellaneous":"ADD",
     }
 
+def color_names():
+    return sorted(cmap._color.ALL_COLORS)
+
 def cmap_submenu_class(op, opname, category, namespace=None):
     def draw(self, context):
         if self.namespace is None:
@@ -41,6 +44,25 @@ def cmap_submenu_class(op, opname, category, namespace=None):
     )
     return menu_class
 
+def single_color_submenu_class(op, opname):
+    def draw(self, context):
+        for color_name in color_names():
+            op_ = self.layout.operator(op, text=color_name)
+            op_.cmap_name = f"single_color:{color_name}"
+
+    cls_elements = {
+            'bl_idname': single_color_bl(opname)[0],
+            'bl_label': single_color_bl(opname)[1],
+            'draw' : draw
+        }
+
+    menu_class = type(
+        single_color_bl(opname)[0],
+        (bpy.types.Menu,),
+        cls_elements
+    )
+    return menu_class
+
 def cmap_namespaces(categories):
     return list({cmap_name.split(':')[0] for cmap_name in cmap.Catalog().unique_keys(categories=categories, prefer_short_names=False)})
 
@@ -54,6 +76,8 @@ def cmap_bl(category, namespace=None, name=None, opname=None):
         return f"MIN_MT_{category.upper()}_{namespace.upper()}_{opname.upper()}", namespace
     return f"MIN_MT_{category.upper()}_{opname.upper()}", category
 
+def single_color_bl(opname=None):
+    return f"MIN_MT_SINGLE_COLOR_{opname.upper()}", "Single Color"
 
 def cmap_catalog():
     for category in CMAP_CATEGORIES:
@@ -63,13 +87,12 @@ def cmap_catalog():
 def draw_category_menus(self, context, op, opname):
     for category in CMAP_CATEGORIES:
         self.layout.menu(cmap_bl(category, opname=opname)[0], text=cmap_bl(category,opname=opname)[1].capitalize(), icon=CMAP_CATEGORIES[category])
-    op_ = self.layout.operator(op, text="Single Color", icon="MESH_PLANE")
-    op_.cmap_name = 'single_color'
+    self.layout.menu(single_color_bl(opname)[0], text=single_color_bl(opname)[1], icon="MESH_PLANE")
 
 
 CLASSES = []
 for op, opname in [('microscopynodes.add_lut', "ADD"), ('microscopynodes.replace_lut', 'REPLACE')]:
+    CLASSES.append(single_color_submenu_class(op, opname))
     CLASSES = CLASSES + [cmap_submenu_class(op, opname, category) for category in CMAP_CATEGORIES]
     for category in CMAP_CATEGORIES:
         CLASSES.extend([cmap_submenu_class(op, opname, category, namespace) for namespace in cmap_namespaces(categories=category)])
-
