@@ -1,32 +1,24 @@
-from pathlib import Path
-
 import bpy
 import dask.array as da
 import numpy as np
 import pytest
-import json
 from cmap import Colormap
 
 import microscopynodes
 from microscopynodes.data_model import ChannelModel, DatasetModel
+from microscopynodes.ui.preferences import addon_preferences
 
 from ..utils import prep_load
 
 
 def _set_import_scale(scale_name):
-    pref_path = Path(bpy.context.scene.MiN_json_preferences)
-    with open(pref_path) as f:
-        prefs = json.load(f)
-    prefs["import_scale"] = scale_name
-    with open(pref_path, "w") as f:
-        json.dump(prefs, f)
+    addon_preferences(bpy.context).import_scale = scale_name
 
 
 def _make_channel(name="Channel 0", affine=None):
     if affine is None:
         affine = np.eye(4).tolist()
     return ChannelModel(
-        name=name,
         cache_path="/tmp/example",
         data={
             "dataset_resolution": 0,
@@ -44,6 +36,7 @@ def _make_channel(name="Channel 0", affine=None):
             "emission": True,
             "cmap": Colormap([(1.0, 1.0, 1.0, 1.0)]),
             "surf_resolution": 0,
+            "name": name,
         },
     )
 

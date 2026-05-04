@@ -22,9 +22,9 @@ def colormap_to_lut(colormap, max_values=32):
 def get_colormap(name, single_color=(1, 1, 1)):
     name = name.lower()
     if name.startswith("single_color:"):
-        return Colormap([Color(name.split(":", 1)[1]).rgba])
+        return Colormap([Color(name.split(":", 1)[1])])
     if name == "single_color":
-        return Colormap([[*single_color, 1.0]])
+        return Colormap([Color(tuple(single_color))])
     return Colormap(name)
 
 def set_color_ramp(ramp_node, lut, linear, name):

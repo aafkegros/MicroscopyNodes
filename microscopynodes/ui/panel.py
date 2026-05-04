@@ -107,16 +107,6 @@ class TIFLoadPanel(bpy.types.Panel):
         
         box = layout.box()
         row = box.row(align=True)
-        if context.scene.MiN_json_preferences != "":
-            row.label(text=f"Preferences are overriden from {context.scene.MiN_json_preferences}", icon="ERROR")
-            row= box.row()
-            row.prop(bpy.context.scene, 'MiN_json_preferences', text="")
-            row = box.row()
-            row.operator("microscopynodes.reset_json")
-            return
-        
-        
-
         row.label(text="Data Storage:", icon="FILE_FOLDER")
         row.prop(addon_preferences(context), 'cache_option', text="", icon="NONE", emboss=True)
         
