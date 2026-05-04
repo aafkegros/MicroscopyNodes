@@ -3,7 +3,7 @@ from .. import __package__
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 import tempfile
-import json
+from types import SimpleNamespace
 
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
@@ -11,23 +11,20 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     def set_channels(self, context):
-        while len(addon_preferences(bpy.context).channels)-1 < addon_preferences(bpy.context).n_default_channels:
-            ch = len(addon_preferences(bpy.context).channels)
-            channel = addon_preferences(bpy.context).channels.add()
-            # This instantiates the keys!
-            channel.ix = ch
-            channel.volume = True
-            channel.emission = True
-            channel.surface = False
-            channel.labelmask = False
-            channel.materials = True
-            channel.surf_resolution = 'ACTUAL'
-            channel.threshold=-1
-            channel.cmap='SINGLE_COLOR'
-            channel.name = f"Channel {ch}"
-            channel.single_color = INIT_COLORS[ch % len(INIT_COLORS)]
-        while len(addon_preferences(bpy.context).channels)-1 >= addon_preferences(bpy.context).n_default_channels:
-            addon_preferences(bpy.context).channels.remove(len(addon_preferences(bpy.context).channels)-1)
+        prefs = addon_preferences(bpy.context)
+        while len(prefs.channels)-1 < prefs.n_default_channels:
+            ch = len(prefs.channels)
+            channel = prefs.channels.add()
+            from .data_model import ChannelVizModel
+            from .ui.channel_list import surf_resolution_value
+
+            viz = ChannelVizModel(
+                ix=ch,
+                surf_resolution=surf_resolution_value(prefs.surf_resolution),
+            )
+            channel.from_channelviz(viz)
+        while len(prefs.channels)-1 >= prefs.n_default_channels:
+            prefs.channels.remove(len(prefs.channels)-1)
 
     import_scale_no_unit_spoof : EnumProperty(
         name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
@@ -54,7 +51,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         name = 'Defined default channels',
         min= 1,
         max=20,
-        default =6,
+        default =8,
         update=set_channels
     )
     extra_channel_slots : bpy.props.IntProperty(
@@ -115,14 +112,6 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        if context.scene.MiN_json_preferences != "":
-            row.label(text=f"Preferences are overriden from {context.scene.MiN_json_preferences}", icon="ERROR")
-            row= layout.row()
-            row.prop(bpy.context.scene, 'MiN_json_preferences', text="")
-            row = layout.row()
-            row.operator("microscopynodes.reset_json")
-            return
-        
         row.prop(self, 'cache_path', text='Data storage "Path" default:')
         row = layout.row()
         row.label(text='Data storage "Temporary" default:')
@@ -141,64 +130,40 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
                         text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
 
 
-class ResetPreferenceJsonOperator(bpy.types.Operator):
-    """ Unsets the preference json path """
-    bl_idname ="microscopynodes.reset_json"
-    bl_label = "Use Blender Preferences"
-
-    def execute(self, context):
-        context.scene.MiN_json_preferences = ""
-        return {'FINISHED'}
-
-class DictWithElements:
-    # wraps a dictionary to access elements by dct.element - same method call as addonpreferences
-    def __init__(self, dictionary):
-        self.__dict__ = dictionary
-
-
 def addon_preferences(context: bpy.types.Context | None = None):
+    global DEFAULT_PREFERENCES
     if context is None:
         context = bpy.context
     try:
-        if hasattr(context, 'scene') and context.scene.MiN_json_preferences != "":
-            with open(context.scene.MiN_json_preferences) as stream:
-                return DictWithElements(json.load(stream))
-    except KeyError as e:
-        print(e)
-    try:
         return context.preferences.addons[__package__].preferences
-    except KeyError:
+    except (AttributeError, KeyError):
         print('CANNOT FIND PREFERENCES')
-        return None
+        if DEFAULT_PREFERENCES is None:
+            DEFAULT_PREFERENCES = SimpleNamespace(
+                import_scale="DEFAULT",
+                import_scale_no_unit_spoof="DEFAULT",
+                import_loc="XY_CENTER",
+                surf_resolution="0",
+                invert_color=False,
+                n_default_channels=8,
+                extra_channel_slots=2,
+                cache_option="TEMPORARY",
+                cache_path=str(Path("~", ".microscopynodes").expanduser()),
+                channels=[default_channel(ix) for ix in range(8)],
+            )
+        return DEFAULT_PREFERENCES
+
+
+def default_channel(ix=0):
+    from .data_model import ChannelVizModel
+    viz = ChannelVizModel(ix=ix)
+    return SimpleNamespace(
+        ix=ix,
+        name=viz.name,
+        to_channelviz=lambda: ChannelVizModel(ix=ix),
+    )
+
+
+DEFAULT_PREFERENCES = None
     
-# subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
-# 1 008AE4
-# 2 4A5B00
-# 3 A12352
-# 4 D55800
-# 5 9061D9
-# 6 006C4D
-# 7 CF458F
-# 8 0093AF
-
-# INIT_COLORS = [
-#     (1.0, 1.0, 1.0),
-#     (0/255, 157/255, 224/255),
-#     (224/255, 0/255, 37/255),
-#     (224/255, 214/255, 0/255),
-#     (117/255, 0/255, 224/255),
-#     (0/255, 224/255, 87/255),
-# ]
-
-INIT_COLORS = [
-    (0.0, 0.541, 0.894),
-    (0.290, 0.357, 0.0),
-    (0.631, 0.137, 0.322),
-    (0.835, 0.345, 0.0),
-    (0.565, 0.380, 0.851),
-    (0.0, 0.424, 0.302),
-    (0.812, 0.271, 0.561),
-    (0.0, 0.576, 0.686),
-]
-
-CLASSES = [MicroscopyNodesPreferences, ResetPreferenceJsonOperator]
+CLASSES = [MicroscopyNodesPreferences]

@@ -65,11 +65,12 @@ def register():
     bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
     bpy.types.NODE_MT_add.append(MIN_add_shader_node_menu)
     bpy.types.NODE_MT_context_menu.append(MIN_context_shader_node_menu)
+    prefs = addon_preferences(bpy.context)
     try: 
-        addon_preferences(bpy.context).channels[0].name
+        prefs.channels[0].name
     except:
         try:
-            addon_preferences(bpy.context).n_default_channels = 6
+            prefs.set_channels(bpy.context)
         except AttributeError:
             pass
     return
@@ -83,4 +84,3 @@ def unregister():
             pass
     bpy.types.NODE_MT_add.remove(MIN_add_shader_node_menu)
     bpy.types.NODE_MT_context_menu.remove(MIN_context_shader_node_menu)
-
