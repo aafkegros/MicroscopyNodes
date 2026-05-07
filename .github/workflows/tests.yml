@@ -21,12 +21,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13.9'
+          cache: 'poetry'
+          cache-dependency-path: 'poetry.lock'
 
       - name: Install poetry
         run: pip install poetry==2.3.2
 
       - name: Install dependencies
-        run: poetry install --with=dev
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            poetry install --with=dev --no-interaction && exit 0
+            sleep $((attempt * 20))
+          done
+          exit 1
 
       - name: Align numpy with Blender
         run: poetry run pip install --no-deps --force-reinstall numpy==2.3.4
