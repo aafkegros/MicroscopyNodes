@@ -13,6 +13,7 @@ import threading
 from ..data_model import DatasetModel
 from ..load import Scene, Dataset
 from ..parse_inputs import parse_blender_ui
+from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
 
 
 def select_post_load_object(context, dataset, previous_active_obj):
@@ -64,6 +65,7 @@ class TifLoadOperator(bpy.types.Operator):
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
                 Scene.from_blender_ui(context)
+                ensure_valid_reload_object(context.scene)
                 dataset = Dataset(holder=context.scene.MiN_reload)
                 dataset.set_state(
                     self.dataset_model,
@@ -119,6 +121,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
         if not result["ok"]:
             raise RuntimeError(result["error"])
         Scene.from_blender_ui(context)
+        ensure_valid_reload_object(context.scene)
         dataset = Dataset(holder=context.scene.MiN_reload)
         dataset.set_state(
             dataset_model,

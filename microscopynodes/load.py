@@ -43,6 +43,9 @@ class Dataset():
         self.labelmask = None
 
         if holder is not None:
+            from .handle_blender_structs.dependent_props import valid_reload_object
+            holder = holder if valid_reload_object(holder) else None
+        if holder is not None:
             self.initialize_from_previous(holder)
         if dataset_model is not None:
             self.set_state(dataset_model)

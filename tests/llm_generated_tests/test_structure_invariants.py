@@ -127,6 +127,54 @@ def test_visibility_socket_matches_channel_visibility():
         assert dataset.volume.gn_mod[socket.identifier] == True
 
 
+def test_parse_clears_reload_when_holder_no_longer_passes_poll():
+    prep_load("5D_5cube")
+    for ch in bpy.context.scene.MiN_channelList:
+        ch["volume"] = True
+        ch["surface"] = False
+        ch["labelmask"] = False
+
+    do_load()
+    holder = bpy.context.scene.MiN_reload
+    assert holder is not None
+
+    for child in list(holder.children):
+        bpy.data.objects.remove(child, do_unlink=True)
+
+    bpy.context.scene.MiN_update_data = False
+    bpy.context.scene.MiN_update_settings = False
+
+    microscopynodes.parse_inputs.parse_blender_ui()
+
+    assert bpy.context.scene.MiN_reload is None
+    assert bpy.context.scene.MiN_update_data is True
+    assert bpy.context.scene.MiN_update_settings is True
+
+
+def test_parse_clears_reload_when_holder_is_unlinked_from_scene():
+    prep_load("5D_5cube")
+    for ch in bpy.context.scene.MiN_channelList:
+        ch["volume"] = True
+        ch["surface"] = False
+        ch["labelmask"] = False
+
+    do_load()
+    holder = bpy.context.scene.MiN_reload
+    assert holder is not None
+
+    for collection in list(holder.users_collection):
+        collection.objects.unlink(holder)
+
+    bpy.context.scene.MiN_update_data = False
+    bpy.context.scene.MiN_update_settings = False
+
+    microscopynodes.parse_inputs.parse_blender_ui()
+
+    assert bpy.context.scene.MiN_reload is None
+    assert bpy.context.scene.MiN_update_data is True
+    assert bpy.context.scene.MiN_update_settings is True
+
+
 def test_surface_affine_translation_offsets_local_mesh_vertices():
     base_mins, base_maxs = _load_single_surface_with_affine_translation((0.0, 0.0, 0.0))
     translated_mins, translated_maxs = _load_single_surface_with_affine_translation((7.0, 11.0, 13.0))

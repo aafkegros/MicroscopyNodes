@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from .handle_blender_structs import *
+from .handle_blender_structs.dependent_props import ensure_valid_reload_object
 from .file_to_array import selected_array_option, channel_data
 from .ui.preferences import addon_preferences
 from .handle_blender_structs.props import min_keys
@@ -12,6 +13,7 @@ from .data_model import DatasetModel, ChannelModel
 
 def parse_blender_ui():
     scn = bpy.context.scene
+    ensure_valid_reload_object(scn)
     if scn.MiN_reload is None:
         scn.MiN_update_data = True
         scn.MiN_update_settings = True
