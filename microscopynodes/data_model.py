@@ -1,10 +1,22 @@
 from typing import Annotated, Optional, Tuple, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import numpy as np
-from cmap import Colormap
+from cmap import Color, Colormap
 from .handle_blender_structs.props import min_keys
 import dask.array as da
 from .io.factories import DataIOFactory
+
+# subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
+INIT_COLORS = [
+    Color("#008AE4"),
+    Color("#4A5B00"),
+    Color("#A12352"),
+    Color("#D55800"),
+    Color("#9061D9"),
+    Color("#006C4D"),
+    Color("#CF458F"),
+    Color("#0093AF"),
+]
 
 
 class ChannelDataModel(BaseModel):
@@ -104,12 +116,30 @@ class ChannelDataModel(BaseModel):
 class ChannelVizModel(BaseModel):
     model_config = ConfigDict(json_encoders={Colormap: Colormap.as_dict})
 
-    volume: bool = False
+    ix: int = 0 
+    name: str | None = None
+    volume: bool = True
     surface: bool = False
     labelmask: bool = False
-    emission: bool
-    cmap: Colormap
-    surf_resolution: int
+    emission: bool = True
+    cmap: Colormap | None = None
+    surf_resolution: int = 0
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_ix_defaults(cls, data):
+        if data is None:
+            data = {}
+        if not isinstance(data, dict):
+            return data
+
+        data = data.copy()
+        ix = int(data.get("ix", 0) or 0)
+        if data.get("name") is None:
+            data["name"] = f"Channel {ix}"
+        if data.get("cmap") is None:
+            data["cmap"] = Colormap([INIT_COLORS[ix % len(INIT_COLORS)]])
+        return data
 
     @field_validator("cmap", mode="before")
     def validate_cmap(cls, v):
@@ -119,7 +149,6 @@ class ChannelVizModel(BaseModel):
 
 
 class ChannelModel(BaseModel):
-    name: str
     data: ChannelDataModel
     viz: ChannelVizModel
     cache_path: str
@@ -130,6 +159,10 @@ class ChannelModel(BaseModel):
     @property
     def identifier(self):
         return f"ch_id{self.data.ix}"
+
+    @property
+    def name(self):
+        return self.viz.name
 
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]

@@ -12,7 +12,12 @@ class TIFLoadPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scn = bpy.context.scene
+        scn = context.scene
+        try:
+            reload_object = scn.MiN_reload
+        except ReferenceError:
+            reload_object = None
+        reload_object_is_valid = valid_reload_object(reload_object, scene=scn)
 
         col = layout.column(align=True)
         col.label(text=".tif or .zarr:")
@@ -86,7 +91,7 @@ class TIFLoadPanel(bpy.types.Panel):
         row = col.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
         row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_EMPTY")
-        if bpy.context.scene.MiN_reload is not None:
+        if reload_object_is_valid:
             row.prop(bpy.context.scene, 'MiN_update_data', icon="FILE")
             row.prop(bpy.context.scene, 'MiN_update_settings', icon="MATERIAL_DATA")
         
@@ -95,7 +100,7 @@ class TIFLoadPanel(bpy.types.Panel):
         col.separator()
         # col = layout.column(align=False)  
         # row = col.row(align=False)
-        if bpy.context.scene.MiN_reload is None:
+        if not reload_object_is_valid:
             col.operator("microscopynodes.load", text="Load")
         else:
             col.operator("microscopynodes.load", text="Reload")
@@ -107,16 +112,6 @@ class TIFLoadPanel(bpy.types.Panel):
         
         box = layout.box()
         row = box.row(align=True)
-        if context.scene.MiN_json_preferences != "":
-            row.label(text=f"Preferences are overriden from {context.scene.MiN_json_preferences}", icon="ERROR")
-            row= box.row()
-            row.prop(bpy.context.scene, 'MiN_json_preferences', text="")
-            row = box.row()
-            row.operator("microscopynodes.reset_json")
-            return
-        
-        
-
         row.label(text="Data Storage:", icon="FILE_FOLDER")
         row.prop(addon_preferences(context), 'cache_option', text="", icon="NONE", emboss=True)
         

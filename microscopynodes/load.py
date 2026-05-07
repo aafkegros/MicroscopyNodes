@@ -43,6 +43,9 @@ class Dataset():
         self.labelmask = None
 
         if holder is not None:
+            from .handle_blender_structs.dependent_props import valid_reload_object
+            holder = holder if valid_reload_object(holder) else None
+        if holder is not None:
             self.initialize_from_previous(holder)
         if dataset_model is not None:
             self.set_state(dataset_model)
@@ -138,21 +141,21 @@ def set_render_settings():
 
     eevee = getattr(scn, "eevee", None)
     if eevee is not None:
+        volumetric_tile_size = '2' if platform.system() == "Windows" else '1' # windows can be buggy with eevee and large window size
+
         for attr, value in {
-            "volumetric_tile_size": '1',
+            "volumetric_tile_size": volumetric_tile_size,
             "volumetric_end": 300,
             "taa_samples": 64,
         }.items():
             if hasattr(eevee, attr):
                 setattr(eevee, attr, value)
-    # bpy.context.scene.cycles.preview_samples = 8
-    # bpy.context.scene.cycles.samples = 64
+
     scn.view_settings.view_transform = 'Standard'
 
-    scn.cycles.transparent_max_bounces = 40 # less slicing artefacts
-    # bpy.context.scene.cycles.volume_bounces = 32
-    # bpy.context.scene.cycles.volume_max_steps = 16 # less time to render
-    scn.cycles.use_denoising = False # this will introduce noise, but at least also not remove data-noise=
+    scn.cycles.transparent_max_bounces = 40
+    scn.cycles.use_denoising = False
+
     set_viewport_scene_world()
     return
 

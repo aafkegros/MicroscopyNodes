@@ -1,11 +1,11 @@
 import os
 os.environ["MIN_TEST"] = "1"
 import bpy
-import json
 
 from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
 import microscopynodes
+from microscopynodes.ui.preferences import addon_preferences
 
 import numpy as np
 import pytest
@@ -62,15 +62,15 @@ def prep_load(arrtype=None):
     # microscopynodes._test_register()
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
-
-    pref_template = str(Path(test_folder).parent / "test_preferences_template.json")
-    with open(pref_template) as f: 
-        prefdct = json.load(f)
-    prefdct['cache_path'] = str(test_folder)
-    pref_path = test_folder / 'pref.json'
-    with open(pref_path, 'w') as f: 
-        json.dump(prefdct, f)
-    bpy.context.scene.MiN_json_preferences = str(pref_path)
+    prefs = addon_preferences(bpy.context)
+    prefs.import_scale = "DEFAULT"
+    prefs.import_loc = "XY_CENTER"
+    prefs.surf_resolution = "0"
+    prefs.invert_color = False
+    prefs.cache_option = "TEMPORARY"
+    prefs.cache_path = str(test_folder)
+    if len(prefs.channels) == 0:
+        prefs.set_channels(bpy.context)
 
     if arrtype is None:
         arrtype = '5D_5cube'

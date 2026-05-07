@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from .handle_blender_structs import *
+from .handle_blender_structs.dependent_props import ensure_valid_reload_object
 from .file_to_array import selected_array_option, channel_data
 from .ui.preferences import addon_preferences
 from .handle_blender_structs.props import min_keys
@@ -12,6 +13,7 @@ from .data_model import DatasetModel, ChannelModel
 
 def parse_blender_ui():
     scn = bpy.context.scene
+    ensure_valid_reload_object(scn)
     if scn.MiN_reload is None:
         scn.MiN_update_data = True
         scn.MiN_update_settings = True
@@ -53,22 +55,15 @@ def parse_channellist() -> List[ChannelModel]:
         "frame_end": scn.MiN_load_end_frame,
     }
     for ch_desc in bpy.context.scene.MiN_channelList:
+        viz = ch_desc.to_channelviz()
         channel_models.append(ChannelModel(
-            name=ch_desc.name,
             cache_path=get_cache_dir(),
             data={
                 **shared_data,
-                "ix": ch_desc.ix,
-                "data": channel_data(ch_desc.ix, bpy.context.scene.MiN_axes_order),
+                "ix": viz.ix,
+                "data": channel_data(viz.ix, bpy.context.scene.MiN_axes_order),
             },
-            viz={
-                "volume": ch_desc.volume,
-                "surface": ch_desc.surface,
-                "labelmask": ch_desc.labelmask,
-                "emission": ch_desc.emission,
-                "surf_resolution": addon_preferences(bpy.context).surf_resolution,
-                "cmap": parse_cmap(ch_desc.cmap, ch_desc.single_color),
-            },
+            viz=viz,
         ))
     return channel_models
 
@@ -151,8 +146,3 @@ def parse_relative_loc():
         return [-0.5,-0.5,-0.5] 
     if prefloc == "ZERO":
         return [0, 0, 0] 
-
-
-def parse_cmap(name, single_color):
-    from .min_nodes.shader_nodes.handle_cmap import get_colormap
-    return get_colormap(name, single_color)
