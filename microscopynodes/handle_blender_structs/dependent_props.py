@@ -45,17 +45,53 @@ bpy.types.Scene.MiN_channel_nr = IntProperty(
 
 def poll_empty(self, object):
     from ..blender_objects.base import get_min_gn
-    if object.type != 'EMPTY':
+    try:
+        if object is None:
+            return False
+        if object.type != 'EMPTY':
+            return False
+        scene = self if isinstance(self, bpy.types.Scene) else bpy.context.scene
+        if scene.objects.get(object.name) != object:
+            return False
+        if any([get_min_gn(child) != None for child in object.children]):
+            return True
         return False
-    if any([get_min_gn(child) != None for child in object.children]):
-        return True
-    return False
+    except (ReferenceError, AttributeError, TypeError):
+        return False
+
+def valid_reload_object(object, scene=None):
+    try:
+        scene = scene or bpy.context.scene
+        return (
+            object is not None
+            and bpy.data.objects.get(object.name) == object
+            and scene.objects.get(object.name) == object
+            and poll_empty(scene, object)
+        )
+    except (ReferenceError, AttributeError, TypeError):
+        return False
+
+def ensure_valid_reload_object(scene=None):
+    scene = scene or bpy.context.scene
+    try:
+        reload_object = scene.MiN_reload
+    except ReferenceError:
+        scene.MiN_reload = None
+        return None
+    if reload_object is not None and not valid_reload_object(reload_object, scene=scene):
+        scene.MiN_reload = None
+        return None
+    return reload_object
+
+def update_reload(self, context):
+    ensure_valid_reload_object(self)
 
 bpy.types.Scene.MiN_reload = PointerProperty(
         name = "", 
         description = "Reload data of Microscopy Nodes object.\nCan be used to replace deleted (temp) files, change resolution, or channel settings.\nUsage: Point to previously loaded microscopy data.",
         type=bpy.types.Object,
         poll=poll_empty,
+        update=update_reload,
         )
 
 def switch_pixel_size(self, context):
