@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "microscopynodes"
-version = "3.0.0"
+version = "3.0.1"
 name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Aafke Gros <aafke.gros@embl.de>"
@@ -27,7 +27,7 @@ copyright =[
 ]
 
 wheels = [
-	"./wheels/aiobotocore-3.5.0-py3-none-any.whl",
+	"./wheels/aiobotocore-3.6.0-py3-none-any.whl",
 	"./wheels/aiohappyeyeballs-2.6.1-py3-none-any.whl",
 	"./wheels/aiohttp-3.13.5-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/aiohttp-3.13.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
@@ -36,7 +36,7 @@ wheels = [
 	"./wheels/aiosignal-1.4.0-py3-none-any.whl",
 	"./wheels/annotated_types-0.7.0-py3-none-any.whl",
 	"./wheels/attrs-26.1.0-py3-none-any.whl",
-	"./wheels/botocore-1.42.91-py3-none-any.whl",
+	"./wheels/botocore-1.43.0-py3-none-any.whl",
 	"./wheels/click-8.3.3-py3-none-any.whl",
 	"./wheels/cloudpickle-3.1.2-py3-none-any.whl",
 	"./wheels/cmap-0.7.1-py3-none-any.whl",
@@ -68,10 +68,10 @@ wheels = [
 	"./wheels/propcache-0.4.1-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
 	"./wheels/propcache-0.4.1-cp313-cp313-win_amd64.whl",
-	"./wheels/pydantic-2.13.3-py3-none-any.whl",
-	"./wheels/pydantic_core-2.46.3-cp313-cp313-macosx_11_0_arm64.whl",
-	"./wheels/pydantic_core-2.46.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-	"./wheels/pydantic_core-2.46.3-cp313-cp313-win_amd64.whl",
+	"./wheels/pydantic-2.13.4-py3-none-any.whl",
+	"./wheels/pydantic_core-2.46.4-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/pydantic_core-2.46.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+	"./wheels/pydantic_core-2.46.4-cp313-cp313-win_amd64.whl",
 	"./wheels/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
 	"./wheels/pyyaml-6.0.3-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/pyyaml-6.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
