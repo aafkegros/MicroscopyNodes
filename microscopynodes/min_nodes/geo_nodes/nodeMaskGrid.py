@@ -77,13 +77,19 @@ def mask_grid_node_group():
     interface.items_tree[-1].structure_type = 'AUTO'
     interface.items_tree[-1].optional_label = True
 
+    interface.new_socket("Invert", in_out="INPUT", socket_type='NodeSocketBool')
+    interface.items_tree[-1].default_value = False
+    interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.items_tree[-1].default_input = 'VALUE'
+    interface.items_tree[-1].structure_type = 'AUTO'
+
     group_input = nodes.new("NodeGroupInput")
     group_input.name = "Group Input"
     group_input.location = (-1155, 10)
 
     group_output = nodes.new("NodeGroupOutput")
     group_output.name = "Group Output"
-    group_output.location = (700, 0)
+    group_output.location = (1525, -20)
     group_output.is_active_output = True
 
     object_info = nodes.new("GeometryNodeObjectInfo")
@@ -140,7 +146,7 @@ def mask_grid_node_group():
     mesh_to_volume.inputs["Density"].default_value = 1.0
     mesh_to_volume.inputs["Resolution Mode"].default_value = 'Size'
     mesh_to_volume.inputs["Voxel Amount"].default_value = 20.0
-    mesh_to_volume.inputs["Interior Band Width"].default_value = 0.20000000298023224
+    mesh_to_volume.inputs["Interior Band Width"].default_value = 0.0
     links.new(realize_instances.outputs["Geometry"], mesh_to_volume.inputs["Mesh"])
     links.new(group_input.outputs["Mask Resolution"], mesh_to_volume.inputs["Voxel Size"])
 
@@ -160,7 +166,7 @@ def mask_grid_node_group():
     box_mesh_to_volume.inputs["Resolution Mode"].default_value = 'Amount'
     box_mesh_to_volume.inputs["Voxel Size"].default_value = 0.30000001192092896
     box_mesh_to_volume.inputs["Voxel Amount"].default_value = 20.0
-    box_mesh_to_volume.inputs["Interior Band Width"].default_value = 0.20000000298023224
+    box_mesh_to_volume.inputs["Interior Band Width"].default_value = 0.0
     links.new(realize_instances.outputs["Geometry"], box_mesh_to_volume.inputs["Mesh"])
 
     get_box_grid = nodes.new("GeometryNodeGetNamedGrid")
@@ -203,13 +209,33 @@ def mask_grid_node_group():
     threshold.inputs[1].default_value = 0.0
     links.new(sample_grid.outputs["Value"], threshold.inputs["Value"])
 
+    invert_mask = nodes.new("FunctionNodeBooleanMath")
+    invert_mask.name = "Invert Mask"
+    invert_mask.location = (915, 85)
+    invert_mask.operation = 'NOT'
+    links.new(threshold.outputs["Value"], invert_mask.inputs[0])
+
+    invert_switch = nodes.new("GeometryNodeSwitch")
+    invert_switch.name = "Invert Switch"
+    invert_switch.location = (915, -55)
+    invert_switch.input_type = 'FLOAT'
+    links.new(group_input.outputs["Invert"], invert_switch.inputs["Switch"])
+    links.new(threshold.outputs["Value"], invert_switch.inputs["False"])
+    links.new(invert_mask.outputs["Boolean"], invert_switch.inputs["True"])
+
     masked_grid = nodes.new("ShaderNodeMath")
     masked_grid.name = "Masked Grid"
-    masked_grid.location = (935, -20)
+    masked_grid.location = (1115, -20)
     masked_grid.operation = 'MULTIPLY'
     masked_grid.use_clamp = False
     links.new(group_input.outputs["Grid"], masked_grid.inputs[0])
-    links.new(threshold.outputs["Value"], masked_grid.inputs[1])
-    links.new(masked_grid.outputs["Value"], group_output.inputs["Masked Grid"])
+    links.new(invert_switch.outputs["Output"], masked_grid.inputs[1])
+
+    prune_grid = nodes.new("GeometryNodeGridPrune")
+    prune_grid.name = "Prune Grid"
+    prune_grid.location = (1325, -20)
+    prune_grid.data_type = 'FLOAT'
+    links.new(masked_grid.outputs["Value"], prune_grid.inputs["Grid"])
+    links.new(prune_grid.outputs["Grid"], group_output.inputs["Masked Grid"])
 
     return node_group
