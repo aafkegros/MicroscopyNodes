@@ -31,6 +31,7 @@ from . import ui
 
 
 from . import min_nodes
+from .min_nodes.geo_nodes import MIN_add_geometry_node_menu
 from .min_nodes.shader_nodes import MIN_add_shader_node_menu, MIN_context_shader_node_menu
 from .ui.preferences import addon_preferences
 
@@ -64,6 +65,7 @@ def register():
     bpy.types.Scene.MiN_array_options = bpy.props.CollectionProperty(type=file_to_array.ArrayOption)
     bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
     bpy.types.NODE_MT_add.append(MIN_add_shader_node_menu)
+    bpy.types.NODE_MT_add.append(MIN_add_geometry_node_menu)
     bpy.types.NODE_MT_context_menu.append(MIN_context_shader_node_menu)
     prefs = addon_preferences(bpy.context)
     try: 
@@ -83,4 +85,5 @@ def unregister():
             # print(op, e)
             pass
     bpy.types.NODE_MT_add.remove(MIN_add_shader_node_menu)
+    bpy.types.NODE_MT_add.remove(MIN_add_geometry_node_menu)
     bpy.types.NODE_MT_context_menu.remove(MIN_context_shader_node_menu)
