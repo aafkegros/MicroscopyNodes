@@ -1,6 +1,7 @@
 import bpy
 from ..handle_blender_structs import *
-from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
+from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
+from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
 from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
 import numpy as np
@@ -203,13 +204,6 @@ class ChannelObject(MiNObject):
         output.location = (1500, 0)
         output.is_active_output = True
 
-        texcoord = nodes.new("ShaderNodeTexCoord")
-        texcoord.name = "Texture Coordinate"
-        texcoord.width = 200
-        texcoord.location = (770, 140)
-        for output_socket in texcoord.outputs:
-            output_socket.hide = (output_socket.name != "Object")
-
         add_shaders = nodes.new("ShaderNodeGroup")
         add_shaders.node_tree = add_shaders_node(self.shader_count)
         add_shaders.name = "Add Shaders"
@@ -217,16 +211,7 @@ class ChannelObject(MiNObject):
         add_shaders.location = (620, 0)
         self.expand_node_ui(add_shaders)
 
-        slicecube = nodes.new("ShaderNodeGroup")
-        slicecube.node_tree = slice_cube_node_group()
-        slicecube.name = "Slice Cube"
-        slicecube.width = 250
-        slicecube.location = (1070, 0)
-        self.expand_node_ui(slicecube)
-
-        links.new(texcoord.outputs.get("Object"), slicecube.inputs.get("Slicing Object"))
-        links.new(add_shaders.outputs[0], slicecube.inputs.get("Shader"))
-        links.new(slicecube.outputs.get("Shader"), output.inputs[self.shader_output_name()])
+        links.new(add_shaders.outputs[0], output.inputs[self.shader_output_name()])
         return
 
     def shader_output_name(self):
@@ -312,6 +297,22 @@ class ChannelObject(MiNObject):
     def channel_nodes(self, x, y, ch, in_ch):
         return in_ch
 
+    def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
+
+        mask_grid = nodes.new("GeometryNodeGroup")
+        mask_grid.node_tree = mask_grid_node_group()
+        mask_grid.name = f"SLICE_CUBE_{ch.identifier}"
+        mask_grid.location = (x + 360, y + 80)
+        mask_grid.width = 280
+        mask_grid.show_options = False
+        if mask_grid.inputs.get("With") is not None:
+            mask_grid.inputs["With"].default_value = 'Box'
+
+        links.new(grid_socket, mask_grid.inputs["Grid"])
+        return mask_grid.outputs["Masked Grid"]
+
     def add_ch_to_shader(self, mat, ch, shader_socket):
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
@@ -342,10 +343,9 @@ class ChannelObject(MiNObject):
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
         self.object.matrix_parent_inverse.identity()
-        for mat in self.object.data.materials:
-            texcoord = mat.node_tree.nodes.get("Texture Coordinate")
-            if texcoord is not None:
-                texcoord.object = slice_cube
+        slicer = self.node_group.nodes.get(f"SLICE_CUBE_{ch.identifier}")
+        if slicer is not None and slicer.inputs.get("Object") is not None:
+            slicer.inputs["Object"].default_value = slice_cube
         for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
             obj.parent = parent
             obj.matrix_parent_inverse.identity()
@@ -400,9 +400,7 @@ class MeshChannelObject(ChannelObject):
         super().init_shader(mat)
         nodes = mat.node_tree.nodes
         nodes["Add Shaders"].location = (980, 0)
-        nodes["Texture Coordinate"].location = (1270, 140)
-        nodes["Slice Cube"].location = (1570, 0)
-        nodes["Material Output"].location = (2050, 0)
+        nodes["Material Output"].location = (1400, 0)
         return
 
     def init_channel_shader(self, mat, ch):

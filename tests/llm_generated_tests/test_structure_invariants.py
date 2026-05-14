@@ -70,12 +70,12 @@ def test_volume_load_builds_expected_geometry_and_shader_structure():
     assert mat.name == f"{dataset_model.name} volume"
     shader_nodes = mat.node_tree.nodes
     assert shader_nodes.get("Add Shaders") is not None
-    assert shader_nodes.get("Slice Cube") is not None
     assert shader_nodes.get("Material Output") is not None
 
     visible_channels = [ch for ch in dataset_model.channels if ch.viz.volume]
     for ch in visible_channels:
         assert gn_nodes.get(f"channel_load_{ch.identifier}") is not None
+        assert gn_nodes.get(f"SLICE_CUBE_{ch.identifier}") is not None
         assert shader_nodes.get(f"[frame_{ch.identifier}]") is not None
         assert shader_nodes.get(f"[microscopy_shading_{ch.identifier}]") is not None
 
@@ -92,7 +92,6 @@ def test_surface_reload_does_not_reconnect_removed_shader_link():
     surface = dataset.surface
     mat = surface.object.data.materials[0]
 
-    slice_cube = mat.node_tree.nodes["Slice Cube"]
     material_output = mat.node_tree.nodes["Material Output"]
     output_input = material_output.inputs[surface.shader_output_name()]
     assert len(output_input.links) == 1

@@ -29,9 +29,9 @@ class MIN_OT_Add_Geometry_Node_Group(Operator):
                 raise RuntimeError("No active node created")
             node.node_tree = node_group
             if node_group.name == "Mask Grid":
-                node.width = node_group.default_group_node_width * 2
+                node.width = node_group.default_group_node_width
+            node.show_options = False
             node.name = node_group.name
-            node.label = node_group.name
         except (AttributeError, RuntimeError, TypeError):
             self.report(
                 {"ERROR"},

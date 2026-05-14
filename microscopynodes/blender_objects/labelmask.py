@@ -1,5 +1,6 @@
 from .base import *
 from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
+from ..min_nodes.geo_nodes.nodeMaskMesh import mask_mesh_node_group
 from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 
 class LabelmaskObject(MeshChannelObject):
@@ -12,6 +13,21 @@ class LabelmaskObject(MeshChannelObject):
         super().init_shader(mat)
         mat.blend_method = "BLEND"
         return
+
+    def channel_nodes(self, x, y, ch, in_ch):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
+
+        mask_mesh = nodes.new("GeometryNodeGroup")
+        mask_mesh.node_tree = mask_mesh_node_group()
+        mask_mesh.name = f"SLICE_CUBE_{ch.identifier}"
+        mask_mesh.location = (x + 170, y)
+        mask_mesh.show_options = False
+        if mask_mesh.inputs.get("With") is not None:
+            mask_mesh.inputs["With"].default_value = 'Box'
+
+        links.new(in_ch, mask_mesh.inputs["Mesh"])
+        return self.store_channel_attribute(x + 450, y, ch, mask_mesh.outputs["Masked Mesh"])
 
     def init_channel_shader(self, mat, ch):
         super().init_channel_shader(mat, ch)

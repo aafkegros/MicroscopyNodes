@@ -75,7 +75,7 @@ class VolumeObject(ChannelObject):
         return import_node.outputs["Grid"]
     
     def channel_nodes(self, x, y, ch, in_ch):
-        return in_ch
+        return self.mask_grid_for_slice_cube(x, y, ch, in_ch)
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
