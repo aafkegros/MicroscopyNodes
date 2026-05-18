@@ -2,6 +2,14 @@ import bpy
 from ..min_nodes.shader_nodes import slice_cube_node_group
 import re
 
+def expand_node_ui(node):
+    if hasattr(node, "show_options"):
+        node.show_options = True
+    for socket in getattr(node, "inputs", []):
+        if hasattr(socket, "show_expanded"):
+            socket.show_expanded = True
+    return node
+
 def  get_nodes_last_output(group):
     # fast function for tests and non-user changed trees
     try:

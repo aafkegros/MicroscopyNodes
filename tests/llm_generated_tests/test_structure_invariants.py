@@ -74,7 +74,7 @@ def test_volume_load_builds_expected_geometry_and_shader_structure():
 
     visible_channels = [ch for ch in dataset_model.channels if ch.viz.volume]
     for ch in visible_channels:
-        assert gn_nodes.get(f"channel_load_{ch.identifier}") is not None
+        assert gn_nodes.get(f"IMPORT_{ch.identifier}") is not None
         assert gn_nodes.get(f"SLICE_CUBE_{ch.identifier}") is not None
         assert shader_nodes.get(f"[frame_{ch.identifier}]") is not None
         assert shader_nodes.get(f"[microscopy_shading_{ch.identifier}]") is not None

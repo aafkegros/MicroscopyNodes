@@ -9,9 +9,6 @@ from ..min_nodes.shader_nodes import set_color_ramp_from_ch
 class SurfaceObject(MeshChannelObject):
     min_type = min_keys.SURFACE
 
-    def import_node_tree(self):
-        return import_microscopy_volume_node_group()
-
     # identical to VolumeObject but annoyign to import
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
@@ -30,17 +27,36 @@ class SurfaceObject(MeshChannelObject):
         mat.blend_method = "HASHED"
         return
 
-    def channel_nodes(self, x, y, ch, in_ch):
+    def add_ch_to_gn(self, ch):
         nodes = self.node_group.nodes
         links = self.node_group.links
-        import_node = nodes[f"channel_load_{ch.identifier}"]
-        masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
 
-        grid_to_mesh = nodes.new('GeometryNodeGridToMesh')
-        grid_to_mesh.name = f"GRID_TO_MESH_{ch.identifier}"
-        grid_to_mesh.location = (x + 750, y)
-        # grid_to_mesh.data_type = 'FLOAT'
-        links.new(masked_grid, grid_to_mesh.inputs.get('Grid'))
+        in_node = nodes.get('Group Input')
+        join_node = nodes.get("Join")
+        x, y = self.next_channel_location(in_node, join_node)
+        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
+
+        import_node = nodes.new("GeometryNodeGroup")
+        import_node.node_tree = import_microscopy_volume_node_group()
+        import_node.location = (x, y + 100)
+        import_node.name = f"IMPORT_{ch.identifier}"
+        import_node.label = ch.name
+        for input_field in import_node.inputs:
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+                input_field.hide = True
+
+        affine_node = nodes.new("FunctionNodeCombineMatrix")
+        affine_node.name = f"channel_affine_{ch.identifier}"
+        affine_node.label = f"{ch.name} affine"
+        affine_node.location = (x - 180, y - 90)
+        for affine_socket in affine_node.inputs:
+            if not affine_socket.is_linked:
+                affine_socket.hide = True
+        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
+        links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
+        links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
+
+        masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
 
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
@@ -49,8 +65,17 @@ class SurfaceObject(MeshChannelObject):
         threshold_socket.attribute_domain = 'POINT'
 
         self.gn_mod[threshold_socket.identifier] =  ch.metadata[self.min_type]['threshold']      
-        links.new(self.node_group.nodes.get('Group Input').outputs.get(threshold_socket.name), grid_to_mesh.inputs.get("Threshold"))  
-        return self.store_channel_attribute(x + 1000, y, ch, grid_to_mesh.outputs.get('Mesh'))
+        threshold = nodes.get('Group Input').outputs.get(threshold_socket.name)
+
+        grid_to_mesh = nodes.new('GeometryNodeGridToMesh')
+        grid_to_mesh.name = f"GRID_TO_MESH_{ch.identifier}"
+        grid_to_mesh.location = (x + 750, y)
+        links.new(masked_grid, grid_to_mesh.inputs.get('Grid'))
+        links.new(threshold, grid_to_mesh.inputs.get("Threshold"))
+
+        out_ch = self.store_channel_attribute(x + 1000, y, ch, grid_to_mesh.outputs.get('Mesh'))
+        links.new(out_ch, join_node.inputs["Geometry"])
+        return
 
     def update_gn(self, ch):
         for i in range(4):

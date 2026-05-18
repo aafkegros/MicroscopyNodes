@@ -6,17 +6,39 @@ from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 class LabelmaskObject(MeshChannelObject):
     min_type = min_keys.LABELMASK
 
-    def import_node_tree(self):
-        return import_microscopy_meshes_node_group()
-
     def init_shader(self, mat):
         super().init_shader(mat)
         mat.blend_method = "BLEND"
         return
 
-    def channel_nodes(self, x, y, ch, in_ch):
+    def add_ch_to_gn(self, ch):
         nodes = self.node_group.nodes
         links = self.node_group.links
+
+        in_node = nodes.get('Group Input')
+        join_node = nodes.get("Join")
+        x, y = self.next_channel_location(in_node, join_node)
+        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
+
+        import_node = nodes.new("GeometryNodeGroup")
+        import_node.node_tree = import_microscopy_meshes_node_group()
+        import_node.location = (x, y + 100)
+        import_node.name = f"IMPORT_{ch.identifier}"
+        import_node.label = ch.name
+        for input_field in import_node.inputs:
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+                input_field.hide = True
+
+        affine_node = nodes.new("FunctionNodeCombineMatrix")
+        affine_node.name = f"channel_affine_{ch.identifier}"
+        affine_node.label = f"{ch.name} affine"
+        affine_node.location = (x - 180, y - 90)
+        for affine_socket in affine_node.inputs:
+            if not affine_socket.is_linked:
+                affine_socket.hide = True
+        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
+        links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
+        links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
 
         mask_mesh = nodes.new("GeometryNodeGroup")
         mask_mesh.node_tree = mask_mesh_node_group()
@@ -26,14 +48,16 @@ class LabelmaskObject(MeshChannelObject):
         if mask_mesh.inputs.get("With") is not None:
             mask_mesh.inputs["With"].default_value = 'Box'
 
-        links.new(in_ch, mask_mesh.inputs["Mesh"])
-        return self.store_channel_attribute(x + 450, y, ch, mask_mesh.outputs["Masked Mesh"])
+        links.new(import_node.outputs["Geometry"], mask_mesh.inputs["Mesh"])
+        out_ch = self.store_channel_attribute(x + 450, y, ch, mask_mesh.outputs["Masked Mesh"])
+        links.new(out_ch, join_node.inputs["Geometry"])
+        return
 
     def init_channel_shader(self, mat, ch):
         super().init_channel_shader(mat, ch)
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.data.ix
+        y_offset = -self.shader_y_step * ch.data.ix
         frame = nodes[f"[frame_{ch.identifier}]"]
         color_lut = nodes[f"[color_lut_{ch.identifier}]"]
 
