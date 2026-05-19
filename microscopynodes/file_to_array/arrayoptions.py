@@ -45,7 +45,7 @@ class ArrayOption(bpy.types.PropertyGroup):
         self.identifier = identifier
         self.xy_size = float(affine[0][0])
         self.z_size = float(affine[2][2])
-        self.is_rescaled = False
+        self.is_rescaled = _is_rescaled(channel_data)
         self.path = dataset_model.name or ""
         self.set_shape(shape)
         self.human_size = _human_dataset_size(dataset_model)
@@ -57,7 +57,7 @@ class ArrayOption(bpy.types.PropertyGroup):
         if self.path:
             self.ui_text = f"{self.path}: {self.ui_text}"
         self.description = "Native dataset option."
-        self.icon = 'VOLUME_DATA'
+        self.icon = 'VOLUME_DATA' if self.is_rescaled else 'OUTLINER_OB_VOLUME'
         return self
 
 
@@ -85,6 +85,10 @@ def get_array_options(scene, context):
 
 def _human_dataset_size(dataset_model):
     return _human_size(sum(_channel_size_bytes(channel) for channel in dataset_model.channels))
+
+
+def _is_rescaled(channel_data):
+    return tuple(channel_data.min_rescale_xyz) != (1.0, 1.0, 1.0)
 
 
 def _channel_size_bytes(channel_model):
