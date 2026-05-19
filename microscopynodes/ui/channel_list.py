@@ -62,7 +62,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
         default='SINGLE_COLOR',
         update = update_func 
     )
-    single_color : bpy.props.FloatVectorProperty(subtype="COLOR_GAMMA", min=0, max=1, update= update_func)
+    single_color : bpy.props.FloatVectorProperty(subtype="COLOR", min=0, max=1, update= update_func)
 
     def to_channelviz(self):
         from ..data_model import ChannelVizModel
@@ -97,7 +97,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
             self.cmap = "SINGLE_COLOR"
             lut = [color for color in channelviz.cmap.lut(2) if list(color) != [0, 0, 0, 0]]
             if lut:
-                self.single_color = tuple(lut[-1][:3])
+                self.single_color = _display_rgb_to_linear(lut[-1][:3])
 
     def _matching_cmap_enum(self, channelviz):
         from ..min_nodes.shader_nodes.handle_cmap import get_colormap
@@ -112,6 +112,18 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
             except Exception:
                 pass
         return None
+
+
+def _display_rgb_to_linear(rgb):
+    return tuple(_srgb_to_linear(float(channel)) for channel in rgb)
+
+
+def _srgb_to_linear(channel):
+    channel = max(0.0, min(1.0, channel))
+    if channel <= 0.04045:
+        return channel / 12.92
+    return ((channel + 0.055) / 1.055) ** 2.4
+
 
 class SCENE_UL_Channels(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
