@@ -3,6 +3,7 @@ from .nodeGridVerts import grid_verts_node_group
 from .import_microscopy_meshes import import_microscopy_meshes_node_group
 from .import_microscopy_volume import import_microscopy_volume_node_group
 from .join_grids import join_grids_node_group
+from .nodeMicroscopyGridToPoints import microscopy_grid_to_points_node_group
 from .nodeMaskGrid import mask_grid_node_group
 from .nodeMaskMesh import mask_mesh_node_group
 from .nodeScale import scale_node_group
@@ -14,6 +15,7 @@ import bpy
 ADD_MENU_NODE_GROUPS = [
     "Mask Grid",
     "Mask Mesh",
+    "Microscopy Grid to Points",
 ]
 
 
@@ -48,6 +50,7 @@ NODE_GROUPS = {
     "Join Grids": join_grids_node_group,
     "Mask Grid": mask_grid_node_group,
     "Mask Mesh": mask_mesh_node_group,
+    "Microscopy Grid to Points": microscopy_grid_to_points_node_group,
     "Scale bars": scale_node_group,
     "_grid_verts": grid_verts_node_group,
     "_scalebox": scalebox_node_group,
