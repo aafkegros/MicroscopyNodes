@@ -1,5 +1,5 @@
 from typing import Annotated, Optional, Tuple, List, Dict, Any
-from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator, ConfigDict
 import numpy as np
 from cmap import Color, Colormap
 from .handle_blender_structs.props import min_keys
@@ -21,26 +21,78 @@ INIT_COLORS = [
 
 class ChannelDataModel(BaseModel):
     # allow arbitrary types to parse dask arrays - might remove
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
 
     dataset_resolution: int # currently static resolution identifier 
 
     ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
-    data: da.Array # Maybe make this optional again for if the link to the data is lost?
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
+    source_axes_order: str | None = None
+    source_data: da.Array = Field(alias="data") # lazy link to source data
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
     frame_end: int = None
 
     source: str  #for logging
+    min_rescale_xyz: Tuple[float, float, float] = (1.0, 1.0, 1.0)
+    _data_cache: da.Array | None = PrivateAttr(default=None)
 
-    @field_validator("data")
+    @field_validator("min_rescale_xyz")
+    def validate_min_rescale_xyz(cls, v):
+        if any(value < 1 for value in v):
+            raise ValueError("min_rescale_xyz values must be greater than or equal to 1.")
+        return tuple(float(value) for value in v)
+
+    @property
+    def data(self):
+        channel_axis = self.channel_axis
+        if channel_axis is None:
+            return self.source_data
+        if self._data_cache is None:
+            self._data_cache = da.take(
+                self.source_data,
+                indices=self.ix,
+                axis=channel_axis,
+            )
+        return self._data_cache
+
+    @data.setter
+    def data(self, value):
+        self.source_data = value
+        self.source_axes_order = self.axes_order
+        self._data_cache = None
+
+    @property
+    def channel_axis(self):
+        if self.source_axes_order is None or "c" not in self.source_axes_order:
+            return None
+        return self.source_axes_order.find("c")
+
+    @property
+    def data_shape(self):
+        shape = tuple(self.source_data.shape)
+        channel_axis = self.channel_axis
+        if channel_axis is None:
+            return shape
+        return tuple(
+            dim
+            for ix, dim in enumerate(shape)
+            if ix != channel_axis
+        )
+
+    @property
+    def data_dtype(self):
+        return self.source_data.dtype
+
+    @field_validator("source_data")
     def validate_data_shape(cls, v, info):
         if v is not None:
             axes_order = info.data.get("axes_order")
-            if axes_order is not None and v.ndim != len(axes_order):
-                raise ValueError(f"data.ndim ({v.ndim}) does not match axes_order length ({len(axes_order)}, note that channelConfig data is single-channel without channel axis)")
+            source_axes_order = info.data.get("source_axes_order")
+            expected_axes = source_axes_order or axes_order
+            if expected_axes is not None and v.ndim != len(expected_axes):
+                raise ValueError(f"data.ndim ({v.ndim}) does not match axes_order length ({len(expected_axes)})")
         return v
 
     @field_validator('affine', mode='before')
@@ -58,34 +110,25 @@ class ChannelDataModel(BaseModel):
 
     @field_validator("frame_start", "frame_end")
     def validate_frame_bounds(cls, v, info):
-        data = info.data.get("data")
-        axes = info.data.get("axes_order")
-
-        if data is None or axes is None:
-            return v
-
-        if v is None:
-            return v
-
-        if "t" not in axes:
-            return 0
-
-        tdim = data.shape[axes.index("t")]
-
-        if v < 0 or v >= tdim:
-            raise ValueError(f"frame index {v} out of bounds for t axis length {tdim}")
-
         return v
 
     @model_validator(mode="after")
     def validate_frame_order(self):
+        if self.source_axes_order is None:
+            self.source_axes_order = self.axes_order
         if "t" not in self.axes_order:
             self.frame_start = 0
             self.frame_end = 0
         if 't' in self.axes_order and self.frame_start is None:
             self.frame_start = 0
         if 't' in self.axes_order and self.frame_end is None:
-            self.frame_end = self.data.shape[self.axes_order.find('t')]-1 
+            self.frame_end = self.data_shape[self.axes_order.find('t')]-1
+        if 't' in self.axes_order:
+            tdim = self.data_shape[self.axes_order.find('t')]
+            if self.frame_start < 0 or self.frame_start >= tdim:
+                raise ValueError(f"frame_start {self.frame_start} out of bounds for t axis length {tdim}")
+            if self.frame_end < 0 or self.frame_end >= tdim:
+                raise ValueError(f"frame_end {self.frame_end} out of bounds for t axis length {tdim}")
         if "t" in self.axes_order and self.frame_start > self.frame_end:
             raise ValueError("frame_start must not exceed frame_end")
         return self
@@ -93,7 +136,7 @@ class ChannelDataModel(BaseModel):
     # should implement transforms for Zarr RFC-5, will then turn to floats
     @property
     def intrinsic_bbox(self) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
-        upper_bound = [self.data.shape[self.axes_order.find(dim)] if dim in self.axes_order else 1 for dim in 'xyz']
+        upper_bound = [self.data_shape[self.axes_order.find(dim)] if dim in self.axes_order else 1 for dim in 'xyz']
         return tuple((0.0, float(u)) for u in upper_bound)
 
     @property
