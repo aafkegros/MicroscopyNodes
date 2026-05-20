@@ -1,10 +1,10 @@
+import importlib.util
 import os
 from pathlib import Path
 from urllib.parse import unquote_to_bytes, urljoin
 
 import dask.array as da
 import numpy as np
-import s3fs
 import zarr
 
 from ..data_model import ChannelDataModel, ChannelModel, ChannelVizModel, DatasetModel
@@ -94,11 +94,13 @@ class ZarrLoader:
         if uri.startswith("file:"):
             uri = os.fsdecode(unquote_to_bytes(uri))
         uri = str(uri)
-        if uri.startswith("s3://"):
-            store = s3fs.S3Map(root=uri, s3=s3fs.S3FileSystem(anon=True), check=False)
-        else:
-            store = uri
-        return zarr.open_group(store, mode='r')
+        store = _s3_store(uri) if uri.startswith("s3://") else uri
+        try:
+            return zarr.open_group(store, mode='r')
+        except ModuleNotFoundError as e:
+            if "fsspec" not in str(e):
+                raise
+            raise ModuleNotFoundError(f"Could not import fsspec dependency ({_fsspec_info()})") from e
 
     def parse_zattrs(self, uri):
         group = self.open_zarr(uri)
@@ -177,3 +179,24 @@ def append_uri(uri, append):
     if uri[-1] != '/':
         uri += "/"
     return urljoin(uri, append)
+
+
+def _s3_store(uri):
+    try:
+        import s3fs
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(f"s3 zarr requires s3fs ({_fsspec_info()})") from e
+    return s3fs.S3Map(root=uri, s3=s3fs.S3FileSystem(anon=True), check=False)
+
+
+def _fsspec_info():
+    try:
+        import fsspec
+    except ModuleNotFoundError:
+        return "missing"
+
+    chained = importlib.util.find_spec("fsspec.implementations.chained") is not None
+    return (
+        f"{getattr(fsspec, '__version__', 'unknown')} "
+        f"at {getattr(fsspec, '__file__', 'unknown')}, chained={chained}"
+    )
