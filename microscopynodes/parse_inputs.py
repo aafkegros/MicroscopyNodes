@@ -1,12 +1,11 @@
 import bpy
 import numpy as np
+import tempfile
 from pathlib import Path
 
-from .handle_blender_structs import *
 from .handle_blender_structs.dependent_props import ensure_valid_reload_object
 from .file_to_array import selected_array_option, channel_data_model
 from .ui.preferences import addon_preferences
-from .handle_blender_structs.props import min_keys
 
 from typing import List
 from .data_model import DatasetModel, ChannelModel

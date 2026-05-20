@@ -1,6 +1,8 @@
 import bpy
 
-from .handle_blender_structs import *
+from .handle_blender_structs.keyframe_handling import ensure_dataset_frame_driver, ensure_dataset_frame_property
+from .handle_blender_structs.node_handling import get_min_gn
+from .handle_blender_structs.props import min_keys
 from .blender_objects.factories import MinObjectFactory
 
 class Scene():

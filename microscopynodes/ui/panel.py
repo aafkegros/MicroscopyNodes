@@ -1,5 +1,5 @@
 import bpy
-from ..handle_blender_structs.dependent_props import *
+from ..handle_blender_structs.dependent_props import valid_reload_object
 from ..file_to_array import selected_array_option
 from .preferences import addon_preferences
 

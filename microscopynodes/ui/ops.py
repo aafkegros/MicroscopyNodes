@@ -1,7 +1,4 @@
 import bpy
-from .. import load
-from .. import parse_inputs
-from .. import handle_blender_structs
 from .channel_list import *
 from bpy.types import (Panel,
                         Operator,
@@ -14,6 +11,7 @@ from ..data_model import DatasetModel
 from ..load import Scene, Dataset
 from ..parse_inputs import parse_blender_ui
 from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
+from ..handle_blender_structs.progress_handling import clear_progress
 
 
 def select_post_load_object(context, dataset, previous_active_obj):
@@ -60,7 +58,7 @@ class TifLoadOperator(bpy.types.Operator):
             [region.tag_redraw() for region in context.area.regions]
             if self.thread is None:
                 if self.local_files_result is not None and not self.local_files_result["ok"]:
-                    handle_blender_structs.clear_progress()
+                    clear_progress()
                     raise(Exception(self.local_files_result["error"]))
                     return {"CANCELLED"}
                 context.window_manager.event_timer_remove(self._timer)
@@ -73,14 +71,14 @@ class TifLoadOperator(bpy.types.Operator):
                     update_settings=context.scene.MiN_update_settings,
                 )
                 select_post_load_object(context, dataset, self.prev_active_obj)
-                handle_blender_structs.clear_progress()
+                clear_progress()
                 return {'FINISHED'}
             if not self.thread.is_alive():
                 self.thread = None # update UI for one timer-round
             return {"RUNNING_MODAL"}
         if event.type in {'RIGHTMOUSE', 'ESC'}:  # Cancel
             # Revert all changes that have been made
-            handle_blender_structs.clear_progress()
+            clear_progress()
             return {'CANCELLED'}
 
         return {"RUNNING_MODAL"}
@@ -106,7 +104,7 @@ class TifLoadOperator(bpy.types.Operator):
     def cancel(self, context):
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
-        handle_blender_structs.clear_progress()
+        clear_progress()
         return
 
 
@@ -129,7 +127,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
             update_settings=context.scene.MiN_update_settings,
         )
         select_post_load_object(context, dataset, context.active_object)
-        handle_blender_structs.clear_progress()
+        clear_progress()
         return {'FINISHED'}
 
 

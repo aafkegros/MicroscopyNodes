@@ -1,5 +1,6 @@
 import bpy
-from ..handle_blender_structs import *
+from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_name_socket
+from ..handle_blender_structs.props import min_keys
 from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
 from ..ui.preferences import addon_preferences
