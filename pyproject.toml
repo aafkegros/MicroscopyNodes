@@ -33,6 +33,7 @@ pytest = "*"
 pytest-cov = "*"
 pytest-snapshot = "*"
 imageio = "*"
+mike = "*"
 
 [build-system]
 requires = ["poetry-core>=1.1.0"]

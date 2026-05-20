@@ -32,6 +32,10 @@ theme:
   features:
     - navigation.tabs
 
+extra:
+  version:
+    provider: mike
+
 plugins:
   - include-markdown
   - search
