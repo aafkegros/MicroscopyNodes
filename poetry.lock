@@ -1152,6 +1152,22 @@ files = [
 ]
 
 [[package]]
+name = "nodebpy"
+version = "0.17.0"
+description = "Build nodes trees in Blender more elegantly with code"
+optional = false
+python-versions = ">=3.13"
+groups = ["main"]
+files = [
+    {file = "nodebpy-0.17.0-py3-none-any.whl", hash = "sha256:cfa3459d19cf933a90dc9b430d537e0d13220c10c929daa428258fa212f86097"},
+    {file = "nodebpy-0.17.0.tar.gz", hash = "sha256:ef1992c2f35a4255dfa8efaf996d6897eb4f87410e5da81da81720b43195af3f"},
+]
+
+[package.extras]
+bpy = ["bpy (>=5.1.0)"]
+networkx = ["networkx (>=3.6.1)"]
+
+[[package]]
 name = "numcodecs"
 version = "0.16.1"
 description = "A Python package providing buffer compression and transformation codecs for use in data storage and communication applications."
@@ -2223,4 +2239,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.13.9"
-content-hash = "876a57723230fcf24a434186229b1f0860f1f244a8aaa5e41b9932665f76d39e"
+content-hash = "f7e5879483f9f9efda9037ca20053195c0b117c2fabf36b8a82404a7d8e39b37"
