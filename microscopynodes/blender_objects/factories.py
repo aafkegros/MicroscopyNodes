@@ -1,4 +1,4 @@
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs.min_keys import min_keys
 from .axes import Axes
 from .holder import Holder
 from .labelmask import LabelmaskObject

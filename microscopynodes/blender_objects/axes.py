@@ -1,7 +1,7 @@
 import bpy
 import numpy as np
 
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes import crosshatch_node_group, scale_node_group
 from .base import MiNObject
 

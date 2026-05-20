@@ -1,4 +1,6 @@
-from .base import *
+from .base import MeshChannelObject
+from ..handle_blender_structs.node_handling import new_socket
+from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
 from ..min_nodes.geo_nodes.nodeMaskMesh import mask_mesh_node_group
 from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch

@@ -5,17 +5,9 @@ from bpy.props import (StringProperty, FloatProperty,
                         )
 
 import platform
-from enum import Enum
 import tempfile
 
-class min_keys(Enum): 
-    HOLDER = 0
-    AXES = 1
-    VOLUME = 2
-    SURFACE = 3
-    LABELMASK = 4
-    SLICECUBE = 5
-
+from .min_keys import min_keys
 
 
 bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(

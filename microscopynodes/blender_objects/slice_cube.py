@@ -1,7 +1,7 @@
 import bpy
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs.min_keys import min_keys
 import numpy as np
-from .base import *
+from .base import MiNObject
 
 class SliceCubeObject(MiNObject):
     min_type = min_keys.SLICECUBE

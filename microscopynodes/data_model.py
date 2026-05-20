@@ -2,9 +2,8 @@ from typing import Annotated, Optional, Tuple, List, Dict, Any
 from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator, ConfigDict
 import numpy as np
 from cmap import Color, Colormap
-from .handle_blender_structs.props import min_keys
+from .handle_blender_structs.min_keys import min_keys
 import dask.array as da
-from .io.factories import DataIOFactory
 
 # subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
 INIT_COLORS = [
@@ -295,6 +294,8 @@ class DatasetModel(BaseModel):
         return self
 
     def make_local_files(self):
+        from .io.factories import DataIOFactory
+
         try:
             for ch in self.channels:
                 for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):

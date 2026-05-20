@@ -1,22 +1,23 @@
 import bpy
-from .. import __package__
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 
+ADDON_PACKAGE = __package__.rsplit(".", 1)[0]
+
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
-    from .ui.channel_list import ChannelDescriptor
-    bl_idname = __package__
+    from .channel_list import ChannelDescriptor
+    bl_idname = ADDON_PACKAGE
 
     def set_channels(self, context):
         prefs = addon_preferences(bpy.context)
         while len(prefs.channels)-1 < prefs.n_default_channels:
             ch = len(prefs.channels)
             channel = prefs.channels.add()
-            from .data_model import ChannelVizModel
-            from .ui.channel_list import surf_resolution_value
+            from ..data_model import ChannelVizModel
+            from .channel_list import surf_resolution_value
 
             viz = ChannelVizModel(
                 ix=ch,
@@ -135,7 +136,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
     if context is None:
         context = bpy.context
     try:
-        return context.preferences.addons[__package__].preferences
+        return context.preferences.addons[ADDON_PACKAGE].preferences
     except (AttributeError, KeyError):
         print('CANNOT FIND PREFERENCES')
         if DEFAULT_PREFERENCES is None:
@@ -155,7 +156,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
 
 
 def default_channel(ix=0):
-    from .data_model import ChannelVizModel
+    from ..data_model import ChannelVizModel
     viz = ChannelVizModel(ix=ix)
     return SimpleNamespace(
         ix=ix,

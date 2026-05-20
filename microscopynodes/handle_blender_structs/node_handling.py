@@ -1,5 +1,4 @@
 import bpy 
-from ..min_nodes.shader_nodes import slice_cube_node_group
 import re
 
 def expand_node_ui(node):
@@ -150,6 +149,8 @@ def get_socket_by_name(node_group, name, return_ix=False):
             return node_group.interface.items_tree[ix]
 
 def insert_slicing(group, slice_obj):
+    from ..min_nodes.shader_nodes import slice_cube_node_group
+
     nodes = group.nodes
     links = group.links
     lastnode, outnode, output_input = get_nodes_last_output(group)

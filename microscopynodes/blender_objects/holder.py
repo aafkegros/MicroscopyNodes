@@ -1,5 +1,7 @@
-from .base import *
-from ..handle_blender_structs.props import min_keys
+import bpy
+
+from .base import MiNObject
+from ..handle_blender_structs.min_keys import min_keys
 
 class Holder(MiNObject):
     min_type = min_keys.HOLDER

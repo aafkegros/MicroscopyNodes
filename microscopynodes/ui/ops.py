@@ -1,11 +1,5 @@
 import bpy
-from .channel_list import *
-from bpy.types import (Panel,
-                        Operator,
-                        AddonPreferences,
-                        PropertyGroup,
-                        )
-from bpy.types import UIList
+from bpy.types import Operator
 import threading
 from ..data_model import DatasetModel
 from ..load import Scene, Dataset

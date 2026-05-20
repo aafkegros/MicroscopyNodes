@@ -1,7 +1,9 @@
 import bpy
 import numpy as np
 
-from .base import *
+from .base import ChannelObject
+from ..handle_blender_structs.node_handling import expand_node_ui, new_socket
+from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node

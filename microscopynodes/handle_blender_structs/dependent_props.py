@@ -44,7 +44,7 @@ bpy.types.Scene.MiN_channel_nr = IntProperty(
         )
 
 def poll_empty(self, object):
-    from ..blender_objects.base import get_min_gn
+    from .node_handling import get_min_gn
     try:
         if object is None:
             return False
