@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -17,12 +20,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-14]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13.9'
-          cache: 'poetry'
-          cache-dependency-path: 'poetry.lock'
 
       - name: Install poetry
         run: pip install poetry==2.3.2
