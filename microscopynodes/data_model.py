@@ -22,18 +22,17 @@ class ChannelDataModel(BaseModel):
     # allow arbitrary types to parse dask arrays - might remove
     model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
 
-    dataset_resolution: int # currently static resolution identifier 
-
-    ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
-    axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
-    source_axes_order: str | None = None
+    source: str  #for logging
+    source_axes_order: Annotated[str, Field(pattern=r"^[tcxyz]*$")]
     source_data: da.Array = Field(alias="data") # lazy link to source data
+
+    ix: int # channel index in the source_data
     affine: List[List[float]] | None = None #transforms into unit space
+    name: str | None = None
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
     frame_end: int = None
 
-    source: str  #for logging
     min_rescale_xyz: Tuple[float, float, float] = (1.0, 1.0, 1.0)
     _data_cache: da.Array | None = PrivateAttr(default=None)
 
@@ -63,6 +62,10 @@ class ChannelDataModel(BaseModel):
         self._data_cache = None
 
     @property
+    def axes_order(self):
+        return self.source_axes_order.replace("c", "")
+
+    @property
     def channel_axis(self):
         if self.source_axes_order is None or "c" not in self.source_axes_order:
             return None
@@ -87,11 +90,9 @@ class ChannelDataModel(BaseModel):
     @field_validator("source_data")
     def validate_data_shape(cls, v, info):
         if v is not None:
-            axes_order = info.data.get("axes_order")
             source_axes_order = info.data.get("source_axes_order")
-            expected_axes = source_axes_order or axes_order
-            if expected_axes is not None and v.ndim != len(expected_axes):
-                raise ValueError(f"data.ndim ({v.ndim}) does not match axes_order length ({len(expected_axes)})")
+            if source_axes_order is not None and v.ndim != len(source_axes_order):
+                raise ValueError(f"data.ndim ({v.ndim}) does not match source_axes_order length ({len(source_axes_order)})")
         return v
 
     @field_validator('affine', mode='before')
@@ -113,8 +114,6 @@ class ChannelDataModel(BaseModel):
 
     @model_validator(mode="after")
     def validate_frame_order(self):
-        if self.source_axes_order is None:
-            self.source_axes_order = self.axes_order
         if "t" not in self.axes_order:
             self.frame_start = 0
             self.frame_end = 0
@@ -191,12 +190,41 @@ class ChannelVizModel(BaseModel):
 
 
 class ChannelModel(BaseModel):
-    data: ChannelDataModel
+    data_options: Annotated[List[ChannelDataModel], Field(min_length=1)]
+    data_scale_ix: int = 0
     viz: ChannelVizModel
     cache_path: str
     force_remaking_files: bool = False
     metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
     file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
+
+    @model_validator(mode="after")
+    def validate_selected_scale(self):
+        if self.data_scale_ix < 0 or self.data_scale_ix >= len(self.data_options):
+            raise ValueError("data_scale_ix out of bounds")
+        return self
+
+    @property
+    def data(self):
+        return self.data_options[self.data_scale_ix]
+
+    @data.setter
+    def data(self, value):
+        if not isinstance(value, ChannelDataModel):
+            value = ChannelDataModel.model_validate(value)
+        self.data_options = [value]
+        self.data_scale_ix = 0
+
+    @property
+    def selected_scale(self):
+        return self.data_scale_ix
+
+    @selected_scale.setter
+    def selected_scale(self, value):
+        value = int(value)
+        if value < 0 or value >= len(self.data_options):
+            raise ValueError("selected_scale out of bounds")
+        self.data_scale_ix = value
 
     @property
     def identifier(self):
