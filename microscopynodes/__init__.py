@@ -34,7 +34,7 @@ from . import min_nodes
 from .min_nodes.geo_nodes import MIN_add_geometry_node_menu
 from .min_nodes.shader_nodes import MIN_add_shader_node_menu, MIN_context_shader_node_menu
 from .ui.preferences import addon_preferences
-
+from .handle_blender_structs import dependent_props, props
 
 # print('getting classes')
 all_classes = (
@@ -62,6 +62,8 @@ def register():
         except Exception as e:
             # print(op, e)
             pass
+    props.register_scene_props()
+    dependent_props.register_scene_props()
     bpy.types.Scene.MiN_array_options = bpy.props.CollectionProperty(type=file_to_array.ArrayOption)
     bpy.types.Scene.MiN_channelList = bpy.props.CollectionProperty(type=ui.channel_list.ChannelDescriptor)
     bpy.types.NODE_MT_add.append(MIN_add_shader_node_menu)
@@ -78,6 +80,13 @@ def register():
     return
 
 def unregister():
+    for prop in ("MiN_array_options", "MiN_channelList"):
+        try:
+            delattr(bpy.types.Scene, prop)
+        except AttributeError:
+            pass
+    dependent_props.unregister_scene_props()
+    props.unregister_scene_props()
     for op in all_classes:
         try:
             bpy.utils.unregister_class(op)

@@ -2,8 +2,9 @@ import os
 os.environ["MIN_TEST"] = "1"
 import bpy
 
-from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
+from microscopynodes.handle_blender_structs.min_keys import min_keys
+from microscopynodes.handle_blender_structs.node_handling import get_socket
 import microscopynodes
 from microscopynodes.ui.preferences import addon_preferences
 
@@ -59,8 +60,8 @@ def make_tif(path, arrtype):
 
 
 def prep_load(arrtype=None):
-    # microscopynodes._test_register()
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    microscopynodes._test_register()
 
     prefs = addon_preferences(bpy.context)
     prefs.import_scale = "DEFAULT"
@@ -78,10 +79,6 @@ def prep_load(arrtype=None):
     path = test_folder / f'{arrtype}.tif'
     path, arr, axes_order = make_tif(path, arrtype)
 
-    # bpy.context.scene.MiN_selected_cache_option = "Path"
-    # bpy.context.scene.MiN_explicit_cache_dir = str(test_folder)
-    # bpy.context.scene.MiN_cache_dir = str(test_folder)
-    
     bpy.context.scene.MiN_input_file = str(path)
     # assert(arr_shape() == arr.shape)
     assert(len(bpy.context.scene.MiN_channelList) == len_axis('c', axes_order, arr.shape))

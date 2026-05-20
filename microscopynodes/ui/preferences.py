@@ -138,7 +138,6 @@ def addon_preferences(context: bpy.types.Context | None = None):
     try:
         return context.preferences.addons[ADDON_PACKAGE].preferences
     except (AttributeError, KeyError):
-        print('CANNOT FIND PREFERENCES')
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
                 import_scale="DEFAULT",
