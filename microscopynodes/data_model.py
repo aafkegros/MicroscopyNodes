@@ -5,10 +5,6 @@ from cmap import Color, Colormap
 from .handle_blender_structs.min_keys import min_keys
 import dask.array as da
 
-AffineMatrix = List[List[float]]
-AxisBounds = Tuple[float, float]
-SpatialBounds = Tuple[AxisBounds, AxisBounds, AxisBounds]
-
 # subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
 INIT_COLORS = [
     Color("#008AE4"),
@@ -31,7 +27,7 @@ class ChannelDataModel(BaseModel):
     source_data: da.Array = Field(alias="data") # lazy link to source data
 
     ix: int # channel index in the source_data
-    affine: AffineMatrix | None = None #transforms into unit space
+    affine: List[List[float]] | None = None #transforms into unit space
     name: str | None = None
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
@@ -112,6 +108,10 @@ class ChannelDataModel(BaseModel):
             raise ValueError('Affine must be 4×4.')
         return a.tolist()
 
+    @field_validator("frame_start", "frame_end")
+    def validate_frame_bounds(cls, v, info):
+        return v
+
     @model_validator(mode="after")
     def validate_frame_order(self):
         if "t" not in self.axes_order:
@@ -133,7 +133,7 @@ class ChannelDataModel(BaseModel):
 
     # should implement transforms for Zarr RFC-5, will then turn to floats
     @property
-    def intrinsic_bbox(self) -> SpatialBounds:
+    def intrinsic_bbox(self) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
         upper_bound = [self.data_shape[self.axes_order.find(dim)] if dim in self.axes_order else 1 for dim in 'xyz']
         return tuple((0.0, float(u)) for u in upper_bound)
 
@@ -198,18 +198,14 @@ class ChannelModel(BaseModel):
     metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
     file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
 
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_data_options(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values = values.copy()
-        if "data" in values:
-            if "data_options" in values:
+    def __init__(self, **data):
+        if "data" in data:
+            if "data_options" in data:
                 raise ValueError("Use either data or data_options, not both")
-            data_value = values.pop("data")
-            values["data_options"] = data_value if isinstance(data_value, list) else [data_value]
-        return values
+            data_value = data.pop("data")
+            data["data_options"] = data_value if isinstance(data_value, list) else [data_value]
+            data.setdefault("data_option_ix", 0)
+        super().__init__(**data)
 
     @model_validator(mode="after")
     def validate_selected_scale(self):
@@ -227,6 +223,17 @@ class ChannelModel(BaseModel):
             value = ChannelDataModel.model_validate(value)
         self.data_options = [value]
         self.data_option_ix = 0
+
+    @property
+    def selected_scale(self):
+        return self.data_option_ix
+
+    @selected_scale.setter
+    def selected_scale(self, value):
+        value = int(value)
+        if value < 0 or value >= len(self.data_options):
+            raise ValueError("selected_scale out of bounds")
+        self.data_option_ix = value
 
     @property
     def identifier(self):
