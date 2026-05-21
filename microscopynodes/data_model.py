@@ -191,49 +191,40 @@ class ChannelVizModel(BaseModel):
 
 class ChannelModel(BaseModel):
     data_options: Annotated[List[ChannelDataModel], Field(min_length=1)]
-    data_option_ix: int = 0
+    data_scale_ix: int = 0
     viz: ChannelVizModel
     cache_path: str
     force_remaking_files: bool = False
     metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
     file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
 
-    def __init__(self, **data):
-        if "data" in data:
-            if "data_options" in data:
-                raise ValueError("Use either data or data_options, not both")
-            data_value = data.pop("data")
-            data["data_options"] = data_value if isinstance(data_value, list) else [data_value]
-            data.setdefault("data_option_ix", 0)
-        super().__init__(**data)
-
     @model_validator(mode="after")
     def validate_selected_scale(self):
-        if self.data_option_ix < 0 or self.data_option_ix >= len(self.data_options):
-            raise ValueError("data_option_ix out of bounds")
+        if self.data_scale_ix < 0 or self.data_scale_ix >= len(self.data_options):
+            raise ValueError("data_scale_ix out of bounds")
         return self
 
     @property
     def data(self):
-        return self.data_options[self.data_option_ix]
+        return self.data_options[self.data_scale_ix]
 
     @data.setter
     def data(self, value):
         if not isinstance(value, ChannelDataModel):
             value = ChannelDataModel.model_validate(value)
         self.data_options = [value]
-        self.data_option_ix = 0
+        self.data_scale_ix = 0
 
     @property
     def selected_scale(self):
-        return self.data_option_ix
+        return self.data_scale_ix
 
     @selected_scale.setter
     def selected_scale(self, value):
         value = int(value)
         if value < 0 or value >= len(self.data_options):
             raise ValueError("selected_scale out of bounds")
-        self.data_option_ix = value
+        self.data_scale_ix = value
 
     @property
     def identifier(self):
