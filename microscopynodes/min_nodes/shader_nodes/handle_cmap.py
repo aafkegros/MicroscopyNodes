@@ -27,6 +27,21 @@ def get_colormap(name, single_color=(1, 1, 1)):
         return Colormap([Color(tuple(single_color))])
     return Colormap(name)
 
+
+def gamma_to_linear_channel(channel):
+    channel = max(0.0, min(1.0, float(channel)))
+    if channel <= 0.04045:
+        return channel / 12.92
+    return ((channel + 0.055) / 1.055) ** 2.4
+
+
+def gamma_to_linear_rgba(color):
+    rgba = list(color)
+    rgb = [gamma_to_linear_channel(channel) for channel in rgba[:3]]
+    alpha = rgba[3] if len(rgba) > 3 else 1.0
+    return (*rgb, alpha)
+
+
 def set_color_ramp(ramp_node, lut, linear, name):
     from ...ui.preferences import addon_preferences
     if addon_preferences(bpy.context).invert_color:
@@ -42,7 +57,7 @@ def set_color_ramp(ramp_node, lut, linear, name):
     if n == 1:
         elem = ramp_node.color_ramp.elements[0]
         elem.position = 0.5
-        elem.color = tuple(lut[0])
+        elem.color = gamma_to_linear_rgba(lut[0])
     else:
         denom = (n - 1) if linear else n 
         for ix, color in enumerate(lut):
@@ -50,7 +65,7 @@ def set_color_ramp(ramp_node, lut, linear, name):
                 ramp_node.color_ramp.elements.new(ix / denom)
             elem = ramp_node.color_ramp.elements[ix]
             elem.position = ix / denom
-            elem.color = tuple(color)
+            elem.color = gamma_to_linear_rgba(color)
 
     ramp_node.color_ramp.interpolation = "LINEAR" if linear else "CONSTANT"
     label = name.split(":", 1)[1] if name.startswith("single_color:") else name

@@ -88,6 +88,8 @@ def change_path(self, context):
 def change_array_option(self, context):
     dataset_model = selected_dataset_model()
     if dataset_model is not None:
+        if context.scene.MiN_enable_ui:
+            _overwrite_channel_viz_from_scene(dataset_model, context.scene)
         axes_order = context.scene.MiN_axes_order or None
         _apply_dataset_to_scene(dataset_model, context.scene, axes_order_override=axes_order)
 
@@ -184,6 +186,17 @@ def _fill_channel_list(dataset_model, scene):
     for channel_model in dataset_model.channels:
         channel = scene.MiN_channelList.add()
         channel.from_channelviz(channel_model.viz)
+
+
+def _overwrite_channel_viz_from_scene(dataset_model, scene):
+    current_viz = {
+        channel.ix: channel.to_channelviz()
+        for channel in scene.MiN_channelList
+    }
+    for channel_model in dataset_model.channels:
+        viz = current_viz.get(channel_model.data.ix)
+        if viz is not None:
+            channel_model.viz = viz.model_copy(deep=True)
 
 
 def _source_axes_order(dataset_model):
