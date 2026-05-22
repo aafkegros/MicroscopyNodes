@@ -137,12 +137,6 @@ def quick_render(name):
     # Set the output file path
     output_file = str(test_folder / f'tmp{name}.png')
     scn = bpy.context.scene
-    for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
-        try:
-            scn.render.engine = engine
-            break
-        except TypeError:
-            pass
     if scn.render.engine == "CYCLES":
         scn.cycles.samples = 16
 
