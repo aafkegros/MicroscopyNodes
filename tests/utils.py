@@ -121,21 +121,30 @@ def check_channels(dataset_model, test_render=True):
 
     if test_render:
         for ch_obj, socket_identifier in toggled:
+            ch_obj.gn_mod[socket_identifier] = False
+        for ch_obj, socket_identifier in toggled:
             img1 = quick_render('1')
             ch_obj.gn_mod[socket_identifier] = True
             img2 = quick_render('2')
             ch_obj.gn_mod[socket_identifier] = False
             if np.array_equal(img1, img2):
-                raise ValueError(f"{socket_identifier}, ")
+                raise ValueError(f"tried to turn off {socket_identifier}, render did not change")
             assert(not np.array_equal(img1, img2))
                 
                 
 
 def quick_render(name):
-    bpy.context.scene.cycles.samples = 16
     # Set the output file path
     output_file = str(test_folder / f'tmp{name}.png')
     scn = bpy.context.scene
+    for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
+        try:
+            scn.render.engine = engine
+            break
+        except TypeError:
+            pass
+    if scn.render.engine == "CYCLES":
+        scn.cycles.samples = 16
 
     cam_obj = bpy.data.objects.get("MiN Test Camera")
     if cam_obj is None:
