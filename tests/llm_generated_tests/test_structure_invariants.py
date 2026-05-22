@@ -33,6 +33,10 @@ def _load_single_surface_with_affine_translation(translation):
         update_data=bpy.context.scene.MiN_update_data,
         update_settings=bpy.context.scene.MiN_update_settings,
     )
+    dataset.slicecube.object.scale = tuple(
+        float(value) * 100.0
+        for value in dataset.slicecube.object.scale
+    )
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
     eval_obj = dataset.surface.object.evaluated_get(depsgraph)
