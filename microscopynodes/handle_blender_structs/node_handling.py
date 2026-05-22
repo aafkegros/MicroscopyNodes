@@ -123,6 +123,22 @@ def new_socket(node_group, ch, type, min_type, internal_append="", ix=None):
         node_group.interface.move(socket, ix)
     return socket
 
+def group_input_output_for_socket(group_input_node, interface_socket):
+    for socket_key in (
+        getattr(interface_socket, "identifier", None),
+        getattr(interface_socket, "name", None),
+    ):
+        if socket_key is None:
+            continue
+        output = group_input_node.outputs.get(socket_key)
+        if output is not None:
+            return output
+    raise ValueError(
+        f"Could not find group input output for socket "
+        f"{getattr(interface_socket, 'name', None)!r} "
+        f"({getattr(interface_socket, 'identifier', None)!r})"
+    )
+
 def set_name_socket(socket, ch_name):
     for min_type in MIN_SOCKET_TYPES:
         if min_type in getattr(socket, "default_attribute_name", ""):

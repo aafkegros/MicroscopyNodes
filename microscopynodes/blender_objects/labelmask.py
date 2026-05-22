@@ -1,5 +1,5 @@
 from .base import MeshChannelObject
-from ..handle_blender_structs.node_handling import new_socket
+from ..handle_blender_structs.node_handling import group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
 from ..min_nodes.geo_nodes.nodeMaskMesh import mask_mesh_node_group
@@ -40,7 +40,7 @@ class LabelmaskObject(MeshChannelObject):
                 affine_socket.hide = True
         links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
-        links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
+        links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
         mask_mesh = nodes.new("GeometryNodeGroup")
         mask_mesh.node_tree = mask_mesh_node_group()

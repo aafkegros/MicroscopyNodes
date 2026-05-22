@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 
 from .base import ChannelObject
-from ..handle_blender_structs.node_handling import expand_node_ui, new_socket
+from ..handle_blender_structs.node_handling import expand_node_ui, group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
@@ -75,7 +75,7 @@ class VolumeObject(ChannelObject):
                 affine_socket.hide = True
         links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
-        links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
+        links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
         masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
 

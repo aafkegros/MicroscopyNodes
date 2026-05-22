@@ -67,7 +67,6 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
     def to_channelviz(self):
         from ..data_model import ChannelVizModel
         from ..min_nodes.shader_nodes.handle_cmap import get_colormap
-        print(self.single_color)
         return ChannelVizModel(
             ix=self.ix,
             name=self.name,

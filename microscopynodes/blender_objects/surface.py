@@ -1,7 +1,7 @@
 import bpy
 
 from .base import MeshChannelObject
-from ..handle_blender_structs.node_handling import get_socket, new_socket
+from ..handle_blender_structs.node_handling import get_socket, group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch
@@ -55,7 +55,7 @@ class SurfaceObject(MeshChannelObject):
                 affine_socket.hide = True
         links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
-        links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
+        links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
         masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
 
@@ -66,7 +66,7 @@ class SurfaceObject(MeshChannelObject):
         threshold_socket.attribute_domain = 'POINT'
 
         self.gn_mod[threshold_socket.identifier] =  ch.metadata[self.min_type]['threshold']      
-        threshold = nodes.get('Group Input').outputs.get(threshold_socket.name)
+        threshold = group_input_output_for_socket(nodes.get('Group Input'), threshold_socket)
 
         grid_to_mesh = nodes.new('GeometryNodeGridToMesh')
         grid_to_mesh.name = f"GRID_TO_MESH_{ch.identifier}"
