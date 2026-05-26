@@ -17,6 +17,10 @@ _DATASET_OPTIONS_CACHE = {}
 _ACTIVE_DATASET_OPTIONS_KEY = None
 
 
+def _is_syncing_path(scene):
+    return bool(scene.get("_MiN_syncing_input_file", False))
+
+
 def get_loader(path=None):
     path = str(path or bpy.context.scene.MiN_input_file)
     suffix = Path(path).suffix
@@ -56,36 +60,42 @@ def selected_dataset_model():
 
 def change_path(self, context):
     scn = context.scene
-    scn.MiN_channel_nr = 0
-    scn.MiN_enable_ui = False
-    scn.property_unset("MiN_xy_size")
-    scn.property_unset("MiN_z_size")
-    scn.property_unset("MiN_axes_order")
-    scn.property_unset("MiN_load_start_frame")
-    scn.property_unset("MiN_load_end_frame")
-    scn.property_unset("MiN_selected_array_option")
-    scn.property_unset("MiN_ch_names")
-    scn.MiN_array_options.clear()
-    log("")
-    scn.property_unset("MiN_reload")
-
+    scn["_MiN_syncing_input_file"] = True
     try:
-        options = dataset_options(scn.MiN_input_file, refresh=True)
-    except Exception as e:
-        print(e)
-        log(f"Error loading file: {e}")
-        return
-    if not options:
-        return
+        scn.MiN_channel_nr = 0
+        scn.MiN_enable_ui = False
+        scn.property_unset("MiN_xy_size")
+        scn.property_unset("MiN_z_size")
+        scn.property_unset("MiN_axes_order")
+        scn.property_unset("MiN_load_start_frame")
+        scn.property_unset("MiN_load_end_frame")
+        scn.property_unset("MiN_selected_array_option")
+        scn.property_unset("MiN_ch_names")
+        scn.MiN_array_options.clear()
+        log("")
+        scn.property_unset("MiN_reload")
+        try:
+            options = dataset_options(scn.MiN_input_file, refresh=True)
+        except Exception as e:
+            print(e)
+            log(f"Error loading file: {e}")
+            return
+        if not options:
+            return
 
-    _fill_array_options(options, scn)
-    scn.MiN_selected_array_option = str(len(options) - 1)
-    _set_active_options(scn.MiN_input_file, _source_axes_order(options[-1]), options)
-    _apply_dataset_to_scene(options[-1], scn)
-    scn.MiN_enable_ui = True
+        _fill_array_options(options, scn)
+        _set_active_options(scn.MiN_input_file, _source_axes_order(options[-1]), options)
+        scn.MiN_selected_array_option = str(len(options) - 1)
+        _apply_dataset_to_scene(options[-1], scn)
+        scn.MiN_enable_ui = True
+    finally:
+        scn["_MiN_syncing_input_file"] = False
 
 
 def change_array_option(self, context):
+    if _is_syncing_path(context.scene):
+        return
+
     dataset_model = selected_dataset_model()
     if dataset_model is not None:
         if context.scene.MiN_enable_ui:
@@ -118,6 +128,9 @@ def load_array(ch_dicts):
 
 
 def change_channel_ax(self, context):
+    if _is_syncing_path(context.scene):
+        return
+
     scn = context.scene
     channel_axis = _channel_axis_ix(scn.MiN_axes_order)
     if scn.get("_MiN_channel_axis_ix", channel_axis) == channel_axis:
