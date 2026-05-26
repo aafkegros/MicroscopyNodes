@@ -7,7 +7,12 @@ UNIT_VALUES = {
     "AU": 1.0,
 }
 
+AUTO_IMPORT_SCALE = "AUTO_SCALE"
+DEFAULT_IMPORT_SCALE = "MICROMETER_SCALE"
+AUTO_TARGET_EXTENT_METERS = 10
+
 IMPORT_SCALE_ITEMS = [
+    (AUTO_IMPORT_SCALE, "(auto)", "Chooses a scale from loaded datasets so they fit within a few Blender meters", "", -1),
     ("NANOMETER_SCALE", "nm -> m", "Scales to 1 nm/blender-meter", "", 0),
     ("NANOMETER_DECIMETER_SCALE", "nm -> dm", "Scales to 1 nm/blender-decimeter", "", 1),
     ("NANOMETER_CENTIMETER_SCALE", "nm -> cm (Molecular Nodes)", "Scales to 1 nm/blender-centimeter", "", 2),
@@ -42,12 +47,27 @@ def import_scale_items():
     return list(IMPORT_SCALE_ITEMS)
 
 
+def concrete_import_scale_items():
+    return [item for item in IMPORT_SCALE_ITEMS if item[0] != AUTO_IMPORT_SCALE]
+
+
 def output_scale_for_import_scale(import_scale):
     if isinstance(import_scale, (int, float)):
         return float(import_scale)
+    if import_scale == AUTO_IMPORT_SCALE:
+        return IMPORT_SCALE_OUTPUT_SCALES[DEFAULT_IMPORT_SCALE]
     if import_scale in IMPORT_SCALE_OUTPUT_SCALES:
         return IMPORT_SCALE_OUTPUT_SCALES[import_scale]
     return unit_value(import_scale.removesuffix("_SCALE"))
+
+
+def import_scale_for_extent(input_extent_meters, target_extent_meters=AUTO_TARGET_EXTENT_METERS):
+    if input_extent_meters <= 0:
+        return DEFAULT_IMPORT_SCALE
+    for name, *_ in concrete_import_scale_items():
+        if input_extent_meters / IMPORT_SCALE_OUTPUT_SCALES[name] <= target_extent_meters:
+            return name
+    return concrete_import_scale_items()[-1][0]
 
 
 def unit_label_from_value(unit):

@@ -3,9 +3,44 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
-from ..handle_blender_structs.units import import_scale_items
+from ..handle_blender_structs.units import AUTO_IMPORT_SCALE, import_scale_for_extent, import_scale_items
 
 ADDON_PACKAGE = __package__.rsplit(".", 1)[0]
+
+
+def _holder_extent_units(holder):
+    from mathutils import Vector
+
+    corners = []
+    for child in holder.children:
+        child_corners = getattr(child, "bound_box", None)
+        if not child_corners:
+            continue
+        for corner in child_corners:
+            corners.append(child.matrix_local @ Vector(corner))
+
+    if not corners:
+        return 0.0
+
+    return max(
+        max(corner[axis] for corner in corners) - min(corner[axis] for corner in corners)
+        for axis in range(3)
+    )
+
+
+def _auto_import_scale(scene):
+    input_extents = []
+    for obj in scene.objects:
+        if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
+            continue
+        extent_units = _holder_extent_units(obj)
+        if extent_units > 0:
+            input_extents.append(extent_units * float(obj["_MiN_input_scale"]))
+
+    if not input_extents:
+        return None
+
+    return import_scale_for_extent(max(input_extents))
 
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
@@ -34,6 +69,12 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         from ..data_model import SceneModel
         from ..handle_blender_structs.min_keys import min_keys
         from ..handle_blender_structs.node_handling import get_min_gn
+
+        if self.import_scale == AUTO_IMPORT_SCALE:
+            import_scale = _auto_import_scale(context.scene)
+            if import_scale is not None:
+                self.import_scale = import_scale
+            return
 
         scene_model = SceneModel(output_scale=self.import_scale)
         for obj in context.scene.objects:

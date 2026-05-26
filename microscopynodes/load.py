@@ -54,7 +54,19 @@ class Scene():
             output_scale=self.import_scale,
         )
 
-    def update_dataset_scale(self, dataset):
+    def resolve_auto_import_scale(self, dataset_model):
+        from .handle_blender_structs.units import AUTO_IMPORT_SCALE, import_scale_for_extent
+        from .ui.preferences import addon_preferences
+
+        prefs = addon_preferences(bpy.context)
+        if prefs.import_scale != AUTO_IMPORT_SCALE:
+            return
+        _, _, extent = dataset_model.intermediate_bbox
+        input_extent_meters = float(max(extent)) * float(dataset_model.channels[0].data.unit)
+        prefs.import_scale = import_scale_for_extent(input_extent_meters)
+
+    def update_dataset_scale(self, dataset, dataset_model):
+        self.resolve_auto_import_scale(dataset_model)
         scene_model = self.scene_model
         if dataset.holder is not None:
             dataset.holder.set_scene(scene_model)
@@ -118,8 +130,9 @@ class Dataset():
                 min_obj.set_data(dataset_model)
             if update_settings:
                 min_obj.set_settings(dataset_model)
-                min_obj.set_scene(self.scene)
         self.ensure_links_of_objects(dataset_model)
+        if update_settings:
+            self.scene.update_dataset_scale(self, dataset_model)
         if self.holder is not None:
             bpy.context.scene.MiN_reload = self.holder.object
         return    
