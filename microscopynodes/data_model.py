@@ -21,7 +21,7 @@ INIT_COLORS = [
 
 class ChannelDataModel(BaseModel):
     # allow arbitrary types to parse dask arrays - might remove
-    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True, validate_assignment=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
 
     dataset_resolution: int # currently static resolution identifier 
 

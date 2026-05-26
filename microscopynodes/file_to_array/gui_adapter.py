@@ -99,14 +99,12 @@ def channel_data_model(ch_ix, axes_order=None, **data_kwargs):
     if dataset_model is None:
         return None
     channel_data = dataset_model.channels[ch_ix].data
-    data = channel_data.model_copy(deep=False)
-    for key, value in data_kwargs.items():
-        setattr(data, key, value)
+    data = channel_data.model_dump(by_alias=True)
+    data.update(data_kwargs)
     if axes_order is not None:
-        data.axes_order = axes_order.replace("c", "")
-        data.source_axes_order = axes_order
-        data._data_cache = None
-    return data
+        data["axes_order"] = axes_order.replace("c", "")
+        data["source_axes_order"] = axes_order
+    return type(channel_data)(**data)
 
 
 def channel_data(ch_ix, axes_order=None):
