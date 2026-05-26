@@ -13,6 +13,7 @@ import pytest
 import tifffile
 import platform
 import imageio.v3 as iio
+from mathutils import Vector
 from pathlib import Path
 import dask.array as da
 
@@ -144,11 +145,20 @@ def quick_render(name):
     cam_obj = bpy.data.objects.get("MiN Test Camera")
     if cam_obj is None:
         cam = bpy.data.cameras.new("MiN Test Camera")
-        cam.lens = 40
         cam_obj = bpy.data.objects.new("MiN Test Camera", cam)
         scn.collection.objects.link(cam_obj)
-    cam_obj.location = (.1, .1, .2)
-    cam_obj.rotation_euler = (0.7, 0, 2.3)
+    cam_obj.data.type = "ORTHO"
+    cam_obj.data.clip_start = 1e-6
+    cam_obj.data.clip_end = 10000.0
+
+    holder = bpy.context.scene.MiN_reload
+    mins, maxs = loaded_holder_bounds(holder)
+    center = (mins + maxs) / 2.0
+    extent = np.maximum(maxs - mins, 1e-6)
+    ortho_size = max(float(extent[0]), float(extent[1])) * 1.1
+    cam_obj.data.ortho_scale = max(ortho_size, 1e-3)
+    cam_obj.location = (float(center[0]), float(center[1]), float(maxs[2] + max(extent[2], ortho_size, 1.0)))
+    cam_obj.rotation_euler = (0.0, 0.0, 0.0)
     bpy.context.scene.camera = cam_obj
     
     # Set the viewport resolution
@@ -167,6 +177,22 @@ def quick_render(name):
     data = np.array(iio.imread(output_file))
     # os.remove(output_file)
     return data
+
+
+def loaded_holder_bounds(holder):
+    if holder is None:
+        return np.array([-0.5, -0.5, -0.5]), np.array([0.5, 0.5, 0.5])
+
+    corners = []
+    for child in holder.children:
+        for corner in getattr(child, "bound_box", []):
+            corners.append(np.array(child.matrix_world @ Vector(corner), dtype=float))
+
+    if not corners:
+        return np.array([-0.5, -0.5, -0.5]), np.array([0.5, 0.5, 0.5])
+
+    corners = np.array(corners, dtype=float)
+    return corners.min(axis=0), corners.max(axis=0)
 
 
 def grayscale_histogram_distance(img1, img2, bins=32):
