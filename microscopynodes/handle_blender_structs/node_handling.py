@@ -100,6 +100,16 @@ def get_min_gn(obj):
             return mod
     return None
 
+def get_interface_input(node_group, name):
+    for item in node_group.interface.items_tree:
+        if getattr(item, "item_type", None) == 'SOCKET' and item.in_out == 'INPUT' and item.name == name:
+            return item
+    raise KeyError(f"Input socket '{name}' not found")
+
+def set_modifier_input(modifier, name, value):
+    item = get_interface_input(modifier.node_group, name)
+    modifier[item.identifier] = value
+
 def get_readable_enum(enum_name, enum):
     return bpy.context.scene.bl_rna.properties[enum_name].enum_items[enum].name
 

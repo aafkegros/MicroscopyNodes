@@ -64,7 +64,7 @@ def prep_load(arrtype=None):
     microscopynodes._test_register()
 
     prefs = addon_preferences(bpy.context)
-    prefs.import_scale = "DEFAULT"
+    prefs.import_scale = "MICROMETER_SCALE"
     prefs.import_loc = "XY_CENTER"
     prefs.surf_resolution = "0"
     prefs.invert_color = False
@@ -80,6 +80,7 @@ def prep_load(arrtype=None):
     path, arr, axes_order = make_tif(path, arrtype)
 
     bpy.context.scene.MiN_input_file = str(path)
+    bpy.context.scene.MiN_unit = "MICROMETER"
     # assert(arr_shape() == arr.shape)
     assert(len(bpy.context.scene.MiN_channelList) == len_axis('c', axes_order, arr.shape))
     return

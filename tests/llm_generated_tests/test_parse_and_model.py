@@ -41,16 +41,21 @@ def _make_channel(name="Channel 0", affine=None):
     )
 
 
-def test_parse_default_scale_mode_uses_pixel_unit_label():
+def test_parse_physical_scale_mode_uses_physical_pixel_sizes():
     prep_load("5D_5cube")
-    _set_import_scale("DEFAULT")
+    bpy.context.scene.MiN_unit = "MICROMETER"
+    bpy.context.scene.MiN_xy_size = 0.5
+    bpy.context.scene.MiN_z_size = 2.0
+    _set_import_scale("MICROMETER_SCALE")
 
     dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
+    scene = microscopynodes.load.Scene()
 
-    assert dataset_model.explicit_scale == pytest.approx(1e-2)
-    assert dataset_model.unit_label == "px"
-    assert dataset_model.channels[0].data.affine[0][0] == pytest.approx(1.0)
-    assert dataset_model.channels[0].data.affine[1][1] == pytest.approx(1.0)
+    assert scene.output_scale == pytest.approx(1e-6)
+    assert dataset_model.unit_label == "µm"
+    assert dataset_model.channels[0].data.affine[0][0] == pytest.approx(0.5)
+    assert dataset_model.channels[0].data.affine[1][1] == pytest.approx(0.5)
+    assert dataset_model.channels[0].data.affine[2][2] == pytest.approx(2.0)
 
 
 def test_parse_physical_scale_mode_uses_physical_unit_label():
@@ -58,9 +63,9 @@ def test_parse_physical_scale_mode_uses_physical_unit_label():
     _set_import_scale("MICROMETER_SCALE")
 
     dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
+    scene = microscopynodes.load.Scene()
 
-    assert dataset_model.explicit_scale is None
-    assert dataset_model.output_unit == pytest.approx(1e-6)
+    assert scene.output_scale == pytest.approx(1e-6)
     assert dataset_model.unit_label == "µm"
 
 
@@ -74,28 +79,36 @@ def test_import_scale_selector_rescales_loaded_holder_and_axes():
     holder = bpy.context.scene.MiN_reload
     axes = next(child for child in holder.children if "axes" in child.name.lower())
     axes_modifier = next(mod for mod in axes.modifiers if "Microscopy Nodes" in mod.name)
-    world_per_unit_input = next(
+    input_scale_input = next(
         item
         for item in axes_modifier.node_group.interface.items_tree
         if getattr(item, "item_type", None) == "SOCKET"
         and item.in_out == "INPUT"
-        and item.name == "World per Unit"
+        and item.name == "Input Scale"
+    )
+    output_scale_input = next(
+        item
+        for item in axes_modifier.node_group.interface.items_tree
+        if getattr(item, "item_type", None) == "SOCKET"
+        and item.in_out == "INPUT"
+        and item.name == "Output Scale"
     )
 
     assert tuple(holder.scale) == pytest.approx((1.0, 1.0, 1.0))
-    assert axes_modifier[world_per_unit_input.identifier] == pytest.approx(1.0)
+    assert axes_modifier[input_scale_input.identifier] == pytest.approx(1e-6)
+    assert axes_modifier[output_scale_input.identifier] == pytest.approx(1e-6)
 
     prefs.import_scale = "MICROMETER_CENTIMETER_SCALE"
 
     assert tuple(holder.scale) == pytest.approx((0.01, 0.01, 0.01))
-    assert axes_modifier[world_per_unit_input.identifier] == pytest.approx(0.01)
+    assert axes_modifier[input_scale_input.identifier] == pytest.approx(1e-6)
+    assert axes_modifier[output_scale_input.identifier] == pytest.approx(1e-4)
 
 
 def test_dataset_bbox_and_center_properties():
     dataset_model = DatasetModel(
         name="bbox-test",
         channels=[_make_channel()],
-        output_unit=1e-6,
         relative_loc=(-0.5, -0.5, 0.0),
     )
 

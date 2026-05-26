@@ -3,6 +3,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
+from ..handle_blender_structs.units import import_scale_items
 
 ADDON_PACKAGE = __package__.rsplit(".", 1)[0]
 
@@ -28,38 +29,28 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
             prefs.channels.remove(len(prefs.channels)-1)
 
     def update_import_scale(self, context):
-        from ..handle_blender_structs.scale_update import update_scene_import_scale
+        # This is essentially a placeholder for a more developed Scene Object that actually knows of its data
+        from ..blender_objects.factories import MinObjectFactory
+        from ..data_model import SceneModel
+        from ..handle_blender_structs.min_keys import min_keys
+        from ..handle_blender_structs.node_handling import get_min_gn
 
-        update_scene_import_scale(context)
+        scene_model = SceneModel(output_scale=self.import_scale)
+        for obj in context.scene.objects:
+            if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
+                continue
+            MinObjectFactory(min_keys.HOLDER, obj=obj).set_scene(scene_model)
+            for child in obj.children:
+                min_gn = get_min_gn(child)
+                if min_gn is None or "axes" not in min_gn.name.lower():
+                    continue
+                MinObjectFactory(min_keys.AXES, obj=child).set_scene(scene_model)
 
-    import_scale_no_unit_spoof : EnumProperty(
-        name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
-        items=[
-            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
-        ],
-        description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
-        default='DEFAULT',
-        update=update_import_scale,
-    )
     import_scale : EnumProperty(
         name = "Microscopy scale -> Blender scale",
-        items=[
-            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
-            ("NANOMETER_SCALE", "nm -> m", "Scales to 1 nm/blender-meter" ,"", 1),
-            ("NANOMETER_DECIMETER_SCALE", "nm -> dm", "Scales to 1 nm/blender-decimeter" ,"", 2),
-            ("NANOMETER_CENTIMETER_SCALE", "nm -> cm (Molecular Nodes)", "Scales to 1 nm/blender-centimeter" ,"", 3),
-            ("MICROMETER_SCALE", "µm -> m", "Scales to 1 µm/blender-meter" ,"", 4),
-            ("MICROMETER_DECIMETER_SCALE", "µm -> dm", "Scales to 1 µm/blender-decimeter" ,"", 5),
-            ("MICROMETER_CENTIMETER_SCALE", "µm -> cm", "Scales to 1 µm/blender-centimeter" ,"", 6),
-            ("MILLIMETER_SCALE", "mm -> m", "Scales to 1 mm/blender-meter " ,"", 7),
-            ("MILLIMETER_DECIMETER_SCALE", "mm -> dm", "Scales to 1 mm/blender-decimeter " ,"", 8),
-            ("MILLIMETER_CENTIMETER_SCALE", "mm -> cm", "Scales to 1 mm/blender-centimeter " ,"", 9),
-            ("METER_SCALE", "m -> m", "Scales to 1 m/blender-meter " ,"", 10),
-            ("METER_DECIMETER_SCALE", "m -> dm", "Scales to 1 m/blender-decimeter " ,"", 11),
-            ("METER_CENTIMETER_SCALE", "m -> cm", "Scales to 1 m/blender-centimeter " ,"", 12),
-        ], 
-        description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
-        default='DEFAULT',
+        items=import_scale_items(),
+        description= "Defines the scale transform from physical dataset units to Blender meters.",
+        default='MICROMETER_SCALE',
         update=update_import_scale,
     )
     n_default_channels : bpy.props.IntProperty(
@@ -154,8 +145,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
     except (AttributeError, KeyError):
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
-                import_scale="DEFAULT",
-                import_scale_no_unit_spoof="DEFAULT",
+                import_scale="MICROMETER_SCALE",
                 import_loc="XY_CENTER",
                 surf_resolution="0",
                 invert_color=False,

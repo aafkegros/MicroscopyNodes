@@ -26,6 +26,9 @@ class MiNObject(BlenderObject):
 
     def set_settings(self, dataset_model):
         return
+
+    def set_scene(self, scene_model, **kwargs):
+        return
     
     @property
     def min_gn(self):
