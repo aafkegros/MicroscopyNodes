@@ -10,6 +10,23 @@ from .ui.preferences import addon_preferences
 from typing import List
 from .data_model import DatasetModel, ChannelModel
 
+IMPORT_SCALE_OUTPUT_UNITS = {
+    "NANOMETER_SCALE": 1e-9,
+    "NANOMETER_DECIMETER_SCALE": 1e-8,
+    "NANOMETER_CENTIMETER_SCALE": 1e-7,
+    "MICROMETER_SCALE": 1e-6,
+    "MICROMETER_DECIMETER_SCALE": 1e-5,
+    "MICROMETER_CENTIMETER_SCALE": 1e-4,
+    "MILLIMETER_SCALE": 1e-3,
+    "MILLIMETER_DECIMETER_SCALE": 1e-2,
+    "MILLIMETER_CENTIMETER_SCALE": 1e-1,
+    "METER_SCALE": 1.0,
+    "METER_DECIMETER_SCALE": 1e1,
+    "METER_CENTIMETER_SCALE": 1e2,
+    "MOLECULAR_NODES": 1e-7,
+}
+
+
 def parse_blender_ui():
     scn = bpy.context.scene
     ensure_valid_reload_object(scn)
@@ -116,8 +133,8 @@ def parse_unit(string):
         return 1
 
 def parse_output_unit(world_scale):
-    if world_scale == "MOLECULAR_NODES":
-        return 1e-7
+    if world_scale in IMPORT_SCALE_OUTPUT_UNITS:
+        return IMPORT_SCALE_OUTPUT_UNITS[world_scale]
     if "_SCALE" not in world_scale:
         return 1e-2 # THIS DOESNT FULLY WORK RN
     return parse_unit(world_scale.removesuffix("_SCALE")) 

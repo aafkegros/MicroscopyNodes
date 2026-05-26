@@ -27,6 +27,11 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         while len(prefs.channels)-1 >= prefs.n_default_channels:
             prefs.channels.remove(len(prefs.channels)-1)
 
+    def update_import_scale(self, context):
+        from ..handle_blender_structs.scale_update import update_scene_import_scale
+
+        update_scene_import_scale(context)
+
     import_scale_no_unit_spoof : EnumProperty(
         name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
         items=[
@@ -34,19 +39,28 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         ],
         description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
         default='DEFAULT',
+        update=update_import_scale,
     )
     import_scale : EnumProperty(
         name = "Microscopy scale -> Blender scale",
         items=[
             ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
             ("NANOMETER_SCALE", "nm -> m", "Scales to 1 nm/blender-meter" ,"", 1),
-            ("MICROMETER_SCALE", "µm -> m", "Scales to 1 µm/blender-meter" ,"", 2),
-            ("MILLIMETER_SCALE", "mm -> m", "Scales to 1 mm/blender-meter " ,"", 3),
-            ("METER_SCALE", "m -> m", "Scales to 1 m/blender-meter " ,"", 4),
-            ("MOLECULAR_NODES", "nm -> cm (Molecular Nodes)", "Scales to 1 nm/blender-centimeter " ,"", 5),
+            ("NANOMETER_DECIMETER_SCALE", "nm -> dm", "Scales to 1 nm/blender-decimeter" ,"", 2),
+            ("NANOMETER_CENTIMETER_SCALE", "nm -> cm (Molecular Nodes)", "Scales to 1 nm/blender-centimeter" ,"", 3),
+            ("MICROMETER_SCALE", "µm -> m", "Scales to 1 µm/blender-meter" ,"", 4),
+            ("MICROMETER_DECIMETER_SCALE", "µm -> dm", "Scales to 1 µm/blender-decimeter" ,"", 5),
+            ("MICROMETER_CENTIMETER_SCALE", "µm -> cm", "Scales to 1 µm/blender-centimeter" ,"", 6),
+            ("MILLIMETER_SCALE", "mm -> m", "Scales to 1 mm/blender-meter " ,"", 7),
+            ("MILLIMETER_DECIMETER_SCALE", "mm -> dm", "Scales to 1 mm/blender-decimeter " ,"", 8),
+            ("MILLIMETER_CENTIMETER_SCALE", "mm -> cm", "Scales to 1 mm/blender-centimeter " ,"", 9),
+            ("METER_SCALE", "m -> m", "Scales to 1 m/blender-meter " ,"", 10),
+            ("METER_DECIMETER_SCALE", "m -> dm", "Scales to 1 m/blender-decimeter " ,"", 11),
+            ("METER_CENTIMETER_SCALE", "m -> cm", "Scales to 1 m/blender-centimeter " ,"", 12),
         ], 
         description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
         default='DEFAULT',
+        update=update_import_scale,
     )
     n_default_channels : bpy.props.IntProperty(
         name = 'Defined default channels',

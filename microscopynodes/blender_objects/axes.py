@@ -83,7 +83,12 @@ class Axes(MiNObject):
 
     def set_data(self, dataset_model):
         self._rename_tick_step_input(dataset_model)
-        self.node_group.nodes["Scale Bars"].inputs["World per Unit"].default_value = float(dataset_model.scale) / float(dataset_model.axis_unit_scale)
+        world_per_unit = float(dataset_model.scale) / float(dataset_model.axis_unit_scale)
+        try:
+            self._set_modifier_input("World per Unit", world_per_unit)
+        except KeyError:
+            self.node_group.nodes["Scale Bars"].inputs["World per Unit"].default_value = world_per_unit
+        self.object["_MiN_axis_unit_scale"] = float(dataset_model.axis_unit_scale)
         return
         
     def set_settings(self, dataset_model):
@@ -126,6 +131,16 @@ class Axes(MiNObject):
         interface.items_tree[-1].max_value = 3.4028234663852886e+38
         interface.items_tree[-1].attribute_domain = 'POINT'
 
+        interface.new_socket(name="World per Unit", in_out="INPUT", socket_type='NodeSocketFloat')
+        interface.items_tree[-1].default_value = 1.0
+        interface.items_tree[-1].min_value = 0.0
+        interface.items_tree[-1].max_value = 3.4028234663852886e+38
+        interface.items_tree[-1].attribute_domain = 'POINT'
+        # if hasattr(interface.items_tree[-1], "hide_in_modifier"):
+        #     interface.items_tree[-1].hide_in_modifier = True
+        if hasattr(interface.items_tree[-1], "hide_value"):
+            interface.items_tree[-1].hide_value = True
+
         interface.new_socket(name="Grid", in_out="INPUT", socket_type='NodeSocketBool')
         interface.items_tree[-1].default_value = True
         interface.items_tree[-1].attribute_domain = 'POINT'
@@ -167,6 +182,7 @@ class Axes(MiNObject):
         scale_node.location = (-50, 0)
 
         links.new(inputnode.outputs["Tick Step (unit)"], scale_node.inputs["Tick Step (unit)"])
+        links.new(inputnode.outputs["World per Unit"], scale_node.inputs["World per Unit"])
         links.new(inputnode.outputs["Grid"], scale_node.inputs["Grid"])
         links.new(inputnode.outputs["Line thickness"], scale_node.inputs["Line thickness"])
         # links.new(crosshatch.outputs[0], scale_node.inputs["Tick Geometry"])
