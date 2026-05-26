@@ -1,5 +1,4 @@
 {
-  "import_scale": "MICROMETER_SCALE",
   "import_loc": "XY_CENTER",
   "surf_resolution": 0,
   "invert_color": false,

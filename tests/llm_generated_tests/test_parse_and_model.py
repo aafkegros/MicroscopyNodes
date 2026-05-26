@@ -6,13 +6,12 @@ from cmap import Colormap
 
 import microscopynodes
 from microscopynodes.data_model import ChannelModel, DatasetModel
-from microscopynodes.ui.preferences import addon_preferences
 
 from ..utils import prep_load, do_load
 
 
 def _set_import_scale(scale_name):
-    addon_preferences(bpy.context).import_scale = scale_name
+    bpy.context.scene.MiN_import_scale = scale_name
 
 
 def _make_channel(name="Channel 0", affine=None):
@@ -72,8 +71,7 @@ def test_parse_physical_scale_mode_uses_physical_unit_label():
 def test_import_scale_selector_rescales_loaded_holder_and_axes():
     prep_load("5D_5cube")
     bpy.context.scene.MiN_unit = "MICROMETER"
-    prefs = addon_preferences(bpy.context)
-    prefs.import_scale = "MICROMETER_SCALE"
+    bpy.context.scene.MiN_import_scale = "MICROMETER_SCALE"
 
     do_load()
     holder = bpy.context.scene.MiN_reload
@@ -98,7 +96,7 @@ def test_import_scale_selector_rescales_loaded_holder_and_axes():
     assert axes_modifier[input_scale_input.identifier] == pytest.approx(1e-6)
     assert axes_modifier[output_scale_input.identifier] == pytest.approx(1e-6)
 
-    prefs.import_scale = "MICROMETER_CENTIMETER_SCALE"
+    bpy.context.scene.MiN_import_scale = "MICROMETER_CENTIMETER_SCALE"
 
     assert tuple(holder.scale) == pytest.approx((0.01, 0.01, 0.01))
     assert axes_modifier[input_scale_input.identifier] == pytest.approx(1e-6)

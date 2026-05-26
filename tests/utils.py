@@ -64,7 +64,7 @@ def prep_load(arrtype=None):
     microscopynodes._test_register()
 
     prefs = addon_preferences(bpy.context)
-    prefs.import_scale = "MICROMETER_SCALE"
+    bpy.context.scene.MiN_import_scale = "AUTO_SCALE"
     prefs.import_loc = "XY_CENTER"
     prefs.surf_resolution = "0"
     prefs.invert_color = False

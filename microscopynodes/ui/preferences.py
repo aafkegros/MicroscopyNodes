@@ -3,44 +3,8 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
-from ..handle_blender_structs.units import AUTO_IMPORT_SCALE, import_scale_for_extent, import_scale_items
 
 ADDON_PACKAGE = __package__.rsplit(".", 1)[0]
-
-
-def _holder_extent_units(holder):
-    from mathutils import Vector
-
-    corners = []
-    for child in holder.children:
-        child_corners = getattr(child, "bound_box", None)
-        if not child_corners:
-            continue
-        for corner in child_corners:
-            corners.append(child.matrix_local @ Vector(corner))
-
-    if not corners:
-        return 0.0
-
-    return max(
-        max(corner[axis] for corner in corners) - min(corner[axis] for corner in corners)
-        for axis in range(3)
-    )
-
-
-def _auto_import_scale(scene):
-    input_extents = []
-    for obj in scene.objects:
-        if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
-            continue
-        extent_units = _holder_extent_units(obj)
-        if extent_units > 0:
-            input_extents.append(extent_units * float(obj["_MiN_input_scale"]))
-
-    if not input_extents:
-        return None
-
-    return import_scale_for_extent(max(input_extents))
 
 
 class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
@@ -63,37 +27,6 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         while len(prefs.channels)-1 >= prefs.n_default_channels:
             prefs.channels.remove(len(prefs.channels)-1)
 
-    def update_import_scale(self, context):
-        # This is essentially a placeholder for a more developed Scene Object that actually knows of its data
-        from ..blender_objects.factories import MinObjectFactory
-        from ..data_model import SceneModel
-        from ..handle_blender_structs.min_keys import min_keys
-        from ..handle_blender_structs.node_handling import get_min_gn
-
-        if self.import_scale == AUTO_IMPORT_SCALE:
-            import_scale = _auto_import_scale(context.scene)
-            if import_scale is not None:
-                self.import_scale = import_scale
-            return
-
-        scene_model = SceneModel(output_scale=self.import_scale)
-        for obj in context.scene.objects:
-            if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
-                continue
-            MinObjectFactory(min_keys.HOLDER, obj=obj).set_scene(scene_model)
-            for child in obj.children:
-                min_gn = get_min_gn(child)
-                if min_gn is None or "axes" not in min_gn.name.lower():
-                    continue
-                MinObjectFactory(min_keys.AXES, obj=child).set_scene(scene_model)
-
-    import_scale : EnumProperty(
-        name = "Microscopy scale -> Blender scale",
-        items=import_scale_items(),
-        description= "Defines the scale transform from physical dataset units to Blender meters.",
-        default='MICROMETER_SCALE',
-        update=update_import_scale,
-    )
     n_default_channels : bpy.props.IntProperty(
         name = 'Defined default channels',
         min= 1,
@@ -186,7 +119,6 @@ def addon_preferences(context: bpy.types.Context | None = None):
     except (AttributeError, KeyError):
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
-                import_scale="MICROMETER_SCALE",
                 import_loc="XY_CENTER",
                 surf_resolution="0",
                 invert_color=False,
