@@ -1,7 +1,7 @@
 import bpy
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs.min_keys import min_keys
 import numpy as np
-from .base import *
+from .base import MiNObject
 
 class SliceCubeObject(MiNObject):
     min_type = min_keys.SLICECUBE
@@ -36,6 +36,6 @@ class SliceCubeObject(MiNObject):
         _, _, extent_unit = dataset_model.intermediate_bbox
 
         slicecube.location = dataset_model.dataset_center_world
-        slicecube.scale = np.maximum(extent_unit / 2.0, 1e-6)
+        slicecube.scale = np.maximum(extent_unit / 2.0 + 1e-5, 1e-5)
         slicecube.display_type = 'BOUNDS'
     

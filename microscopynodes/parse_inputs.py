@@ -1,12 +1,11 @@
 import bpy
 import numpy as np
+import tempfile
 from pathlib import Path
 
-from .handle_blender_structs import *
 from .handle_blender_structs.dependent_props import ensure_valid_reload_object
-from .file_to_array import selected_array_option, channel_data
+from .file_to_array import selected_array_option, channel_data_model
 from .ui.preferences import addon_preferences
-from .handle_blender_structs.props import min_keys
 
 from typing import List
 from .data_model import DatasetModel, ChannelModel
@@ -46,9 +45,6 @@ def parse_channellist() -> List[ChannelModel]:
     scn = bpy.context.scene
     import_scale = addon_preferences(bpy.context).import_scale
     shared_data = {
-        "source": scn.MiN_input_file,
-        "dataset_resolution": selected_array_option().identifier,
-        "axes_order": scn.MiN_axes_order.replace("c", ""),
         "unit": parse_unit(bpy.context.scene.MiN_unit),
         "affine": parse_pixel_size(import_scale),
         "frame_start": scn.MiN_load_start_frame,
@@ -58,11 +54,7 @@ def parse_channellist() -> List[ChannelModel]:
         viz = ch_desc.to_channelviz()
         channel_models.append(ChannelModel(
             cache_path=get_cache_dir(),
-            data={
-                **shared_data,
-                "ix": viz.ix,
-                "data": channel_data(viz.ix, bpy.context.scene.MiN_axes_order),
-            },
+            data=channel_data_model(viz.ix, bpy.context.scene.MiN_axes_order, **shared_data),
             viz=viz,
         ))
     return channel_models

@@ -4,8 +4,8 @@ import bpy
 import numpy as np
 
 import microscopynodes
-from microscopynodes.handle_blender_structs import get_socket
-from microscopynodes.handle_blender_structs.props import min_keys
+from microscopynodes.handle_blender_structs.min_keys import min_keys
+from microscopynodes.handle_blender_structs.node_handling import get_socket
 
 from ..utils import prep_load, do_load
 
@@ -17,9 +17,9 @@ def _dataset_from_reload():
 def _load_single_surface_with_affine_translation(translation):
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = False
-        ch["surface"] = (ch.ix == 0)
-        ch["labelmask"] = False
+        ch.volume = False
+        ch.surface = (ch.ix == 0)
+        ch.labelmask = False
 
     dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
     affine = np.array(dataset_model.channels[0].data.affine, dtype=float)
@@ -32,6 +32,10 @@ def _load_single_surface_with_affine_translation(translation):
         dataset_model,
         update_data=bpy.context.scene.MiN_update_data,
         update_settings=bpy.context.scene.MiN_update_settings,
+    )
+    dataset.slicecube.object.scale = tuple(
+        float(value) * 100.0
+        for value in dataset.slicecube.object.scale
     )
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -48,9 +52,9 @@ def _load_single_surface_with_affine_translation(translation):
 def test_volume_load_builds_expected_geometry_and_shader_structure():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = True
-        ch["surface"] = False
-        ch["labelmask"] = False
+        ch.volume = True
+        ch.surface = False
+        ch.labelmask = False
 
     dataset_model = do_load()
     dataset = _dataset_from_reload()
@@ -70,12 +74,12 @@ def test_volume_load_builds_expected_geometry_and_shader_structure():
     assert mat.name == f"{dataset_model.name} volume"
     shader_nodes = mat.node_tree.nodes
     assert shader_nodes.get("Add Shaders") is not None
-    assert shader_nodes.get("Slice Cube") is not None
     assert shader_nodes.get("Material Output") is not None
 
     visible_channels = [ch for ch in dataset_model.channels if ch.viz.volume]
     for ch in visible_channels:
-        assert gn_nodes.get(f"channel_load_{ch.identifier}") is not None
+        assert gn_nodes.get(f"IMPORT_{ch.identifier}") is not None
+        assert gn_nodes.get(f"SLICE_CUBE_{ch.identifier}") is not None
         assert shader_nodes.get(f"[frame_{ch.identifier}]") is not None
         assert shader_nodes.get(f"[microscopy_shading_{ch.identifier}]") is not None
 
@@ -83,18 +87,17 @@ def test_volume_load_builds_expected_geometry_and_shader_structure():
 def test_surface_reload_does_not_reconnect_removed_shader_link():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = False
-        ch["surface"] = True
-        ch["labelmask"] = False
+        ch.volume = False
+        ch.surface = True
+        ch.labelmask = False
 
     dataset_model = do_load()
     dataset = _dataset_from_reload()
     surface = dataset.surface
     mat = surface.object.data.materials[0]
 
-    slice_cube = mat.node_tree.nodes["Slice Cube"]
     material_output = mat.node_tree.nodes["Material Output"]
-    output_input = material_output.inputs[surface.shader_output_name()]
+    output_input = material_output.inputs["Surface"]
     assert len(output_input.links) == 1
     mat.node_tree.links.remove(output_input.links[0])
     assert len(output_input.links) == 0
@@ -106,15 +109,15 @@ def test_surface_reload_does_not_reconnect_removed_shader_link():
         update_settings=bpy.context.scene.MiN_update_settings,
     )
 
-    assert len(material_output.inputs[surface.shader_output_name()].links) == 0
+    assert len(material_output.inputs["Surface"].links) == 0
 
 
 def test_visibility_socket_matches_channel_visibility():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = (ch.ix % 2 == 0)
-        ch["surface"] = False
-        ch["labelmask"] = False
+        ch.volume = (ch.ix % 2 == 0)
+        ch.surface = False
+        ch.labelmask = False
 
     dataset_model = do_load()
     dataset = _dataset_from_reload()
@@ -130,9 +133,9 @@ def test_visibility_socket_matches_channel_visibility():
 def test_parse_clears_reload_when_holder_no_longer_passes_poll():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = True
-        ch["surface"] = False
-        ch["labelmask"] = False
+        ch.volume = True
+        ch.surface = False
+        ch.labelmask = False
 
     do_load()
     holder = bpy.context.scene.MiN_reload
@@ -154,9 +157,9 @@ def test_parse_clears_reload_when_holder_no_longer_passes_poll():
 def test_parse_clears_reload_when_holder_is_unlinked_from_scene():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = True
-        ch["surface"] = False
-        ch["labelmask"] = False
+        ch.volume = True
+        ch.surface = False
+        ch.labelmask = False
 
     do_load()
     holder = bpy.context.scene.MiN_reload

@@ -2,8 +2,8 @@ import bpy
 import pytest
 
 import microscopynodes
-from microscopynodes.handle_blender_structs import get_socket
-from microscopynodes.handle_blender_structs.props import min_keys
+from microscopynodes.handle_blender_structs.min_keys import min_keys
+from microscopynodes.handle_blender_structs.node_handling import get_socket
 
 from ..utils import (
     prep_load,
@@ -62,16 +62,16 @@ def test_sparse_nonbinary_value_visualization_changes_render_distribution(load_a
     prep_load("3D_sparse_value")
 
     for ch in bpy.context.scene.MiN_channelList:
-        ch["volume"] = False
-        ch["surface"] = False
-        ch["labelmask"] = False
+        ch.volume = False
+        ch.surface = False
+        ch.labelmask = False
 
         load_ch_as = load_as
         if load_as == "mixed":
             load_ch_as = SPARSE_LOADABLE[ch.ix % 4]
 
         for setting in load_ch_as:
-            ch[setting] = True
+            setattr(ch, setting, True)
 
     dataset_model = do_load()
     dataset = _dataset_from_reload()

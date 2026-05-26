@@ -5,8 +5,9 @@ import math
 import itertools
 
 from .base import DataIO
-from ..handle_blender_structs import len_axis, log, to_xyz
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs.array_handling import len_axis, to_xyz
+from ..handle_blender_structs.progress_handling import log
+from ..handle_blender_structs.min_keys import min_keys
 
 
 NR_HIST_BINS = 2**16

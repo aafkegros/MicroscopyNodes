@@ -1,6 +1,8 @@
 import bpy
-from ..handle_blender_structs import *
-from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node, slice_cube_node_group
+from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_name_socket
+from ..handle_blender_structs.min_keys import min_keys
+from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
+from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
 from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
 import numpy as np
@@ -59,14 +61,6 @@ class ChannelObject(MiNObject):
             if add_shaders is not None:
                 add_shaders.node_tree = add_shaders_node(self.shader_count)
 
-    def expand_node_ui(self, node):
-        if hasattr(node, "show_options"):
-            node.show_options = True
-        for socket in getattr(node, "inputs", []):
-            if hasattr(socket, "show_expanded"):
-                socket.show_expanded = True
-        return node
-
     def init_obj(self):
         if self.min_type == min_keys.VOLUME: # makes the icon show up
             bpy.ops.object.volume_add(align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -124,7 +118,7 @@ class ChannelObject(MiNObject):
         if not self.ch_present(ch):
             self.add_ch_to_gn(ch)
             self.init_channel_shader(self.add_material(ch), ch)
-        importnode = self.node_group.nodes[f"channel_load_{ch.identifier}"]
+        importnode = self.node_group.nodes[f"IMPORT_{ch.identifier}"]
         self.update_import_node(importnode, file_constructors, ch)  
         return
 
@@ -184,7 +178,7 @@ class ChannelObject(MiNObject):
         return
 
     def ch_present(self, ch):
-        return f"channel_load_{ch.identifier}" in [node.name for node in self.node_group.nodes]
+        return f"IMPORT_{ch.identifier}" in [node.name for node in self.node_group.nodes]
 
     def update_material(self, mat, ch):
         return
@@ -195,7 +189,6 @@ class ChannelObject(MiNObject):
     def init_shader(self, mat):
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
-        links = mat.node_tree.links
         nodes.clear()
 
         output = nodes.new("ShaderNodeOutputMaterial")
@@ -203,37 +196,13 @@ class ChannelObject(MiNObject):
         output.location = (1500, 0)
         output.is_active_output = True
 
-        texcoord = nodes.new("ShaderNodeTexCoord")
-        texcoord.name = "Texture Coordinate"
-        texcoord.width = 200
-        texcoord.location = (770, 140)
-        for output_socket in texcoord.outputs:
-            output_socket.hide = (output_socket.name != "Object")
-
         add_shaders = nodes.new("ShaderNodeGroup")
         add_shaders.node_tree = add_shaders_node(self.shader_count)
         add_shaders.name = "Add Shaders"
         add_shaders.width = 100
         add_shaders.location = (620, 0)
-        self.expand_node_ui(add_shaders)
-
-        slicecube = nodes.new("ShaderNodeGroup")
-        slicecube.node_tree = slice_cube_node_group()
-        slicecube.name = "Slice Cube"
-        slicecube.width = 250
-        slicecube.location = (1070, 0)
-        self.expand_node_ui(slicecube)
-
-        links.new(texcoord.outputs.get("Object"), slicecube.inputs.get("Slicing Object"))
-        links.new(add_shaders.outputs[0], slicecube.inputs.get("Shader"))
-        links.new(slicecube.outputs.get("Shader"), output.inputs[self.shader_output_name()])
+        expand_node_ui(add_shaders)
         return
-
-    def shader_output_name(self):
-        raise NotImplementedError(f"{type(self).__name__} must implement shader_output_name()")
-
-    def shader_y_step(self):
-        raise NotImplementedError(f"{type(self).__name__} must implement shader_y_step()")
 
     def material_name(self):
         dataset_name = getattr(self, "dataset_name", None)
@@ -246,22 +215,9 @@ class ChannelObject(MiNObject):
     def init_channel_shader(self, mat, ch):
         raise NotImplementedError(f"{type(self).__name__} must implement init_channel_shader()")
 
-    def import_node_tree(self):
-        raise NotImplementedError(f"{type(self).__name__} must implement import_node_tree()")
-
-    def create_join_node(self):
-        raise NotImplementedError(f"{type(self).__name__} must implement create_join_node()")
-
-    def attach_channel_output(self, join_node, ch, out_ch):
-        raise NotImplementedError(f"{type(self).__name__} must implement attach_channel_output()")
-
-    def import_output_socket(self, import_node):
-        return import_node.outputs[0]
-
     def init_gn(self):
         node_group = self.node_group
         nodes = node_group.nodes
-        links = node_group.links
 
         nodes.clear()
 
@@ -270,52 +226,40 @@ class ChannelObject(MiNObject):
 
         outputnode = nodes.new('NodeGroupOutput')
         outputnode.location = (1400, -100)
-
-        join_node = self.create_join_node()
-        links.new(join_node.outputs[0], outputnode.inputs['Geometry'])
+        outputnode.is_active_output = True
         return
 
     def add_ch_to_gn(self, ch):
-        in_node = self.node_group.nodes.get('Group Input')
-        join_node = self.node_group.nodes.get("Join")
+        raise NotImplementedError(f"{type(self).__name__} must implement add_ch_to_gn()")
 
-        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
-
+    def next_channel_location(self, in_node, join_node):
         min_y_loc = in_node.location[1] + 300
         skip_names = {in_node.name, "Group Output", join_node.name, "Set Material"}
         for node in self.node_group.nodes:
             if node.name not in skip_names:
                 min_y_loc = min(min_y_loc, node.location[1])
+        return in_node.location[0] + 400, min_y_loc - 300
 
-        x = in_node.location[0] + 400
-        y = min_y_loc - 300
+    def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
 
-        import_node = self.import_node(ch)
-        import_node.location = (x, y + 100)
-        import_node.name = f"channel_load_{ch.identifier}"
-        import_node.label = ch.name
+        mask_grid = nodes.new("GeometryNodeGroup")
+        mask_grid.node_tree = mask_grid_node_group()
+        mask_grid.name = f"SLICE_CUBE_{ch.identifier}"
+        mask_grid.location = (x + 360, y + 80)
+        mask_grid.width = 280
+        mask_grid.show_options = False
+        if mask_grid.inputs.get("With") is not None:
+            mask_grid.inputs["With"].default_value = 'Box'
 
-        affine_node = self.node_group.nodes.new("FunctionNodeCombineMatrix")
-        affine_node.name = f"channel_affine_{ch.identifier}"
-        affine_node.label = f"{ch.name} affine"
-        affine_node.location = (x - 180, y - 90)
-        for affine_socket in affine_node.inputs:
-            if not affine_socket.is_linked:
-                affine_socket.hide = True
-        self.node_group.links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
-
-        self.node_group.links.new(in_node.outputs.get(socket.name), import_node.inputs.get("Include"))
-        out_ch = self.channel_nodes(x, y, ch, self.import_output_socket(import_node))
-        self.attach_channel_output(join_node, ch, out_ch)
-        return
-
-    def channel_nodes(self, x, y, ch, in_ch):
-        return in_ch
+        links.new(grid_socket, mask_grid.inputs["Grid"])
+        return mask_grid.outputs["Masked Grid"]
 
     def add_ch_to_shader(self, mat, ch, shader_socket):
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.data.ix
+        y_offset = -self.shader_y_step * ch.data.ix
         add_shaders = nodes["Add Shaders"]
 
         frame = nodes.new("NodeFrame")
@@ -329,44 +273,19 @@ class ChannelObject(MiNObject):
         links.new(shader_socket, add_shaders.inputs[min(ch.data.ix, self.shader_count - 1)])
         return frame, add_shaders
 
-    def import_node(self, ch):
-        import_node = self.node_group.nodes.new("GeometryNodeGroup")
-        import_node.node_tree = self.import_node_tree()
-        import_node.location = (-600, 0)
-        for input_field in import_node.inputs:
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
-                input_field.hide = True
-        self.node_group.links.new(self.node_group.nodes['Group Input'].outputs['Frame'], import_node.inputs['Frame'])
-        return import_node
-
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
         self.object.matrix_parent_inverse.identity()
-        for mat in self.object.data.materials:
-            texcoord = mat.node_tree.nodes.get("Texture Coordinate")
-            if texcoord is not None:
-                texcoord.object = slice_cube
+        slicer = self.node_group.nodes.get(f"SLICE_CUBE_{ch.identifier}")
+        if slicer is not None and slicer.inputs.get("Object") is not None:
+            slicer.inputs["Object"].default_value = slice_cube
         for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
             obj.parent = parent
             obj.matrix_parent_inverse.identity()
 
 
 class MeshChannelObject(ChannelObject):
-    def shader_output_name(self):
-        return "Surface"
-
-    def shader_y_step(self):
-        return 500
-
-    def create_join_node(self):
-        join_node = self.node_group.nodes.new('GeometryNodeJoinGeometry')
-        join_node.name = "Join"
-        join_node.location = (800, -100)
-        return join_node
-
-    def attach_channel_output(self, join_node, ch, out_ch):
-        self.node_group.links.new(out_ch, join_node.inputs["Geometry"])
-        return
+    shader_y_step = 500
 
     def store_channel_attribute(self, x, y, ch, geometry_socket):
         store_channel = self.node_group.nodes.new("GeometryNodeStoreNamedAttribute")
@@ -383,32 +302,33 @@ class MeshChannelObject(ChannelObject):
     def init_gn(self):
         super().init_gn()
         outputnode = self.node_group.nodes.get('Group Output')
-        join_node = self.node_group.nodes.get("Join")
+        links = self.node_group.links
+
+        join_node = self.node_group.nodes.new('GeometryNodeJoinGeometry')
+        join_node.name = "Join"
+        join_node.location = (800, -100)
 
         set_material = self.node_group.nodes.new('GeometryNodeSetMaterial')
         set_material.name = "Set Material"
         set_material.location = (1100, -100)
 
-        self.node_group.links.new(join_node.outputs[0], set_material.inputs['Geometry'])
-        self.node_group.links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
+        links.new(join_node.outputs[0], set_material.inputs['Geometry'])
+        links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
         return
-
-    def channel_nodes(self, x, y, ch, in_ch):
-        return self.store_channel_attribute(x + 400, y, ch, in_ch)
 
     def init_shader(self, mat):
         super().init_shader(mat)
         nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
         nodes["Add Shaders"].location = (980, 0)
-        nodes["Texture Coordinate"].location = (1270, 140)
-        nodes["Slice Cube"].location = (1570, 0)
-        nodes["Material Output"].location = (2050, 0)
+        nodes["Material Output"].location = (1400, 0)
+        links.new(nodes["Add Shaders"].outputs[0], nodes["Material Output"].inputs["Surface"])
         return
 
     def init_channel_shader(self, mat, ch):
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.data.ix
+        y_offset = -self.shader_y_step * ch.data.ix
 
         color_lut = nodes.new("ShaderNodeValToRGB")
         color_lut.name = f"[color_lut_{ch.identifier}]"
@@ -427,7 +347,7 @@ class MeshChannelObject(ChannelObject):
         channel_index.label = "Channel index"
         channel_index.location = (710, y_offset - 65)
         channel_index.inputs["Index"].default_value = ch.data.ix
-        self.expand_node_ui(channel_index)
+        expand_node_ui(channel_index)
 
         frame, _ = self.add_ch_to_shader(mat, ch, channel_index.outputs["Shader"])
 

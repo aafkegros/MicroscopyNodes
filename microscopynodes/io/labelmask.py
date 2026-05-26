@@ -2,8 +2,9 @@ import zmesh
 from pathlib import Path
 
 from .base import DataIO
-from ..handle_blender_structs import len_axis, log, take_index, to_xyz
-from ..handle_blender_structs.props import min_keys
+from ..handle_blender_structs.array_handling import len_axis, take_index, to_xyz
+from ..handle_blender_structs.progress_handling import log
+from ..handle_blender_structs.min_keys import min_keys
 
 
 class LabelmaskIO(DataIO):

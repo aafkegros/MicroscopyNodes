@@ -1,7 +1,9 @@
 import bpy
 import numpy as np
 
-from .base import *
+from .base import ChannelObject
+from ..handle_blender_structs.node_handling import expand_node_ui, group_input_output_for_socket, new_socket
+from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
@@ -12,41 +14,34 @@ NR_HIST_BINS = 2**16
 
 class VolumeObject(ChannelObject):
     min_type = min_keys.VOLUME
-
-    def import_node_tree(self):
-        return import_microscopy_volume_node_group()
-
-    def shader_output_name(self):
-        return "Volume"
-
-    def shader_y_step(self):
-        return 750
+    shader_y_step = 750
 
     def init_shader(self, mat):
         super().init_shader(mat)
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        links.new(nodes["Add Shaders"].outputs[0], nodes["Material Output"].inputs["Volume"])
         return
 
     def init_gn(self):
         super().init_gn()
-        outputnode = self.node_group.nodes.get('Group Output')
-        join_node = self.node_group.nodes.get("Join")
+        nodes = self.node_group.nodes
+        links = self.node_group.links
 
-        set_material = self.node_group.nodes.new('GeometryNodeSetMaterial')
-        set_material.name = "Set Material"
-        set_material.location = (1100, -100)
-
-        self.node_group.links.new(join_node.outputs[0], set_material.inputs['Geometry'])
-        self.node_group.links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
-        return
-
-    def create_join_node(self):
-        join_node = self.node_group.nodes.new("GeometryNodeGroup")
+        join_node = nodes.new("GeometryNodeGroup")
         join_node.node_tree = join_grids_node_group(self.shader_count)
         join_node.name = "Join"
         join_node.location = (800, -100)
         join_node.hide = True
         join_node.inputs["Total channels"].default_value = self.shader_count
-        return join_node
+
+        set_material = nodes.new('GeometryNodeSetMaterial')
+        set_material.name = "Set Material"
+        set_material.location = (1100, -100)
+
+        links.new(join_node.outputs[0], set_material.inputs['Geometry'])
+        links.new(set_material.outputs[0], nodes["Group Output"].inputs["Geometry"])
+        return
 
     def ensure_channel_capacity(self):
         super().ensure_channel_capacity()
@@ -55,12 +50,40 @@ class VolumeObject(ChannelObject):
             join_node.node_tree = join_grids_node_group(self.shader_count)
             join_node.inputs["Total channels"].default_value = self.shader_count
 
-    def attach_channel_output(self, join_node, ch, out_ch):
+    def add_ch_to_gn(self, ch):
+        in_node = self.node_group.nodes.get('Group Input')
+        join_node = self.node_group.nodes.get("Join")
+        links = self.node_group.links
+        x, y = self.next_channel_location(in_node, join_node)
+        socket = new_socket(self.node_group, ch, 'NodeSocketBool', min_type="SWITCH")
+
+        import_node = self.node_group.nodes.new("GeometryNodeGroup")
+        import_node.node_tree = import_microscopy_volume_node_group()
+        import_node.location = (x, y + 100)
+        import_node.name = f"IMPORT_{ch.identifier}"
+        import_node.label = ch.name
+        for input_field in import_node.inputs:
+            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+                input_field.hide = True
+
+        affine_node = self.node_group.nodes.new("FunctionNodeCombineMatrix")
+        affine_node.name = f"channel_affine_{ch.identifier}"
+        affine_node.label = f"{ch.name} affine"
+        affine_node.location = (x - 180, y - 90)
+        for affine_socket in affine_node.inputs:
+            if not affine_socket.is_linked:
+                affine_socket.hide = True
+        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
+        links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
+        links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
+
+        masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
+
         join_node.inputs["Total channels"].default_value = max(
             join_node.inputs["Total channels"].default_value,
             min(ch.data.ix + 1, self.shader_count),
         )
-        self.node_group.links.new(out_ch, join_node.inputs[str(min(ch.data.ix, self.shader_count - 1))])
+        links.new(masked_grid, join_node.inputs[str(min(ch.data.ix, self.shader_count - 1))])
         return
 
     def update_import_node(self, import_node, file_constructors, ch):
@@ -70,12 +93,6 @@ class VolumeObject(ChannelObject):
             import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
-
-    def import_output_socket(self, import_node):
-        return import_node.outputs["Grid"]
-    
-    def channel_nodes(self, x, y, ch, in_ch):
-        return in_ch
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")
@@ -129,7 +146,7 @@ class VolumeObject(ChannelObject):
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        y_offset = -self.shader_y_step() * ch.data.ix
+        y_offset = -self.shader_y_step * ch.data.ix
 
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1600, y_offset)
@@ -164,7 +181,7 @@ class VolumeObject(ChannelObject):
         alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
-        self.expand_node_ui(alphanode)
+        expand_node_ui(alphanode)
 
         color_lut = nodes.new(type="ShaderNodeValToRGB")
         color_lut.location = (-300, y_offset + 120)
@@ -182,7 +199,7 @@ class VolumeObject(ChannelObject):
         microscopy_shading.inputs["Emission / Scattering"].default_value = float(not ch.viz.emission)
         for socket_name in ("Color", "Alpha", "Alpha-Intensity Coupling"):
             microscopy_shading.inputs[socket_name].hide_value = True
-        self.expand_node_ui(microscopy_shading)
+        expand_node_ui(microscopy_shading)
 
         frame, _ = self.add_ch_to_shader(mat, ch, microscopy_shading.outputs["Shader"])
         for node in (node_attr, ramp_node, histnode, alphanode, color_lut, microscopy_shading):

@@ -8,8 +8,9 @@ from .shader_nodes import slice_cube_node_group
 from .geo_nodes import geometry_node_group
 
 from . import shader_nodes
+from . import geo_nodes
 
-CLASSES =shader_nodes.CLASSES
+CLASSES = shader_nodes.CLASSES + geo_nodes.CLASSES
 
 
 def node_group(name):

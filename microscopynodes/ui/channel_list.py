@@ -67,7 +67,6 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
     def to_channelviz(self):
         from ..data_model import ChannelVizModel
         from ..min_nodes.shader_nodes.handle_cmap import get_colormap
-
         return ChannelVizModel(
             ix=self.ix,
             name=self.name,
@@ -76,7 +75,10 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
             labelmask=self.labelmask,
             emission=self.emission,
             surf_resolution=surf_resolution_value(self.surf_resolution),
-            cmap=get_colormap(CMAP_NAMES.get(self.cmap, self.cmap), tuple(self.single_color)),
+            cmap=get_colormap(
+                CMAP_NAMES.get(self.cmap, self.cmap),
+                self.single_color,
+            ),
         )
 
     def from_channelviz(self, channelviz):
@@ -97,7 +99,7 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
             self.cmap = "SINGLE_COLOR"
             lut = [color for color in channelviz.cmap.lut(2) if list(color) != [0, 0, 0, 0]]
             if lut:
-                self.single_color = tuple(lut[-1][:3])
+                self.single_color = lut[-1][:3]
 
     def _matching_cmap_enum(self, channelviz):
         from ..min_nodes.shader_nodes.handle_cmap import get_colormap
@@ -112,6 +114,10 @@ class ChannelDescriptor(bpy.types.PropertyGroup):
             except Exception:
                 pass
         return None
+
+
+
+
 
 class SCENE_UL_Channels(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):

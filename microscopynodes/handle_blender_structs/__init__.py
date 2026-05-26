@@ -1,6 +1,6 @@
-from .collection_handling import *
-from .node_handling import *
-from .progress_handling import *
-from .props import *
-from .array_handling import *
-from .keyframe_handling import *
+"""Blender-facing helpers.
+
+Import helper modules directly instead of using this package as a barrel.
+Keeping package import lightweight makes circular imports much easier to spot
+and avoids loading UI, node, and object code from unrelated constants imports.
+"""

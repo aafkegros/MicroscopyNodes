@@ -168,38 +168,45 @@ def import_microscopy_volume_node_group():
     links.new(store_original.outputs["Volume"], normalized_switch.inputs["False"])
     links.new(store_normalized.outputs["Volume"], normalized_switch.inputs["True"])
 
-    include_switch = nodes.new("GeometryNodeSwitch")
-    include_switch.name = "Include Switch"
-    include_switch.location = (1170, 20)
-    include_switch.input_type = 'GEOMETRY'
-    links.new(group_input.outputs["Include"], include_switch.inputs["Switch"])
-    links.new(normalized_switch.outputs["Output"], include_switch.inputs["True"])
-
     output_grid = nodes.new("GeometryNodeGetNamedGrid")
     output_grid.name = "Output Grid"
-    output_grid.location = (1380, 30)
+    output_grid.location = (1170, 30)
     output_grid.data_type = 'FLOAT'
     output_grid.inputs["Remove"].default_value = False
-    links.new(include_switch.outputs["Output"], output_grid.inputs["Volume"])
+    links.new(normalized_switch.outputs["Output"], output_grid.inputs["Volume"])
     links.new(group_input.outputs["Grid Name"], output_grid.inputs["Name"])
 
     set_grid_transform = nodes.new("GeometryNodeSetGridTransform")
     set_grid_transform.name = "Set Channel Affine Transform"
-    set_grid_transform.location = (1560, 250)
+    set_grid_transform.location = (1350, 250)
     set_grid_transform.data_type = 'FLOAT'
     links.new(output_grid.outputs["Grid"], set_grid_transform.inputs["Grid"])
     links.new(group_input.outputs["Channel Affine Matrix"], set_grid_transform.inputs["Transform"])
 
     store_transformed_grid = nodes.new("GeometryNodeStoreNamedGrid")
     store_transformed_grid.name = "Store Transformed Grid"
-    store_transformed_grid.location = (1770, 80)
+    store_transformed_grid.location = (1560, 80)
     store_transformed_grid.data_type = 'FLOAT'
     links.new(output_grid.outputs["Volume"], store_transformed_grid.inputs["Volume"])
     links.new(group_input.outputs["Grid Name"], store_transformed_grid.inputs["Name"])
     links.new(set_grid_transform.outputs["Grid"], store_transformed_grid.inputs["Grid"])
 
+    include_volume_switch = nodes.new("GeometryNodeSwitch")
+    include_volume_switch.name = "Include Volume Switch"
+    include_volume_switch.location = (1780, -30)
+    include_volume_switch.input_type = 'GEOMETRY'
+    links.new(group_input.outputs["Include"], include_volume_switch.inputs["Switch"])
+    links.new(store_transformed_grid.outputs["Volume"], include_volume_switch.inputs["True"])
+
+    include_grid_switch = nodes.new("GeometryNodeSwitch")
+    include_grid_switch.name = "Include Grid Switch"
+    include_grid_switch.location = (1780, 185)
+    include_grid_switch.input_type = 'FLOAT'
+    links.new(group_input.outputs["Include"], include_grid_switch.inputs["Switch"])
+    links.new(set_grid_transform.outputs["Grid"], include_grid_switch.inputs["True"])
+
     group_output.location = (2020, 20)
-    links.new(store_transformed_grid.outputs["Volume"], group_output.inputs["Volume"])
-    links.new(set_grid_transform.outputs["Grid"], group_output.inputs["Grid"])
+    links.new(include_volume_switch.outputs["Output"], group_output.inputs["Volume"])
+    links.new(include_grid_switch.outputs["Output"], group_output.inputs["Grid"])
 
     return node_group

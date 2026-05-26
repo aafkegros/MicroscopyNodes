@@ -2,8 +2,9 @@ import os
 os.environ["MIN_TEST"] = "1"
 import bpy
 
-from microscopynodes.handle_blender_structs import *
 from microscopynodes.file_to_array import *
+from microscopynodes.handle_blender_structs.min_keys import min_keys
+from microscopynodes.handle_blender_structs.node_handling import get_socket
 import microscopynodes
 from microscopynodes.ui.preferences import addon_preferences
 
@@ -59,8 +60,8 @@ def make_tif(path, arrtype):
 
 
 def prep_load(arrtype=None):
-    # microscopynodes._test_register()
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    microscopynodes._test_register()
 
     prefs = addon_preferences(bpy.context)
     prefs.import_scale = "DEFAULT"
@@ -78,10 +79,6 @@ def prep_load(arrtype=None):
     path = test_folder / f'{arrtype}.tif'
     path, arr, axes_order = make_tif(path, arrtype)
 
-    # bpy.context.scene.MiN_selected_cache_option = "Path"
-    # bpy.context.scene.MiN_explicit_cache_dir = str(test_folder)
-    # bpy.context.scene.MiN_cache_dir = str(test_folder)
-    
     bpy.context.scene.MiN_input_file = str(path)
     # assert(arr_shape() == arr.shape)
     assert(len(bpy.context.scene.MiN_channelList) == len_axis('c', axes_order, arr.shape))
@@ -124,21 +121,24 @@ def check_channels(dataset_model, test_render=True):
 
     if test_render:
         for ch_obj, socket_identifier in toggled:
+            ch_obj.gn_mod[socket_identifier] = False
+        for ch_obj, socket_identifier in toggled:
             img1 = quick_render('1')
             ch_obj.gn_mod[socket_identifier] = True
             img2 = quick_render('2')
             ch_obj.gn_mod[socket_identifier] = False
             if np.array_equal(img1, img2):
-                raise ValueError(f"{socket_identifier}, ")
+                raise ValueError(f"tried to turn off {socket_identifier}, render did not change")
             assert(not np.array_equal(img1, img2))
                 
                 
 
 def quick_render(name):
-    bpy.context.scene.cycles.samples = 16
     # Set the output file path
     output_file = str(test_folder / f'tmp{name}.png')
     scn = bpy.context.scene
+    if scn.render.engine == "CYCLES":
+        scn.cycles.samples = 16
 
     cam_obj = bpy.data.objects.get("MiN Test Camera")
     if cam_obj is None:
