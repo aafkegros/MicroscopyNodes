@@ -1,8 +1,5 @@
-import bpy
 from pathlib import Path
 import numpy as np
-import math
-import itertools
 
 from .base import DataIO
 from ..handle_blender_structs.array_handling import len_axis, to_xyz
@@ -21,30 +18,16 @@ def get_leading_trailing_zero_float(arr):
 
 class VolumeIO(DataIO):
     min_type = min_keys.VOLUME
-    VDB_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "x{x}y{y}z{z}_c{channel_ix}_t{t}.vdb"
+    VDB_TEMPLATE = Path("{cache_dir}") / "{dataset_hash}" / "{scale}" / "mask_{masked}_c{channel_ix}_t{t}.vdb"
 
     def generate_file_constructors(self, ch):
         file_constructors = []
-        xyz_shape = [len_axis(dim, ch.data.axes_order, ch.data.data.shape) for dim in "xyz"]
-        maxlen = np.inf
-        if bpy.context.scene.MiN_chunk:
-            maxlen = 2048
-        slices_xyz = [self.split_axis_to_chunks(dimshape, ch.data.ix, maxlen) for dimshape in xyz_shape]
-        time_slices = [slice(t, t + 1) for t in range(ch.data.frame_start, min(ch.data.frame_end + 1, len_axis("t", ch.data.axes_order, ch.data.data.shape)))]
-        slices_xyzt = slices_xyz + [time_slices]
-
-        for block in itertools.product(*slices_xyzt):
+        for t in range(ch.data.frame_start, min(ch.data.frame_end + 1, len_axis("t", ch.data.axes_order, ch.data.data.shape))):
             file_constructors.append({
                 **self.base_constructor(ch),
                 "scale": ch.data.dataset_resolution,
-                "x": block[0].start,
-                "y": block[1].start,
-                "z": block[2].start,
-                "x_end": block[0].stop,
-                "y_end": block[1].stop,
-                "z_end": block[2].stop,
-                "t": block[3].start,
-                "t_end": block[3].stop,
+                "masked": False,
+                "t": t,
                 "channel_ix": ch.data.ix,
                 "template_str": str(self.VDB_TEMPLATE),
             })
@@ -63,9 +46,10 @@ class VolumeIO(DataIO):
             if (not vdbfname.exists() or not histfname.exists()) or ch.force_remaking_files:
                 vdbfname.unlink(missing_ok=True)
                 histfname.unlink(missing_ok=True)
-                log(f"loading chunk {Path(vdbfname).stem}")
+                log(f"loading volume {Path(vdbfname).stem}")
                 arr = ch.data.data[tuple(
-                    slice(constructor[dim], constructor[f"{dim}_end"]) for dim in ch.data.axes_order
+                    slice(constructor["t"], constructor["t"] + 1) if dim == "t" else slice(None)
+                    for dim in ch.data.axes_order
                 )].compute()
 
                 arr = to_xyz(arr, ch.data.axes_order)
@@ -76,21 +60,6 @@ class VolumeIO(DataIO):
                 log(f"write vdb {vdbfname.name}")
                 self.make_vdb(vdbfname, arr)
         return []
-
-    def split_axis_to_chunks(self, length, ch_ix, maxlen):
-        offset = 0
-        if length > maxlen:
-            offset = (300 * ch_ix) % 2048
-        n_splits = int((length // (maxlen + 1)) + 1)
-        splits = [length / n_splits * split for split in range(n_splits + 1)]
-        splits[-1] = math.ceil(splits[-1])
-        splits = [math.floor(split) + offset for split in splits]
-        if offset > 0:
-            splits.insert(0, 0)
-        while splits[-2] > length:
-            del splits[-1]
-        splits[-1] = length
-        return [slice(start, end) for start, end in zip(splits[:-1], splits[1:])]
 
     def make_vdb(self, vdbfname, arr):
         try:

@@ -104,13 +104,6 @@ def register_scene_props():
         default = True,
     )
 
-    bpy.types.Scene.MiN_chunk = BoolProperty(
-        name = "Chunking",
-        description = 'Loads volumes in chunks of axis < 2048 px if checked.\nUnchunked large volumes WILL crash MacOS-ARM Blender outside of Cycles.\nChunked volumes can cause Cycles rendering artefacts.\nChunking may be slightly more RAM/network-efficient.',
-        default = False,
-        ) 
-
-
     bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
     name = "",
     description = "current process in load",
@@ -135,7 +128,6 @@ def unregister_scene_props():
         "MiN_load_finished",
         "MiN_update_data",
         "MiN_update_settings",
-        "MiN_chunk",
         "MiN_progress_str",
     ):
         try:
