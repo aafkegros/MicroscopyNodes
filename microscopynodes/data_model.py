@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_valid
 import numpy as np
 from cmap import Color, Colormap
 from .handle_blender_structs.min_keys import min_keys
+from .handle_blender_structs.units import output_scale_for_import_scale, unit_label_from_value, unit_value
 import dask.array as da
 
 # subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
@@ -107,6 +108,10 @@ class ChannelDataModel(BaseModel):
             raise ValueError('Affine must be 4×4.')
         return a.tolist()
 
+    @field_validator("unit", mode="before")
+    def parse_unit_scale(cls, v):
+        return unit_value(v)
+
     @field_validator("frame_start", "frame_end")
     def validate_frame_bounds(cls, v, info):
         return v
@@ -210,47 +215,13 @@ class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
     name : Optional[str] 
-    output_unit: float = 1e-2 
     relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
-
-    # These two are only to make the px -> cm work, this entire mode will be deprecated
-    explicit_scale: float | None = None 
-    axis_unit_scale: float = 1.0 # axis-label units per dataset coordinate unit
 
     local_files_exist: bool = False
 
     @property
-    def scale(self):
-        if self.explicit_scale is not None:
-            return self.explicit_scale
-        return self.channels[0].data.unit / self.output_unit
-
-    @property
     def unit_label(self):
-        if self.explicit_scale is not None:
-            if not np.isclose(float(self.axis_unit_scale), 1.0):
-                unit_label = self._unit_label_from_value(self.channels[0].data.unit)
-                if unit_label is not None:
-                    return unit_label
-            return "px"
-
-        unit_label = self._unit_label_from_value(self.output_unit)
-        if unit_label is not None:
-            return unit_label
-        return "unit"
-
-    def _unit_label_from_value(self, unit_value):
-        labels = {
-            1e-10: "Å",
-            1e-9: "nm",
-            1e-6: "µm",
-            1e-3: "mm",
-            1.0: "m",
-        }
-        for value, label in labels.items():
-            if np.isclose(float(unit_value), value):
-                return label
-        return None
+        return unit_label_from_value(self.channels[0].data.unit) or "unit"
 
     @field_validator("channels")
     def no_duplicate_channel_names(cls, channels):
@@ -310,3 +281,15 @@ class DatasetModel(BaseModel):
             return {"ok": True, "error": ""}
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+
+class SceneModel(BaseModel):
+    output_scale: float
+
+    @field_validator("output_scale", mode="before")
+    def parse_output_scale(cls, v):
+        return cls.output_scale_value(v)
+
+    @classmethod
+    def output_scale_value(cls, value):
+        return output_scale_for_import_scale(value)

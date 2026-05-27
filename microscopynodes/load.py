@@ -5,9 +5,11 @@ from .handle_blender_structs.keyframe_handling import ensure_dataset_frame_drive
 from .handle_blender_structs.node_handling import get_min_gn
 from .handle_blender_structs.min_keys import min_keys
 from .blender_objects.factories import MinObjectFactory
+from .data_model import SceneModel
 
 class Scene():
     # wraps the blender scene and can hold Microscopy Nodes Datasets
+    # This is essentially a placeholder for a more developed Scene Object that actually knows of its data
     def __init__(self, scene=None, overwrite_background_color=False, overwrite_render_settings=False):
         self.scene = scene or bpy.context.scene # TODO catch uninitialized scene
 
@@ -36,8 +38,40 @@ class Scene():
         set_render_settings()
         return
 
+    @property
+    def import_scale(self):
+        return self.scene.MiN_import_scale
+
+    @property
+    def output_scale(self):
+        return SceneModel.output_scale_value(self.import_scale)
+
+    @property
+    def scene_model(self):
+        return SceneModel(
+            output_scale=self.import_scale,
+        )
+
+    def resolve_auto_import_scale(self, dataset_model):
+        from .handle_blender_structs.units import AUTO_IMPORT_SCALE, import_scale_for_extent
+
+        if self.scene.MiN_import_scale != AUTO_IMPORT_SCALE:
+            return
+        _, _, extent = dataset_model.intermediate_bbox
+        input_extent_meters = float(max(extent)) * float(dataset_model.channels[0].data.unit)
+        self.scene.MiN_import_scale = import_scale_for_extent(input_extent_meters)
+
+    def update_dataset_scale(self, dataset, dataset_model):
+        self.resolve_auto_import_scale(dataset_model)
+        scene_model = self.scene_model
+        if dataset.holder is not None:
+            dataset.holder.set_scene(scene_model)
+        if dataset.axes is not None:
+            dataset.axes.set_scene(scene_model)
+
 class Dataset():
-    def __init__(self, holder=None, dataset_model=None):
+    def __init__(self, holder=None, dataset_model=None, scene=None):
+        self.scene = scene if isinstance(scene, Scene) else Scene(scene=scene)
         self.holder = None
         self.axes = None
         self.slicecube = None
@@ -93,6 +127,8 @@ class Dataset():
             if update_settings:
                 min_obj.set_settings(dataset_model)
         self.ensure_links_of_objects(dataset_model)
+        if update_settings:
+            self.scene.update_dataset_scale(self, dataset_model)
         if self.holder is not None:
             bpy.context.scene.MiN_reload = self.holder.object
         return    

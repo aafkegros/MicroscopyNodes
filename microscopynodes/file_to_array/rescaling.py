@@ -38,10 +38,7 @@ def rescale_dataset(dataset_model, rescale_xyz, dataset_resolution=None):
     return DatasetModel(
         name=_rescaled_name(dataset_model.name, rescale_xyz),
         channels=channels,
-        output_unit=dataset_model.output_unit,
         relative_loc=dataset_model.relative_loc,
-        explicit_scale=dataset_model.explicit_scale,
-        axis_unit_scale=dataset_model.axis_unit_scale,
         local_files_exist=dataset_model.local_files_exist,
     )
 

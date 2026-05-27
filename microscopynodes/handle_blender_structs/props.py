@@ -8,6 +8,7 @@ import platform
 import tempfile
 
 from .min_keys import min_keys
+from .units import register_import_scale_property
 
 
 def register_scene_props():
@@ -16,6 +17,8 @@ def register_scene_props():
     description = "Force remaking vdb files",
     default = False
     )
+
+    register_import_scale_property(bpy.types.Scene)
 
     bpy.types.Scene.MiN_load_start_frame = bpy.props.IntProperty(
     name = "", 
@@ -118,6 +121,7 @@ def register_scene_props():
 def unregister_scene_props():
     for prop in (
         "MiN_remake",
+        "MiN_import_scale",
         "MiN_load_start_frame",
         "MiN_load_end_frame",
         "MiN_overwrite_background_color",

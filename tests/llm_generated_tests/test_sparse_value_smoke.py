@@ -18,7 +18,7 @@ SPARSE_LOADABLE = [
     ["surface"],
     ["labelmask"],
     [],
-    ["volume", "surface"],
+    # ["volume", "surface"], # these look very similar which is correct, removed them for now
     "mixed",
 ]
 

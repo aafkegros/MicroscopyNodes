@@ -27,27 +27,6 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         while len(prefs.channels)-1 >= prefs.n_default_channels:
             prefs.channels.remove(len(prefs.channels)-1)
 
-    import_scale_no_unit_spoof : EnumProperty(
-        name = 'Microscopy scale -> Blender scale (needs metric pixel unit)',
-        items=[
-            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
-        ],
-        description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
-        default='DEFAULT',
-    )
-    import_scale : EnumProperty(
-        name = "Microscopy scale -> Blender scale",
-        items=[
-            ("DEFAULT", "px -> cm","Scales to 0.01 blender-m/pixel in XY, rescales Z to isotropic pixel size" ,"", 0),
-            ("NANOMETER_SCALE", "nm -> m", "Scales to 1 nm/blender-meter" ,"", 1),
-            ("MICROMETER_SCALE", "µm -> m", "Scales to 1 µm/blender-meter" ,"", 2),
-            ("MILLIMETER_SCALE", "mm -> m", "Scales to 1 mm/blender-meter " ,"", 3),
-            ("METER_SCALE", "m -> m", "Scales to 1 m/blender-meter " ,"", 4),
-            ("MOLECULAR_NODES", "nm -> cm (Molecular Nodes)", "Scales to 1 nm/blender-centimeter " ,"", 5),
-        ], 
-        description= "Defines the scale transform from input space to Blender meters, pixel space is rescaled to isotropic in Z from relative pixel size.",
-        default='DEFAULT',
-    )
     n_default_channels : bpy.props.IntProperty(
         name = 'Defined default channels',
         min= 1,
@@ -140,8 +119,6 @@ def addon_preferences(context: bpy.types.Context | None = None):
     except (AttributeError, KeyError):
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
-                import_scale="DEFAULT",
-                import_scale_no_unit_spoof="DEFAULT",
                 import_loc="XY_CENTER",
                 surf_resolution="0",
                 invert_color=False,

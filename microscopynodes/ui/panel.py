@@ -130,10 +130,7 @@ class TIFLoadPanel(bpy.types.Panel):
                         text = '', icon="SCENE",icon_only=True,emboss=True)
         row.separator()
         row.label(text="", icon='CON_SIZELIKE')
-        if bpy.context.scene.MiN_unit == "AU":
-            row.prop(addon_preferences(bpy.context), 'import_scale_no_unit_spoof', emboss=True,text="")
-        else:
-            row.prop(addon_preferences(bpy.context), 'import_scale', emboss=True,text="")
+        row.prop(bpy.context.scene, 'MiN_import_scale', emboss=True,text="")
         row.label(text="", icon='ORIENTATION_PARENT')
         row.prop(addon_preferences(bpy.context), 'import_loc', emboss=True,text="")
 
