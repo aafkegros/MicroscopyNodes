@@ -8,7 +8,7 @@ from .nodeMaskGrid import mask_grid_node_group
 from .nodeMaskMesh import mask_mesh_node_group
 from .nodeScale import scale_node_group
 from .nodeScaleBox import scalebox_node_group
-from .subsampled_active_grid_positions import subsampled_active_grid_positions_node_group
+from .nodeSubsample import subsampled_active_grid_positions_node_group
 from . import ops
 import bpy
 
