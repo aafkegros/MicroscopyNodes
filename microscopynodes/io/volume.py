@@ -31,7 +31,7 @@ class VolumeIO(DataIO):
             file_constructors.append({
                 **self.base_constructor(ch),
                 "scale": ch.data.dataset_resolution,
-                "masked": False,
+                "masked": ch.data.mask_indices is not None,
                 "t": t,
                 "channel_ix": ch.data.ix,
                 "template_str": str(self.VDB_TEMPLATE),
@@ -55,14 +55,19 @@ class VolumeIO(DataIO):
                 vdbfname.unlink(missing_ok=True)
                 histfname.unlink(missing_ok=True)
                 log(f"loading volume {Path(vdbfname).stem}")
-                arr = ch.data.data[tuple(
-                    slice(constructor["t"], constructor["t"] + 1) if dim == "t" else slice(None)
-                    for dim in ch.data.axes_order
-                )].compute()
+                if ch.data.mask_indices is None:
+                    arr = ch.data.data[tuple(
+                        slice(constructor["t"], constructor["t"] + 1) if dim == "t" else slice(None)
+                        for dim in ch.data.axes_order
+                    )].compute()
+                    arr = to_xyz(arr, ch.data.axes_order)
+                    arr = arr.astype(np.float32) / original_max
+                    self.make_vdb(vdbfname, arr)
+                    histogram_values = arr
+                else:
+                    histogram_values = self.make_masked_vdb(vdbfname, ch, constructor, original_max)
 
-                arr = to_xyz(arr, ch.data.axes_order)
-                arr = arr.astype(np.float32) / original_max
-                histogram = np.histogram(arr, bins=NR_HIST_BINS, range=hist_range)[0]
+                histogram = np.histogram(histogram_values, bins=NR_HIST_BINS, range=hist_range)[0]
                 zero_bin = int(np.searchsorted(np.linspace(*hist_range, NR_HIST_BINS + 1), 0.0, side="right") - 1)
                 histogram[max(zero_bin, 0)] = 0
                 np.savez(
@@ -74,7 +79,6 @@ class VolumeIO(DataIO):
                     allow_pickle=False,
                 )
                 log(f"write vdb {vdbfname.name}")
-                self.make_vdb(vdbfname, arr)
         return []
 
     def get_data_range(self, ch):
@@ -97,6 +101,100 @@ class VolumeIO(DataIO):
         grid.copyFromArray(arr)
         vdb.write(str(vdbfname), grids=[grid])
         return
+
+    def make_masked_vdb(self, vdbfname, ch, constructor, scale):
+        try:
+            import openvdb as vdb
+        except Exception:
+            bpy.utils.expose_bundled_modules()
+            import openvdb as vdb
+
+        grid = vdb.FloatGrid()
+        grid.name = "data"
+        acc = grid.getAccessor()
+        histogram_values = []
+        for xyz_start, data_region in self.iter_masked_data_blocks(ch, constructor):
+            data_block = data_region.compute()
+            data_block = to_xyz(data_block, ch.data.axes_order)
+            arr = data_block.astype(np.float32) / scale
+            values = arr.ravel()
+            values = values[values != 0]
+            if len(values) == 0:
+                continue
+            histogram_values.append(values)
+
+            xs, ys, zs = np.nonzero(arr != 0)
+            for dx, dy, dz in zip(xs, ys, zs):
+                acc.setValueOn(
+                    (int(xyz_start[0] + dx), int(xyz_start[1] + dy), int(xyz_start[2] + dz)),
+                    float(arr[dx, dy, dz]),
+                )
+        vdb.write(str(vdbfname), grids=[grid])
+        if not histogram_values:
+            return np.array([], dtype=np.float32)
+        return np.concatenate(histogram_values)
+
+    def iter_masked_data_blocks(self, ch, constructor):
+        mask = ch.data.mask_indices
+        if hasattr(mask, "compute"):
+            mask = mask.compute()
+        mask = np.asarray(mask, dtype=float)
+        if len(mask) == 0:
+            return
+
+        data_shape = self.data_shape_xyz(ch)
+        bbox_shape = np.maximum(np.ceil(np.array(ch.data.mask_voxel_size, dtype=float) * data_shape).astype(int), 1)
+        regions = self.mask_center_regions(mask, data_shape, bbox_shape)
+
+        for xyz_start, xyz_stop in regions:
+            data_slices = self.data_slices_from_xyz(ch, constructor, xyz_start, xyz_stop)
+            yield xyz_start, ch.data.data[data_slices]
+
+    def data_shape_xyz(self, ch):
+        return np.array([
+            len_axis(dim, ch.data.axes_order, ch.data.data.shape)
+            for dim in "xyz"
+        ], dtype=int)
+
+    def mask_center_regions(self, centers, data_shape, bbox_shape):
+        centers = np.clip(centers, 0.0, 1.0)
+        center_xyz = np.floor(centers * (data_shape - 1)).astype(int)
+        lower = bbox_shape // 2
+        upper = bbox_shape - lower
+
+        regions = []
+        for center in center_xyz:
+            xyz_start = np.maximum(center - lower, 0)
+            xyz_stop = np.minimum(center + upper, data_shape)
+            if np.any(xyz_stop <= xyz_start):
+                continue
+            regions.append((xyz_start, xyz_stop))
+        return self.merge_regions(regions)
+
+    def merge_regions(self, regions):
+        merged = []
+        for start, stop in sorted(regions, key=lambda region: tuple(region[0])):
+            for ix, (merged_start, merged_stop) in enumerate(merged):
+                if np.all(start <= merged_stop) and np.all(stop >= merged_start):
+                    merged[ix] = (np.minimum(merged_start, start), np.maximum(merged_stop, stop))
+                    break
+            else:
+                merged.append((start, stop))
+        return merged
+
+    def data_slices_from_xyz(self, ch, constructor, xyz_start, xyz_stop):
+        slices = []
+        for dim in ch.data.axes_order:
+            if dim == "t":
+                slices.append(slice(constructor["t"], constructor["t"] + 1))
+            else:
+                axis = "xyz".index(dim)
+                slices.append(slice(int(xyz_start[axis]), int(xyz_stop[axis])))
+        return tuple(slices)
+
+    def chunks_to_slices(self, chunks):
+        starts = np.cumsum((0, *chunks[:-1]))
+        return [slice(int(start), int(start + size)) for start, size in zip(starts, chunks)]
 
     def get_metadata(self, file_constructors):
         hist = np.zeros(NR_HIST_BINS)
