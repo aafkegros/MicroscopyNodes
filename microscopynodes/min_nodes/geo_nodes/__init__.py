@@ -8,6 +8,7 @@ from .nodeMaskGrid import mask_grid_node_group
 from .nodeMaskMesh import mask_mesh_node_group
 from .nodeScale import scale_node_group
 from .nodeScaleBox import scalebox_node_group
+from .subsampled_active_grid_positions import subsampled_active_grid_positions_node_group
 from . import ops
 import bpy
 
@@ -52,6 +53,7 @@ NODE_GROUPS = {
     "Mask Mesh": mask_mesh_node_group,
     "Microscopy Grid to Points": microscopy_grid_to_points_node_group,
     "Scale bars": scale_node_group,
+    "Subsampled active grid positions": subsampled_active_grid_positions_node_group,
     "_grid_verts": grid_verts_node_group,
     "_scalebox": scalebox_node_group,
 }
