@@ -14,6 +14,32 @@ def _dataset_from_reload():
     return microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
 
 
+def _set_slice_cube_to_normalized_bounds(dataset_model, dataset, bounds_min, bounds_max):
+    _, _, extent = dataset_model.intermediate_bbox
+    bounds_min = np.array(bounds_min, dtype=float)
+    bounds_max = np.array(bounds_max, dtype=float)
+    center = (bounds_min + bounds_max) / 2.0
+    size = bounds_max - bounds_min
+
+    dataset.slicecube.object.location = dataset_model.dataset_origin_world + center * extent
+    dataset.slicecube.object.scale = np.maximum(size * extent / 2.0, 1e-5)
+    bpy.context.view_layer.update()
+
+
+def _rounded_point_set(points):
+    return {
+        tuple(np.round(point, 6))
+        for point in np.asarray(points, dtype=float)
+    }
+
+
+def _evaluate_object_for_test(obj):
+    bpy.context.view_layer.update()
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    obj.evaluated_get(depsgraph)
+    depsgraph.update()
+
+
 def _load_single_surface_with_affine_translation(translation):
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
@@ -128,6 +154,68 @@ def test_visibility_socket_matches_channel_visibility():
         socket = get_socket(dataset.volume.node_group, ch, min_type="SWITCH")
         assert socket is not None
         assert dataset.volume.gn_mod[socket.identifier] == True
+
+
+def test_volume_add_visibility_mask_without_moving_slice_cube_returns_normalized_points():
+    prep_load("5D_5cube")
+    for ch in bpy.context.scene.MiN_channelList:
+        ch.volume = True
+        ch.surface = False
+        ch.labelmask = False
+
+    do_load()
+    dataset = _dataset_from_reload()
+    
+    _evaluate_object_for_test(dataset.volume.object)
+    
+    dataset.add_visibility_mask()
+    dataset.visibility.set_resolution((24, 24, 24))
+    locs = np.array(dataset.visibility.read_points(), dtype=float)
+    voxel_extents = np.array(dataset.visibility.read_voxel_extents(), dtype=float)
+    assert len(locs) > 0
+    assert locs.shape[1] == 3
+    assert np.all(locs >= -1e-6)
+    assert np.all(locs <= 1.0 + 1e-6)
+    assert np.allclose(voxel_extents, (1 / 24, 1 / 24, 1 / 24))
+
+
+def test_volume_add_visibility_mask_tracks_moved_slice_cube_in_normalized_bbox():
+    prep_load("5D_5cube")
+    for ch in bpy.context.scene.MiN_channelList:
+        ch.volume = True
+        ch.surface = False
+        ch.labelmask = False
+
+    dataset_model = do_load()
+    dataset = _dataset_from_reload()
+
+    # _evaluate_object_for_test(dataset.volume.object)
+    dataset.add_visibility_mask()
+    dataset.visibility.set_resolution((24, 24, 24))
+    full_locs = np.array(dataset.visibility.read_points(), dtype=float)
+    assert len(full_locs) > 0
+
+    full_min = full_locs.min(axis=0)
+    full_max = full_locs.max(axis=0)
+    slice_min = full_min + (full_max - full_min) * 0.25
+    slice_max = full_min + (full_max - full_min) * 0.75
+
+    _set_slice_cube_to_normalized_bounds(dataset_model, dataset, slice_min, slice_max)
+
+    _evaluate_object_for_test(dataset.volume.object)
+    dataset.add_visibility_mask()
+    dataset.visibility.set_resolution((24, 24, 24))
+    moved_locs = np.array(dataset.visibility.read_points(), dtype=float)
+    moved_locs_in_full_bbox = slice_min + moved_locs * (slice_max - slice_min)
+    expected_locs = full_locs[
+        np.all((full_locs >= slice_min - 1e-6) & (full_locs <= slice_max + 1e-6), axis=1)
+    ]
+
+    assert len(moved_locs) > 0
+    assert len(moved_locs) < len(full_locs)
+    assert len(expected_locs) > 0
+    assert np.all(moved_locs_in_full_bbox >= slice_min - 1e-6)
+    assert np.all(moved_locs_in_full_bbox <= slice_max + 1e-6)
 
 
 def test_parse_clears_reload_when_holder_no_longer_passes_poll():
