@@ -177,7 +177,7 @@ class VolumeObject(ChannelObject):
         alphanode.node_tree = volume_alpha_node()
         alphanode.name = f'[volume_alpha_{ch.identifier}]'
         alphanode.location = (-300, y_offset - 120)
-        alphanode.inputs.get("Alpha").default_value = 1
+        alphanode.inputs.get("Alpha").default_value = 10
         alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
         links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
