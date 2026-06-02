@@ -160,7 +160,7 @@ class Dataset():
                 ensure_dataset_frame_driver(self.holder.object, min_obj)
         return
 
-    def add_visibility_mask(self):
+    def ensure_visibility_mask(self):
         if self.visibility is None:
             self.visibility = VisibilityMaskObject()
         if self.holder is not None:

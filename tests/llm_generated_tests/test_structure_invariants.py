@@ -156,7 +156,7 @@ def test_visibility_socket_matches_channel_visibility():
         assert dataset.volume.gn_mod[socket.identifier] == True
 
 
-def test_volume_add_visibility_mask_without_moving_slice_cube_returns_normalized_points():
+def test_volume_ensure_visibility_mask_without_moving_slice_cube_returns_normalized_points():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
         ch.volume = True
@@ -168,18 +168,17 @@ def test_volume_add_visibility_mask_without_moving_slice_cube_returns_normalized
     
     _evaluate_object_for_test(dataset.volume.object)
     
-    dataset.add_visibility_mask()
-    dataset.visibility.set_resolution((24, 24, 24))
+    dataset.ensure_visibility_mask()
     locs = np.array(dataset.visibility.read_points(), dtype=float)
     voxel_extents = np.array(dataset.visibility.read_voxel_extents(), dtype=float)
     assert len(locs) > 0
     assert locs.shape[1] == 3
     assert np.all(locs >= -1e-6)
     assert np.all(locs <= 1.0 + 1e-6)
-    assert np.allclose(voxel_extents, (1 / 24, 1 / 24, 1 / 24))
+    assert np.allclose(voxel_extents, (1 / 20, 1 / 20, 1 / 10))
 
 
-def test_volume_add_visibility_mask_tracks_moved_slice_cube_in_normalized_bbox():
+def test_volume_ensure_visibility_mask_tracks_moved_slice_cube_in_normalized_bbox():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
         ch.volume = True
@@ -190,8 +189,7 @@ def test_volume_add_visibility_mask_tracks_moved_slice_cube_in_normalized_bbox()
     dataset = _dataset_from_reload()
 
     # _evaluate_object_for_test(dataset.volume.object)
-    dataset.add_visibility_mask()
-    dataset.visibility.set_resolution((24, 24, 24))
+    dataset.ensure_visibility_mask()
     full_locs = np.array(dataset.visibility.read_points(), dtype=float)
     assert len(full_locs) > 0
 
@@ -203,8 +201,7 @@ def test_volume_add_visibility_mask_tracks_moved_slice_cube_in_normalized_bbox()
     _set_slice_cube_to_normalized_bounds(dataset_model, dataset, slice_min, slice_max)
 
     _evaluate_object_for_test(dataset.volume.object)
-    dataset.add_visibility_mask()
-    dataset.visibility.set_resolution((24, 24, 24))
+    dataset.ensure_visibility_mask()
     moved_locs = np.array(dataset.visibility.read_points(), dtype=float)
     moved_locs_in_full_bbox = slice_min + moved_locs * (slice_max - slice_min)
     expected_locs = full_locs[

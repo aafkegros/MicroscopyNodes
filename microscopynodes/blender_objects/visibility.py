@@ -11,7 +11,6 @@ class VisibilityMaskObject(MiNObject):
         self.visibility_node_group = None
         self.object_info_node = None
         self.sample_node = None
-        self.voxel_extents_node = None
         self.resolution = self.default_resolution
         super().__init__()
 
@@ -63,19 +62,6 @@ class VisibilityMaskObject(MiNObject):
     def link_labelmask(self, labelmask_object):
         return
 
-    def set_resolution(self, resolution):
-        if isinstance(resolution, int):
-            resolution_x = resolution_y = resolution_z = resolution
-        else:
-            resolution_x, resolution_y, resolution_z = (int(value) for value in resolution)
-        self.resolution = (resolution_x, resolution_y, resolution_z)
-        self.sample_node.inputs["Resolution X"].default_value = resolution_x
-        self.sample_node.inputs["Resolution Y"].default_value = resolution_y
-        self.sample_node.inputs["Resolution Z"].default_value = resolution_z
-        self.voxel_extents_node.inputs["X"].default_value = 1.0 / resolution_x
-        self.voxel_extents_node.inputs["Y"].default_value = 1.0 / resolution_y
-        self.voxel_extents_node.inputs["Z"].default_value = 1.0 / resolution_z
-
     def read_voxel_extents(self):
         bpy.context.view_layer.update()
         depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -90,6 +76,19 @@ class VisibilityMaskObject(MiNObject):
 
     def _node_group(self):
         node_group = bpy.data.node_groups.new("visibility mask", "GeometryNodeTree")
+        resolution_x, resolution_y, resolution_z = self.default_resolution
+        for name, value in (
+            ("Resolution X", resolution_x),
+            ("Resolution Y", resolution_y),
+            ("Resolution Z", resolution_z),
+        ):
+            socket = node_group.interface.new_socket(
+                name=name,
+                in_out="INPUT",
+                socket_type="NodeSocketInt",
+            )
+            socket.default_value = value
+            socket.min_value = 1
         node_group.interface.new_socket(
             name="Geometry",
             in_out="OUTPUT",
@@ -98,6 +97,10 @@ class VisibilityMaskObject(MiNObject):
 
         nodes = node_group.nodes
         links = node_group.links
+
+        group_input = nodes.new("NodeGroupInput")
+        group_input.name = "Group Input"
+        group_input.location = (-820, -160)
 
         output = nodes.new("NodeGroupOutput")
         output.name = "Group Output"
@@ -126,8 +129,24 @@ class VisibilityMaskObject(MiNObject):
         voxel_extents = nodes.new("ShaderNodeCombineXYZ")
         voxel_extents.name = "Voxel Extents"
         voxel_extents.location = (360, -160)
-        self.voxel_extents_node = voxel_extents
-        self.set_resolution(self.default_resolution)
+
+        extent_x = nodes.new("ShaderNodeMath")
+        extent_x.name = "Voxel Extent X"
+        extent_x.operation = "DIVIDE"
+        extent_x.location = (120, -120)
+        extent_x.inputs[0].default_value = 1.0
+
+        extent_y = nodes.new("ShaderNodeMath")
+        extent_y.name = "Voxel Extent Y"
+        extent_y.operation = "DIVIDE"
+        extent_y.location = (120, -200)
+        extent_y.inputs[0].default_value = 1.0
+
+        extent_z = nodes.new("ShaderNodeMath")
+        extent_z.name = "Voxel Extent Z"
+        extent_z.operation = "DIVIDE"
+        extent_z.location = (120, -280)
+        extent_z.inputs[0].default_value = 1.0
 
         store_voxel_extents = nodes.new("GeometryNodeStoreNamedAttribute")
         store_voxel_extents.name = "Store Voxel Extents"
@@ -138,6 +157,15 @@ class VisibilityMaskObject(MiNObject):
 
         links.new(object_info.outputs["Geometry"], channel_grid.inputs["Volume"])
         links.new(channel_grid.outputs["Grid"], sample.inputs["Grid"])
+        links.new(group_input.outputs["Resolution X"], sample.inputs["Resolution X"])
+        links.new(group_input.outputs["Resolution Y"], sample.inputs["Resolution Y"])
+        links.new(group_input.outputs["Resolution Z"], sample.inputs["Resolution Z"])
+        links.new(group_input.outputs["Resolution X"], extent_x.inputs[1])
+        links.new(group_input.outputs["Resolution Y"], extent_y.inputs[1])
+        links.new(group_input.outputs["Resolution Z"], extent_z.inputs[1])
+        links.new(extent_x.outputs["Value"], voxel_extents.inputs["X"])
+        links.new(extent_y.outputs["Value"], voxel_extents.inputs["Y"])
+        links.new(extent_z.outputs["Value"], voxel_extents.inputs["Z"])
         links.new(sample.outputs["Geometry"], store_voxel_extents.inputs["Geometry"])
         links.new(voxel_extents.outputs["Vector"], store_voxel_extents.inputs["Value"])
         links.new(store_voxel_extents.outputs["Geometry"], output.inputs["Geometry"])

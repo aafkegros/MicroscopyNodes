@@ -29,6 +29,15 @@ def parse_blender_ui():
     )
     return scene_model
 
+
+def ensure_visibility_mask_to_channel_data(dataset, dataset_model):
+    dataset.ensure_visibility_mask()
+    mask_indices = np.asarray(dataset.visibility.read_points(), dtype=float)
+    mask_voxel_size = tuple(float(value) for value in dataset.visibility.read_voxel_extents())
+    for channel in dataset_model.channels:
+        channel.data.mask_indices = mask_indices
+        channel.data.mask_voxel_size = mask_voxel_size
+
 # ----------------------------------------------------------------
 # --- Channel Model Construction --------------------------------
 # ----------------------------------------------------------------

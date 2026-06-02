@@ -104,6 +104,12 @@ def register_scene_props():
         default = True,
     )
 
+    bpy.types.Scene.MiN_load_with_mask = BoolProperty(
+        name = "",
+        description = "Only reload 'visible' data - not masked by slice cube or other masking. Use this to select a region of bigger-than-RAM data.",
+        default = False,
+    )
+
     bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
     name = "",
     description = "current process in load",
@@ -128,6 +134,7 @@ def unregister_scene_props():
         "MiN_load_finished",
         "MiN_update_data",
         "MiN_update_settings",
+        "MiN_load_with_mask",
         "MiN_progress_str",
     ):
         try:
