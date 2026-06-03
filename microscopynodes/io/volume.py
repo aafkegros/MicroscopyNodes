@@ -1,5 +1,6 @@
 import bpy
 from pathlib import Path
+import time
 import numpy as np
 
 from .base import DataIO
@@ -27,11 +28,12 @@ class VolumeIO(DataIO):
 
     def generate_file_constructors(self, ch):
         file_constructors = []
+        masked = str(time.time_ns()) if ch.data.mask_indices is not None else "False"
         for t in range(ch.data.frame_start, min(ch.data.frame_end + 1, len_axis("t", ch.data.axes_order, ch.data.data.shape))):
             file_constructors.append({
                 **self.base_constructor(ch),
                 "scale": ch.data.dataset_resolution,
-                "masked": str(ch.data.mask_indices is not None),
+                "masked": masked,
                 "t": t,
                 "channel_ix": ch.data.ix,
                 "template_str": str(self.VDB_TEMPLATE),
@@ -129,6 +131,7 @@ class VolumeIO(DataIO):
                     (int(xyz_start[0] + dx), int(xyz_start[1] + dy), int(xyz_start[2] + dz)),
                     float(arr[dx, dy, dz]),
                 )
+                # print(f"setting { (int(xyz_start[0] + dx), int(xyz_start[1] + dy), int(xyz_start[2] + dz))} to {float(arr[dx, dy, dz]),}")
         vdb.write(str(vdbfname), grids=[grid])
         if not histogram_values:
             return np.array([], dtype=np.float32)

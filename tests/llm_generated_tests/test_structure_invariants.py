@@ -259,8 +259,8 @@ def test_reload_with_visibility_mask_keeps_masked_data_after_slice_cube_reset():
     assert result["ok"], result["error"]
     for channel in reload_model.channels:
         constructors = channel.file_constructors[min_keys.VOLUME]
-        assert all(constructor["masked"] == "True" for constructor in constructors)
-        assert all("mask_True" in str(Path(str(constructor["template_str"]).format(**constructor))) for constructor in constructors)
+        assert all(constructor["masked"] != "False" for constructor in constructors)
+        assert all("mask_False" not in str(Path(str(constructor["template_str"]).format(**constructor))) for constructor in constructors)
     reload_dataset.set_state(
         reload_model,
         update_data=bpy.context.scene.MiN_update_data,
