@@ -31,7 +31,7 @@ class VolumeIO(DataIO):
             file_constructors.append({
                 **self.base_constructor(ch),
                 "scale": ch.data.dataset_resolution,
-                "masked": ch.data.mask_indices is not None,
+                "masked": str(ch.data.mask_indices is not None),
                 "t": t,
                 "channel_ix": ch.data.ix,
                 "template_str": str(self.VDB_TEMPLATE),

@@ -53,7 +53,8 @@ def _build_subsampled_active_grid_positions(tree):
         10,
         min_value=1,
     )
-    geometry = tree.outputs.geometry("Geometry")
+    points_output = tree.outputs.geometry("Points")
+    normalized_points_output = tree.outputs.geometry("Normalized Points")
 
     volume = g.StoreNamedGrid.float(
         name="",
@@ -71,18 +72,18 @@ def _build_subsampled_active_grid_positions(tree):
         resolution_z=resolution_z,
     ).o.topology
 
-    active_grid = g.Compare(
-        a=grid,
+    position = g.Position().o.position
+    sampled_value = g.SampleGrid.float(
+        grid=grid,
+        position=position,
+        interpolation="Nearest Neighbor",
+    ).o.value
+    sampled_active = g.Compare(
+        a=sampled_value,
         b=0.0001,
         operation="GREATER_THAN",
         data_type="FLOAT",
     ).node.outputs["Result"]
-    position = g.Position().o.position
-    sampled_active = g.SampleGrid.boolean(
-        grid=active_grid,
-        position=position,
-        interpolation="Nearest Neighbor",
-    ).o.value
     active_topology = g.BooleanMath.l_and(
         sampled_active,
         topology,
@@ -111,10 +112,16 @@ def _build_subsampled_active_grid_positions(tree):
         ).o.vector,
         bounds_size,
     ).o.vector
-    g.SetPosition(
+    points_with_normalized_position = g.StoreNamedAttribute.point.vector(
         geometry=active_points,
+        name="normalized position",
+        value=normalized_position,
+    ).o.geometry
+    points_with_normalized_position >> points_output
+    g.SetPosition(
+        geometry=points_with_normalized_position,
         position=normalized_position,
-    ).o.geometry >> geometry
+    ).o.geometry >> normalized_points_output
 
 
 def subsampled_active_grid_positions_node_group():

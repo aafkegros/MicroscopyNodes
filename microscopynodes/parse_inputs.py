@@ -27,16 +27,26 @@ def parse_blender_ui():
         channels=channels,
         relative_loc = relative_loc,
     )
+    if scn.MiN_load_with_mask and scn.MiN_reload is not None:
+        from .load import Dataset
+
+        ensure_visibility_mask_to_channel_data(
+            Dataset(holder=scn.MiN_reload),
+            scene_model,
+        )
     return scene_model
 
 
 def ensure_visibility_mask_to_channel_data(dataset, dataset_model):
-    dataset.ensure_visibility_mask()
-    mask_indices = np.asarray(dataset.visibility.read_points(), dtype=float)
+    if dataset.visibility is None:
+        return
+    dataset.visibility.link_dataset(dataset)
+    mask_indices = np.asarray(dataset.visibility.read_normalized_points(), dtype=float)
     mask_voxel_size = tuple(float(value) for value in dataset.visibility.read_voxel_extents())
     for channel in dataset_model.channels:
         channel.data.mask_indices = mask_indices
         channel.data.mask_voxel_size = mask_voxel_size
+        channel.force_remaking_files = True
 
 # ----------------------------------------------------------------
 # --- Channel Model Construction --------------------------------

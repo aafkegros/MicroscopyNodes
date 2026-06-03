@@ -161,6 +161,9 @@ class ChannelObject(MiNObject):
                 key = 'Frame'
             if import_node.inputs.get(key) is None:
                 continue
+            if import_node.inputs.get(key).type == "STRING":
+                import_node.inputs.get(key).default_value = str(val)
+                continue
             try:
                 import_node.inputs.get(key).default_value = int(val)
             except Exception:

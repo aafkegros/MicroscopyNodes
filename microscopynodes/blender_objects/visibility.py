@@ -1,18 +1,22 @@
 import bpy
+from nodebpy import TreeBuilder, geometry as g
 
 from .base import MiNObject
-from ..min_nodes.geo_nodes.nodeSubsample import subsampled_active_grid_positions_node_group
+from ..min_nodes.geo_nodes.nodeSubsample import SubsampledActiveGridPositions
 
 
 class VisibilityMaskObject(MiNObject):
+    min_type = None
     default_resolution = (20, 20, 10)
 
-    def __init__(self):
+    def __init__(self, obj=None):
         self.visibility_node_group = None
         self.object_info_node = None
         self.sample_node = None
         self.resolution = self.default_resolution
-        super().__init__()
+        super().__init__(obj)
+        if obj is not None:
+            self._load_existing_nodes()
 
     def init_obj(self):
         pointcloud = bpy.data.pointclouds.new("visibility mask")
@@ -20,9 +24,21 @@ class VisibilityMaskObject(MiNObject):
         bpy.context.collection.objects.link(self.object)
 
         self.visibility_node_group = self._node_group()
-        modifier = self.object.modifiers.new("visibility mask", "NODES")
+        modifier = self.object.modifiers.new("[Microscopy Nodes visibility]", "NODES")
         modifier.node_group = self.visibility_node_group
         return self.object
+
+    def _load_existing_nodes(self):
+        modifier = next(
+            (mod for mod in self.object.modifiers if mod.type == "NODES" and mod.node_group is not None),
+            None,
+        )
+        if modifier is None:
+            return
+        self.visibility_node_group = modifier.node_group
+        nodes = self.visibility_node_group.nodes
+        self.object_info_node = nodes.get("Dataset Volume")
+        self.sample_node = nodes.get("Subsample Channel 0")
 
     def read_points(self):
         bpy.context.view_layer.update()
@@ -38,6 +54,22 @@ class VisibilityMaskObject(MiNObject):
             points.foreach_get("co", locations)
         except Exception:
             point_cloud.attributes["position"].data.foreach_get("vector", locations)
+        return [
+            tuple(float(value) for value in locations[ix:ix + 3])
+            for ix in range(0, len(locations), 3)
+        ]
+
+    def read_normalized_points(self):
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated_object = self.object.evaluated_get(depsgraph)
+        point_cloud = evaluated_object.data
+        points = point_cloud.points
+        if len(points) == 0:
+            return []
+
+        locations = [0.0] * (len(points) * 3)
+        point_cloud.attributes["normalized position"].data.foreach_get("vector", locations)
         return [
             tuple(float(value) for value in locations[ix:ix + 3])
             for ix in range(0, len(locations), 3)
@@ -75,98 +107,48 @@ class VisibilityMaskObject(MiNObject):
         return tuple(float(value) for value in extents[:3])
 
     def _node_group(self):
-        node_group = bpy.data.node_groups.new("visibility mask", "GeometryNodeTree")
         resolution_x, resolution_y, resolution_z = self.default_resolution
-        for name, value in (
-            ("Resolution X", resolution_x),
-            ("Resolution Y", resolution_y),
-            ("Resolution Z", resolution_z),
-        ):
-            socket = node_group.interface.new_socket(
-                name=name,
-                in_out="INPUT",
-                socket_type="NodeSocketInt",
+        with TreeBuilder.geometry("visibility mask") as tree:
+            tree.tree.show_modifier_manage_panel = True
+            resolution_x = tree.inputs.integer("Resolution X", resolution_x, min_value=1)
+            resolution_y = tree.inputs.integer("Resolution Y", resolution_y, min_value=1)
+            resolution_z = tree.inputs.integer("Resolution Z", resolution_z, min_value=1)
+            geometry = tree.outputs.geometry("Geometry")
+
+            object_info = g.ObjectInfo(transform_space="RELATIVE")
+            object_info.node.name = "Dataset Volume"
+            object_info.node.location = (-600, 80)
+            self.object_info_node = object_info.node
+
+            channel_grid = g.GetNamedGrid.float(
+                volume=object_info.o.geometry,
+                name="Channel 0",
             )
-            socket.default_value = value
-            socket.min_value = 1
-        node_group.interface.new_socket(
-            name="Geometry",
-            in_out="OUTPUT",
-            socket_type="NodeSocketGeometry",
-        )
+            channel_grid.node.name = "Channel 0"
+            channel_grid.node.location = (-300, 80)
 
-        nodes = node_group.nodes
-        links = node_group.links
+            sample = SubsampledActiveGridPositions(
+                grid=channel_grid.o.grid,
+                resolution_x=resolution_x,
+                resolution_y=resolution_y,
+                resolution_z=resolution_z,
+            )
+            sample.node.name = "Subsample Channel 0"
+            sample.node.location = (120, 0)
+            self.sample_node = sample.node
 
-        group_input = nodes.new("NodeGroupInput")
-        group_input.name = "Group Input"
-        group_input.location = (-820, -160)
+            voxel_extents = g.CombineXYZ(
+                x=g.Math.divide(1.0, resolution_x).o.value,
+                y=g.Math.divide(1.0, resolution_y).o.value,
+                z=g.Math.divide(1.0, resolution_z).o.value,
+            )
+            voxel_extents.node.name = "Voxel Extents"
+            voxel_extents.node.location = (360, -160)
 
-        output = nodes.new("NodeGroupOutput")
-        output.name = "Group Output"
-        output.is_active_output = True
-        output.location = (600, 0)
+            g.StoreNamedAttribute.point.vector(
+                geometry=sample.node.outputs["Points"],
+                name="voxel extents",
+                value=voxel_extents.o.vector,
+            ).o.geometry >> geometry
 
-        object_info = nodes.new("GeometryNodeObjectInfo")
-        object_info.name = "Dataset Volume"
-        object_info.location = (-600, 80)
-        if hasattr(object_info, "transform_space"):
-            object_info.transform_space = "RELATIVE"
-        self.object_info_node = object_info
-
-        channel_grid = nodes.new("GeometryNodeGetNamedGrid")
-        channel_grid.name = "Channel 0"
-        channel_grid.data_type = "FLOAT"
-        channel_grid.inputs["Name"].default_value = "Channel 0"
-        channel_grid.location = (-300, 80)
-
-        sample = nodes.new("GeometryNodeGroup")
-        sample.name = "Subsample Channel 0"
-        sample.node_tree = subsampled_active_grid_positions_node_group()
-        sample.location = (120, 0)
-        self.sample_node = sample
-
-        voxel_extents = nodes.new("ShaderNodeCombineXYZ")
-        voxel_extents.name = "Voxel Extents"
-        voxel_extents.location = (360, -160)
-
-        extent_x = nodes.new("ShaderNodeMath")
-        extent_x.name = "Voxel Extent X"
-        extent_x.operation = "DIVIDE"
-        extent_x.location = (120, -120)
-        extent_x.inputs[0].default_value = 1.0
-
-        extent_y = nodes.new("ShaderNodeMath")
-        extent_y.name = "Voxel Extent Y"
-        extent_y.operation = "DIVIDE"
-        extent_y.location = (120, -200)
-        extent_y.inputs[0].default_value = 1.0
-
-        extent_z = nodes.new("ShaderNodeMath")
-        extent_z.name = "Voxel Extent Z"
-        extent_z.operation = "DIVIDE"
-        extent_z.location = (120, -280)
-        extent_z.inputs[0].default_value = 1.0
-
-        store_voxel_extents = nodes.new("GeometryNodeStoreNamedAttribute")
-        store_voxel_extents.name = "Store Voxel Extents"
-        store_voxel_extents.data_type = "FLOAT_VECTOR"
-        store_voxel_extents.domain = "POINT"
-        store_voxel_extents.location = (360, 0)
-        store_voxel_extents.inputs["Name"].default_value = "voxel extents"
-
-        links.new(object_info.outputs["Geometry"], channel_grid.inputs["Volume"])
-        links.new(channel_grid.outputs["Grid"], sample.inputs["Grid"])
-        links.new(group_input.outputs["Resolution X"], sample.inputs["Resolution X"])
-        links.new(group_input.outputs["Resolution Y"], sample.inputs["Resolution Y"])
-        links.new(group_input.outputs["Resolution Z"], sample.inputs["Resolution Z"])
-        links.new(group_input.outputs["Resolution X"], extent_x.inputs[1])
-        links.new(group_input.outputs["Resolution Y"], extent_y.inputs[1])
-        links.new(group_input.outputs["Resolution Z"], extent_z.inputs[1])
-        links.new(extent_x.outputs["Value"], voxel_extents.inputs["X"])
-        links.new(extent_y.outputs["Value"], voxel_extents.inputs["Y"])
-        links.new(extent_z.outputs["Value"], voxel_extents.inputs["Z"])
-        links.new(sample.outputs["Geometry"], store_voxel_extents.inputs["Geometry"])
-        links.new(voxel_extents.outputs["Vector"], store_voxel_extents.inputs["Value"])
-        links.new(store_voxel_extents.outputs["Geometry"], output.inputs["Geometry"])
-        return node_group
+        return tree.tree
