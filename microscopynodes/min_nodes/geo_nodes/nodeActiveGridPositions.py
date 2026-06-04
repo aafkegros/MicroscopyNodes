@@ -1,4 +1,5 @@
-from nodebpy import geometry as g
+import bpy
+from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
 from nodebpy.types import InputFloat
 
@@ -33,8 +34,23 @@ def _build_active_grid_positions(tree):
         name="ix",
         value=indices,
     ).o.geometry
-    g.StoreNamedAttribute.point.boolean(
+    points_with_values = g.StoreNamedAttribute.point.boolean(
         geometry=points_with_indices,
         name="value",
         value=points.o.value,
+    ).o.geometry
+    g.DeleteGeometry(
+        geometry=points_with_values,
+        selection=points.o.is_tile,
     ).o.geometry >> points_output
+
+
+def active_grid_positions_node_group():
+    node_group = bpy.data.node_groups.get(GROUP_NAME)
+    if node_group:
+        return node_group
+
+    with TreeBuilder.geometry(GROUP_NAME) as tree:
+        _build_active_grid_positions(tree)
+
+    return tree.tree

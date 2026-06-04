@@ -20,9 +20,8 @@ def update_load_with_mask(self, context):
         return
 
     dataset = Dataset(holder=reload_object)
-    if self.MiN_load_with_mask:
-        dataset.ensure_visibility_mask()
-        return
+    if self.MiN_load_with_mask and dataset.volume is not None:
+        dataset.volume.infer_visibility()
 
 
 def register_scene_props():

@@ -8,4 +8,3 @@ class min_keys(Enum):
     SURFACE = 3
     LABELMASK = 4
     SLICECUBE = 5
-    VISIBILITY = 6

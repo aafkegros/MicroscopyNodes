@@ -5,7 +5,6 @@ from .labelmask import LabelmaskObject
 from .slice_cube import SliceCubeObject
 from .surface import SurfaceObject
 from .volume import VolumeObject
-from .visibility import VisibilityMaskObject
 
 OBJECT_MAP = {
     min_keys.HOLDER: Holder,
@@ -14,7 +13,6 @@ OBJECT_MAP = {
     min_keys.SURFACE: SurfaceObject,
     min_keys.LABELMASK: LabelmaskObject,
     min_keys.SLICECUBE: SliceCubeObject,
-    min_keys.VISIBILITY: VisibilityMaskObject,
 }
 
 def MinObjectFactory(min_key, obj=None):

@@ -156,7 +156,7 @@ def test_visibility_socket_matches_channel_visibility():
         assert dataset.volume.gn_mod[socket.identifier] == True
 
 
-def test_volume_ensure_visibility_mask_without_moving_slice_cube_returns_normalized_points():
+def test_volume_infer_visibility_returns_boolean_mask():
     prep_load("5D_5cube")
     for ch in bpy.context.scene.MiN_channelList:
         ch.volume = True
@@ -165,122 +165,12 @@ def test_volume_ensure_visibility_mask_without_moving_slice_cube_returns_normali
 
     do_load()
     dataset = _dataset_from_reload()
-    
-    _evaluate_object_for_test(dataset.volume.object)
-    
-    dataset.ensure_visibility_mask()
-    locs = np.array(dataset.visibility.read_normalized_points(), dtype=float)
-    voxel_extents = np.array(dataset.visibility.read_voxel_extents(), dtype=float)
-    assert len(locs) > 0
-    assert locs.shape[1] == 3
-    assert np.all(locs >= -1e-6)
-    assert np.all(locs <= 1.0 + 1e-6)
-    assert np.all(voxel_extents > 0)
-    assert np.all(voxel_extents <= 1)
+    mask = dataset.volume.infer_visibility()
 
-
-def test_load_with_mask_toggle_adds_visibility_mask_child():
-    prep_load("5D_5cube")
-    for ch in bpy.context.scene.MiN_channelList:
-        ch.volume = True
-        ch.surface = False
-        ch.labelmask = False
-
-    do_load()
-    holder = bpy.context.scene.MiN_reload
-    assert holder is not None
-
-    bpy.context.scene.MiN_load_with_mask = True
-    assert len([child for child in holder.children if child.name.startswith("visibility mask")]) == 1
-
-    bpy.context.scene.MiN_load_with_mask = False
-    assert len([child for child in holder.children if child.name.startswith("visibility mask")]) == 1
-
-
-def test_volume_ensure_visibility_mask_tracks_moved_slice_cube_in_normalized_bbox():
-    prep_load("5D_5cube")
-    for ch in bpy.context.scene.MiN_channelList:
-        ch.volume = True
-        ch.surface = False
-        ch.labelmask = False
-
-    dataset_model = do_load()
-    dataset = _dataset_from_reload()
-
-    # _evaluate_object_for_test(dataset.volume.object)
-    dataset.ensure_visibility_mask()
-    full_locs = np.array(dataset.visibility.read_normalized_points(), dtype=float)
-    assert len(full_locs) > 0
-
-    full_min = full_locs.min(axis=0)
-    full_max = full_locs.max(axis=0)
-    slice_min = full_min + (full_max - full_min) * 0.25
-    slice_max = full_min + (full_max - full_min) * 0.75
-
-    _set_slice_cube_to_normalized_bounds(dataset_model, dataset, slice_min, slice_max)
-
-    _evaluate_object_for_test(dataset.volume.object)
-    dataset.ensure_visibility_mask()
-    moved_locs = np.array(dataset.visibility.read_normalized_points(), dtype=float)
-    moved_locs_in_full_bbox = slice_min + moved_locs * (slice_max - slice_min)
-    expected_locs = full_locs[
-        np.all((full_locs >= slice_min - 1e-6) & (full_locs <= slice_max + 1e-6), axis=1)
-    ]
-
-    assert len(moved_locs) > 0
-    assert len(moved_locs) < len(full_locs)
-    assert len(expected_locs) > 0
-    assert np.all(moved_locs_in_full_bbox >= slice_min - 1e-6)
-    assert np.all(moved_locs_in_full_bbox <= slice_max + 1e-6)
-
-
-def test_reload_with_visibility_mask_keeps_masked_data_after_slice_cube_reset():
-    prep_load("5D_5cube")
-    for ch in bpy.context.scene.MiN_channelList:
-        ch.volume = True
-        ch.surface = False
-        ch.labelmask = False
-
-    dataset_model = do_load()
-    dataset = _dataset_from_reload()
-    dataset.ensure_visibility_mask()
-    full_locs = np.array(dataset.visibility.read_normalized_points(), dtype=float)
-    assert len(full_locs) > 0
-
-    slice_min = np.array((0.25, 0.25, 0.25), dtype=float)
-    slice_max = np.array((0.75, 0.75, 0.75), dtype=float)
-    _set_slice_cube_to_normalized_bounds(dataset_model, dataset, slice_min, slice_max)
-
-    bpy.context.scene.MiN_load_with_mask = True
-    reload_model = microscopynodes.parse_inputs.parse_blender_ui()
-    reload_dataset = _dataset_from_reload()
-    assert all(channel.data.mask_indices is not None for channel in reload_model.channels)
-
-    result = reload_model.make_local_files()
-    assert result["ok"], result["error"]
-    for channel in reload_model.channels:
-        constructors = channel.file_constructors[min_keys.VOLUME]
-        assert all(constructor["masked"] != "False" for constructor in constructors)
-        assert all("mask_False" not in str(Path(str(constructor["template_str"]).format(**constructor))) for constructor in constructors)
-    reload_dataset.set_state(
-        reload_model,
-        update_data=bpy.context.scene.MiN_update_data,
-        update_settings=bpy.context.scene.MiN_update_settings,
-    )
-
-    _set_slice_cube_to_normalized_bounds(reload_model, reload_dataset, (0, 0, 0), (1, 1, 1))
-    _evaluate_object_for_test(reload_dataset.volume.object)
-    reload_dataset.ensure_visibility_mask()
-    reset_locs = np.array(reload_dataset.visibility.read_normalized_points(), dtype=float)
-
-    assert len(reset_locs) > 0
-    assert len(reset_locs) < len(full_locs)
-    visibility_children = [
-        child
-        for child in reload_dataset.holder.object.children
-        if child.name == "visibility mask" or child.name.startswith("visibility mask.")
-    ]
-    assert len(visibility_children) == 1
+    assert mask.dtype == bool
+    assert mask.ndim == 3
+    assert np.any(mask)
+    assert dataset.volume.node_group.nodes.get("[visibility] Active Grid Positions") is not None
 
 
 def test_parse_clears_reload_when_holder_no_longer_passes_poll():

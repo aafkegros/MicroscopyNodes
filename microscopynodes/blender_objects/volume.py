@@ -6,6 +6,7 @@ from ..handle_blender_structs.node_handling import expand_node_ui, group_input_o
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
+from ..min_nodes.geo_nodes.nodeActiveGridPositions import active_grid_positions_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch, volume_alpha_node
 
@@ -93,6 +94,59 @@ class VolumeObject(ChannelObject):
             import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
+
+    def infer_visibility(self):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
+        output = nodes.get("Group Output")
+        output_socket = output.inputs["Geometry"]
+
+        active_points = nodes.get("[visibility] Active Grid Positions")
+        if active_points is None:
+            original_socket = output_socket.links[0].from_socket
+
+            channel_grid = nodes.new("GeometryNodeGetNamedGrid")
+            channel_grid.name = "[visibility] Channel 0"
+            channel_grid.data_type = "FLOAT"
+            channel_grid.inputs["Name"].default_value = "Channel 0"
+            channel_grid.location = (1300, -100)
+
+            active_points = nodes.new("GeometryNodeGroup")
+            active_points.name = "[visibility] Active Grid Positions"
+            active_points.node_tree = active_grid_positions_node_group()
+            active_points.location = (1550, -100)
+
+            links.new(original_socket, channel_grid.inputs["Volume"])
+            links.new(channel_grid.outputs["Grid"], active_points.inputs["Grid"])
+            links.new(active_points.outputs["Points"], output_socket)
+
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated_object = depsgraph.id_eval_get(self.object)
+        evaluated_geometry = evaluated_object.evaluated_geometry()
+        point_cloud = evaluated_geometry.pointcloud
+        indices = self._read_vector_attribute(point_cloud, "ix").astype(int)
+        if len(indices) == 0:
+            return np.empty((0, 0, 0), dtype=bool)
+
+        values = self._read_boolean_attribute(point_cloud, "value")
+        mask = np.zeros(tuple(indices.max(axis=0) + 1), dtype=bool)
+        mask[tuple(indices.T)] = values
+        return mask
+
+    def _read_vector_attribute(self, point_cloud, name):
+        point_count = len(point_cloud.attributes["position"].data)
+        if point_count == 0:
+            return np.empty((0, 3), dtype=float)
+
+        values = np.empty(point_count * 3, dtype=float)
+        point_cloud.attributes[name].data.foreach_get("vector", values)
+        return values.reshape((-1, 3))
+
+    def _read_boolean_attribute(self, point_cloud, name):
+        values = np.empty(len(point_cloud.attributes["position"].data), dtype=bool)
+        point_cloud.attributes[name].data.foreach_get("value", values)
+        return values
 
     def draw_histogram(self, nodes, loc, width, hist):
         histnode =nodes.new(type="ShaderNodeFloatCurve")

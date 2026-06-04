@@ -30,18 +30,17 @@ def parse_blender_ui():
     if scn.MiN_load_with_mask and scn.MiN_reload is not None:
         from .load import Dataset
 
-        ensure_visibility_mask_to_channel_data(
+        infer_visibility_to_channel_data(
             Dataset(holder=scn.MiN_reload),
             scene_model,
         )
     return scene_model
 
 
-def ensure_visibility_mask_to_channel_data(dataset, dataset_model):
-    if dataset.visibility is None:
+def infer_visibility_to_channel_data(dataset, dataset_model):
+    if dataset.volume is None:
         return
-    dataset.visibility.link_dataset(dataset)
-    mask = dataset.visibility.read_points()
+    mask = dataset.volume.infer_visibility()
     for channel in dataset_model.channels:
         channel.data.mask = mask
         channel.force_remaking_files = True

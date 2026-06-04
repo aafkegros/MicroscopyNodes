@@ -5,7 +5,6 @@ from .handle_blender_structs.keyframe_handling import ensure_dataset_frame_drive
 from .handle_blender_structs.node_handling import get_min_gn
 from .handle_blender_structs.min_keys import min_keys
 from .blender_objects.factories import MinObjectFactory
-from .blender_objects.visibility import VisibilityMaskObject
 from .data_model import SceneModel
 
 class Scene():
@@ -79,7 +78,6 @@ class Dataset():
         self.volume = None
         self.surface = None
         self.labelmask = None
-        self.visibility = None
 
         if holder is not None:
             from .handle_blender_structs.dependent_props import valid_reload_object
@@ -159,17 +157,6 @@ class Dataset():
             if min_obj is not None:
                 ensure_dataset_frame_driver(self.holder.object, min_obj)
         return
-
-    def ensure_visibility_mask(self):
-        if self.visibility is None:
-            self.visibility = VisibilityMaskObject()
-        if self.holder is not None:
-            self.visibility.object.parent = self.holder.object
-            self.visibility.object.matrix_parent_inverse.identity()
-        self.visibility.link_dataset(self)
-        return
-
-
 
 def set_background_color():
     bgcol = (0.2,0.2,0.2, 1)
