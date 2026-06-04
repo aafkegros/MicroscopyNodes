@@ -41,11 +41,9 @@ def ensure_visibility_mask_to_channel_data(dataset, dataset_model):
     if dataset.visibility is None:
         return
     dataset.visibility.link_dataset(dataset)
-    mask_indices = np.asarray(dataset.visibility.read_normalized_points(), dtype=float)
-    mask_voxel_size = tuple(float(value) for value in dataset.visibility.read_voxel_extents())
+    mask = dataset.visibility.read_points()
     for channel in dataset_model.channels:
-        channel.data.mask_indices = mask_indices
-        channel.data.mask_voxel_size = mask_voxel_size
+        channel.data.mask = mask
         channel.force_remaking_files = True
 
 # ----------------------------------------------------------------

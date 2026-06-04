@@ -1,19 +1,18 @@
 import bpy
+import numpy as np
 from nodebpy import TreeBuilder, geometry as g
 
 from .base import MiNObject
-from ..min_nodes.geo_nodes.nodeSubsample import SubsampledActiveGridPositions
+from ..min_nodes.geo_nodes.nodeActiveGridPositions import ActiveGridPositions
 
 
 class VisibilityMaskObject(MiNObject):
     min_type = None
-    default_resolution = (20, 20, 10)
 
     def __init__(self, obj=None):
         self.visibility_node_group = None
         self.object_info_node = None
         self.sample_node = None
-        self.resolution = self.default_resolution
         super().__init__(obj)
         if obj is not None:
             self._load_existing_nodes()
@@ -38,42 +37,36 @@ class VisibilityMaskObject(MiNObject):
         self.visibility_node_group = modifier.node_group
         nodes = self.visibility_node_group.nodes
         self.object_info_node = nodes.get("Dataset Volume")
-        self.sample_node = nodes.get("Subsample Channel 0")
+        self.sample_node = nodes.get("Active Channel 0")
 
     def read_points(self):
+        point_cloud = self._evaluated_point_cloud()
+        indices = self._read_vector_attribute(point_cloud, "ix").astype(int)
+        if len(indices) == 0:
+            return np.empty((0, 0, 0), dtype=bool)
+
+        values = self._read_boolean_attribute(point_cloud, "value")
+        mask = np.zeros(tuple(indices.max(axis=0) + 1), dtype=bool)
+        mask[tuple(indices.T)] = values
+        return mask
+
+    def _evaluated_point_cloud(self):
         bpy.context.view_layer.update()
         depsgraph = bpy.context.evaluated_depsgraph_get()
-        evaluated_object = self.object.evaluated_get(depsgraph)
-        point_cloud = evaluated_object.data
-        points = point_cloud.points
-        if len(points) == 0:
-            return []
+        return self.object.evaluated_get(depsgraph).data
 
-        locations = [0.0] * (len(points) * 3)
-        try:
-            points.foreach_get("co", locations)
-        except Exception:
-            point_cloud.attributes["position"].data.foreach_get("vector", locations)
-        return [
-            tuple(float(value) for value in locations[ix:ix + 3])
-            for ix in range(0, len(locations), 3)
-        ]
+    def _read_vector_attribute(self, point_cloud, name):
+        if len(point_cloud.points) == 0:
+            return np.empty((0, 3), dtype=float)
 
-    def read_normalized_points(self):
-        bpy.context.view_layer.update()
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        evaluated_object = self.object.evaluated_get(depsgraph)
-        point_cloud = evaluated_object.data
-        points = point_cloud.points
-        if len(points) == 0:
-            return []
+        values = np.empty(len(point_cloud.points) * 3, dtype=float)
+        point_cloud.attributes[name].data.foreach_get("vector", values)
+        return values.reshape((-1, 3))
 
-        locations = [0.0] * (len(points) * 3)
-        point_cloud.attributes["normalized position"].data.foreach_get("vector", locations)
-        return [
-            tuple(float(value) for value in locations[ix:ix + 3])
-            for ix in range(0, len(locations), 3)
-        ]
+    def _read_boolean_attribute(self, point_cloud, name):
+        values = np.empty(len(point_cloud.points), dtype=bool)
+        point_cloud.attributes[name].data.foreach_get("value", values)
+        return values
 
     def link_volume(self, volume_object):
         self.object_info_node.inputs["Object"].default_value = volume_object.object
@@ -94,25 +87,9 @@ class VisibilityMaskObject(MiNObject):
     def link_labelmask(self, labelmask_object):
         return
 
-    def read_voxel_extents(self):
-        bpy.context.view_layer.update()
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        evaluated_object = self.object.evaluated_get(depsgraph)
-        point_cloud = evaluated_object.data
-        if len(point_cloud.points) == 0:
-            return tuple(1.0 / value for value in self.resolution)
-
-        extents = [0.0] * (len(point_cloud.points) * 3)
-        point_cloud.attributes["voxel extents"].data.foreach_get("vector", extents)
-        return tuple(float(value) for value in extents[:3])
-
     def _node_group(self):
-        resolution_x, resolution_y, resolution_z = self.default_resolution
         with TreeBuilder.geometry("visibility mask") as tree:
             tree.tree.show_modifier_manage_panel = True
-            resolution_x = tree.inputs.integer("Resolution X", resolution_x, min_value=1)
-            resolution_y = tree.inputs.integer("Resolution Y", resolution_y, min_value=1)
-            resolution_z = tree.inputs.integer("Resolution Z", resolution_z, min_value=1)
             geometry = tree.outputs.geometry("Geometry")
 
             object_info = g.ObjectInfo(transform_space="RELATIVE")
@@ -127,28 +104,11 @@ class VisibilityMaskObject(MiNObject):
             channel_grid.node.name = "Channel 0"
             channel_grid.node.location = (-300, 80)
 
-            sample = SubsampledActiveGridPositions(
-                grid=channel_grid.o.grid,
-                resolution_x=resolution_x,
-                resolution_y=resolution_y,
-                resolution_z=resolution_z,
-            )
-            sample.node.name = "Subsample Channel 0"
+            sample = ActiveGridPositions(grid=channel_grid.o.grid)
+            sample.node.name = "Active Channel 0"
             sample.node.location = (120, 0)
             self.sample_node = sample.node
 
-            voxel_extents = g.CombineXYZ(
-                x=g.Math.divide(1.0, resolution_x).o.value,
-                y=g.Math.divide(1.0, resolution_y).o.value,
-                z=g.Math.divide(1.0, resolution_z).o.value,
-            )
-            voxel_extents.node.name = "Voxel Extents"
-            voxel_extents.node.location = (360, -160)
-
-            g.StoreNamedAttribute.point.vector(
-                geometry=sample.node.outputs["Points"],
-                name="voxel extents",
-                value=voxel_extents.o.vector,
-            ).o.geometry >> geometry
+            sample.o.points >> geometry
 
         return tree.tree

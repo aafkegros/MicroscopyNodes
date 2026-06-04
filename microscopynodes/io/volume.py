@@ -1,4 +1,5 @@
 import bpy
+import itertools
 from pathlib import Path
 import time
 import numpy as np
@@ -28,7 +29,7 @@ class VolumeIO(DataIO):
 
     def generate_file_constructors(self, ch):
         file_constructors = []
-        masked = str(time.time_ns()) if ch.data.mask_indices is not None else "False"
+        masked = str(time.time_ns()) if ch.data.mask is not None else "False"
         for t in range(ch.data.frame_start, min(ch.data.frame_end + 1, len_axis("t", ch.data.axes_order, ch.data.data.shape))):
             file_constructors.append({
                 **self.base_constructor(ch),
@@ -57,7 +58,7 @@ class VolumeIO(DataIO):
                 vdbfname.unlink(missing_ok=True)
                 histfname.unlink(missing_ok=True)
                 log(f"loading volume {Path(vdbfname).stem}")
-                if ch.data.mask_indices is None:
+                if ch.data.mask is None:
                     arr = ch.data.data[tuple(
                         slice(constructor["t"], constructor["t"] + 1) if dim == "t" else slice(None)
                         for dim in ch.data.axes_order
@@ -115,17 +116,16 @@ class VolumeIO(DataIO):
         grid.name = "data"
         acc = grid.getAccessor()
         histogram_values = []
-        for xyz_start, data_region in self.iter_masked_data_blocks(ch, constructor):
+        for xyz_start, data_region, mask_region in self.iter_masked_data_blocks(ch, constructor):
             data_block = data_region.compute()
             data_block = to_xyz(data_block, ch.data.axes_order)
             arr = data_block.astype(np.float32) / scale
-            values = arr.ravel()
-            values = values[values != 0]
-            if len(values) == 0:
-                continue
-            histogram_values.append(values)
+            values = arr[mask_region]
+            nonzero_values = values[values != 0]
+            if len(nonzero_values) > 0:
+                histogram_values.append(nonzero_values)
 
-            xs, ys, zs = np.nonzero(arr != 0)
+            xs, ys, zs = np.nonzero(mask_region)
             for dx, dy, dz in zip(xs, ys, zs):
                 acc.setValueOn(
                     (int(xyz_start[0] + dx), int(xyz_start[1] + dy), int(xyz_start[2] + dz)),
@@ -138,62 +138,57 @@ class VolumeIO(DataIO):
         return np.concatenate(histogram_values)
 
     def iter_masked_data_blocks(self, ch, constructor):
-        mask = ch.data.mask_indices
+        mask = ch.data.mask
         if hasattr(mask, "compute"):
             mask = mask.compute()
-        mask = np.asarray(mask, dtype=float)
-        if len(mask) == 0:
+        mask = np.asarray(mask, dtype=bool)
+        if not np.any(mask):
             return
 
+        data = ch.data.data
         data_shape = self.data_shape_xyz(ch)
-        bbox_shape = np.maximum(np.ceil(np.array(ch.data.mask_voxel_size, dtype=float) * data_shape).astype(int), 1)
-        regions = self.mask_center_regions(mask, data_shape, bbox_shape)
+        mask_shape = np.array(mask.shape, dtype=int)
+        spatial_slices = {
+            dim: self.chunks_to_slices(data.chunks[ch.data.axes_order.index(dim)])
+            for dim in "xyz"
+            if dim in ch.data.axes_order
+        }
 
-        for xyz_start, xyz_stop in regions:
-            data_slices = self.data_slices_from_xyz(ch, constructor, xyz_start, xyz_stop)
-            yield xyz_start, ch.data.data[data_slices]
+        for region_slices in itertools.product(*spatial_slices.values()):
+            slices_by_dim = dict(zip(spatial_slices, region_slices))
+            xyz_start = np.array([
+                slices_by_dim[dim].start if dim in slices_by_dim else 0
+                for dim in "xyz"
+            ], dtype=int)
+            xyz_stop = np.array([
+                slices_by_dim[dim].stop if dim in slices_by_dim else 1
+                for dim in "xyz"
+            ], dtype=int)
+            mask_indices = [
+                np.minimum(
+                    np.floor(np.arange(start, stop) * mask_length / data_length).astype(int),
+                    mask_length - 1,
+                )
+                for start, stop, mask_length, data_length
+                in zip(xyz_start, xyz_stop, mask_shape, data_shape)
+            ]
+            mask_region = mask[np.ix_(*mask_indices)]
+            if not np.any(mask_region):
+                continue
+
+            data_slices = tuple(
+                slice(constructor["t"], constructor["t"] + 1)
+                if dim == "t"
+                else slices_by_dim[dim]
+                for dim in ch.data.axes_order
+            )
+            yield xyz_start, data[data_slices], mask_region
 
     def data_shape_xyz(self, ch):
         return np.array([
             len_axis(dim, ch.data.axes_order, ch.data.data.shape)
             for dim in "xyz"
         ], dtype=int)
-
-    def mask_center_regions(self, centers, data_shape, bbox_shape):
-        centers = np.clip(centers, 0.0, 1.0)
-        center_xyz = np.floor(centers * (data_shape - 1)).astype(int)
-        lower = bbox_shape // 2
-        upper = bbox_shape - lower
-
-        regions = []
-        for center in center_xyz:
-            xyz_start = np.maximum(center - lower, 0)
-            xyz_stop = np.minimum(center + upper, data_shape)
-            if np.any(xyz_stop <= xyz_start):
-                continue
-            regions.append((xyz_start, xyz_stop))
-        return self.merge_regions(regions)
-
-    def merge_regions(self, regions):
-        merged = []
-        for start, stop in sorted(regions, key=lambda region: tuple(region[0])):
-            for ix, (merged_start, merged_stop) in enumerate(merged):
-                if np.all(start <= merged_stop) and np.all(stop >= merged_start):
-                    merged[ix] = (np.minimum(merged_start, start), np.maximum(merged_stop, stop))
-                    break
-            else:
-                merged.append((start, stop))
-        return merged
-
-    def data_slices_from_xyz(self, ch, constructor, xyz_start, xyz_stop):
-        slices = []
-        for dim in ch.data.axes_order:
-            if dim == "t":
-                slices.append(slice(constructor["t"], constructor["t"] + 1))
-            else:
-                axis = "xyz".index(dim)
-                slices.append(slice(int(xyz_start[axis]), int(xyz_stop[axis])))
-        return tuple(slices)
 
     def chunks_to_slices(self, chunks):
         starts = np.cumsum((0, *chunks[:-1]))

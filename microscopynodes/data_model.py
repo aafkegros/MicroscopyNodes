@@ -29,8 +29,7 @@ class ChannelDataModel(BaseModel):
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
     source_axes_order: str | None = None
     source_data: da.Array = Field(alias="data") # lazy link to source data
-    mask_indices: np.ndarray | da.Array | None = None
-    mask_voxel_size: Tuple[float, float, float] | None = None # normalized to bbox
+    mask: np.ndarray | da.Array | None = None
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
@@ -64,10 +63,6 @@ class ChannelDataModel(BaseModel):
         self.source_data = value
         self.source_axes_order = self.axes_order
         self._data_cache = None
-
-    @property
-    def mask(self):
-        return self.mask_indices
 
     @property
     def channel_axis(self):
@@ -141,14 +136,9 @@ class ChannelDataModel(BaseModel):
                 raise ValueError(f"frame_end {self.frame_end} out of bounds for t axis length {tdim}")
         if "t" in self.axes_order and self.frame_start > self.frame_end:
             raise ValueError("frame_start must not exceed frame_end")
-        if self.mask_indices is not None:
-            mask_shape = self.mask_indices.shape
-            if len(mask_shape) != 2 or mask_shape[1] != 3:
-                raise ValueError("mask must be a point list of normalized xyz indices with shape (n, 3), not a mask volume")
-            if self.mask_voxel_size is None:
-                raise ValueError("mask_voxel_size must be set when mask is provided")
-            if any(value <= 0 or value > 1 for value in self.mask_voxel_size):
-                raise ValueError("mask_voxel_size values must be in the range (0, 1]")
+        if self.mask is not None:
+            if self.mask.ndim != 3 or self.mask.dtype != bool:
+                raise ValueError("mask must be a three-dimensional boolean array")
         return self
 
     # should implement transforms for Zarr RFC-5, will then turn to floats
