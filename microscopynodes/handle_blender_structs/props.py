@@ -11,19 +11,6 @@ from .min_keys import min_keys
 from .units import register_import_scale_property
 
 
-def update_load_with_mask(self, context):
-    from ..load import Dataset
-    from .dependent_props import valid_reload_object
-
-    reload_object = getattr(self, "MiN_reload", None)
-    if not valid_reload_object(reload_object, scene=self):
-        return
-
-    dataset = Dataset(holder=reload_object)
-    if self.MiN_load_with_mask and dataset.volume is not None:
-        dataset.volume.infer_visibility()
-
-
 def register_scene_props():
     bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 
@@ -121,7 +108,6 @@ def register_scene_props():
         name = "",
         description = "Only reload 'visible' data - not masked by slice cube or other masking. Use this to select a region of bigger-than-RAM data.",
         default = False,
-        update = update_load_with_mask,
     )
 
     bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(

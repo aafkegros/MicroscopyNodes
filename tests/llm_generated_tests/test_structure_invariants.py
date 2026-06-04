@@ -170,7 +170,7 @@ def test_volume_infer_visibility_returns_boolean_mask():
     assert mask.dtype == bool
     assert mask.ndim == 3
     assert np.any(mask)
-    assert dataset.volume.node_group.nodes.get("[visibility] Active Grid Positions") is not None
+    assert dataset.volume.node_group.nodes.get("[visibility] Active Grid Positions") is None
 
 
 def test_parse_clears_reload_when_holder_no_longer_passes_poll():

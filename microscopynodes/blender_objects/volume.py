@@ -102,6 +102,7 @@ class VolumeObject(ChannelObject):
         output_socket = output.inputs["Geometry"]
 
         active_points = nodes.get("[visibility] Active Grid Positions")
+        channel_grid = nodes.get("[visibility] Channel 0")
         if active_points is None:
             original_socket = output_socket.links[0].from_socket
 
@@ -119,20 +120,27 @@ class VolumeObject(ChannelObject):
             links.new(original_socket, channel_grid.inputs["Volume"])
             links.new(channel_grid.outputs["Grid"], active_points.inputs["Grid"])
             links.new(active_points.outputs["Points"], output_socket)
+        else:
+            original_socket = channel_grid.inputs["Volume"].links[0].from_socket
 
-        bpy.context.view_layer.update()
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        evaluated_object = depsgraph.id_eval_get(self.object)
-        evaluated_geometry = evaluated_object.evaluated_geometry()
-        point_cloud = evaluated_geometry.pointcloud
-        indices = self._read_vector_attribute(point_cloud, "ix").astype(int)
-        if len(indices) == 0:
-            return np.empty((0, 0, 0), dtype=bool)
+        try:
+            bpy.context.view_layer.update()
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            evaluated_object = depsgraph.id_eval_get(self.object)
+            evaluated_geometry = evaluated_object.evaluated_geometry()
+            point_cloud = evaluated_geometry.pointcloud
+            indices = self._read_vector_attribute(point_cloud, "ix").astype(int)
+            if len(indices) == 0:
+                return np.empty((0, 0, 0), dtype=bool)
 
-        values = self._read_boolean_attribute(point_cloud, "value")
-        mask = np.zeros(tuple(indices.max(axis=0) + 1), dtype=bool)
-        mask[tuple(indices.T)] = values
-        return mask
+            values = self._read_boolean_attribute(point_cloud, "value")
+            mask = np.zeros(tuple(indices.max(axis=0) + 1), dtype=bool)
+            mask[tuple(indices.T)] = values
+            return mask
+        finally:
+            links.new(original_socket, output_socket)
+            nodes.remove(active_points)
+            nodes.remove(channel_grid)
 
     def _read_vector_attribute(self, point_cloud, name):
         point_count = len(point_cloud.attributes["position"].data)
