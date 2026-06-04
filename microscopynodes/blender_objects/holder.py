@@ -7,7 +7,6 @@ from ..handle_blender_structs.min_keys import min_keys
 
 class Holder(MiNObject):
     min_type = min_keys.HOLDER
-    DATASET_EXTENTS_ATTRIBUTE = "dataset extents"
     SCENE_IMPORT_TRANSFORM_ATTRIBUTE = "scene import transform"
 
     def init_obj(self):
@@ -27,15 +26,10 @@ class Holder(MiNObject):
         self.object.display_type = 'WIRE'
         self.object.name = dataset_model.name
         self.object.rotation_euler = (0.0, 0.0, 0.0)
-        self.store_named_attribute(
-            np.asarray([self.object[self.DATASET_EXTENTS]], dtype=float),
-            self.DATASET_EXTENTS_ATTRIBUTE,
-        )
 
     def set_scene(self, scene_model):
-        dataset_extents = np.asarray(self.object[self.DATASET_EXTENTS], dtype=float)
         scene_world_scale = float(self.object[self.DATASET_INPUT_SCALE]) / float(scene_model.output_scale)
-        dataset_size = dataset_extents * scene_world_scale
+        dataset_size = self.dataset_extents * scene_world_scale
         scene_import_transform = np.asarray(scene_model.import_transform, dtype=float)
 
         self.store_named_attribute(

@@ -32,7 +32,7 @@ class SliceCubeObject(MiNObject):
         return slicecube
 
     def set_settings(self, dataset_model):
-        initialize = self.DATASET_EXTENTS not in self.object
+        initialize = self.DATASET_INPUT_SCALE not in self.object
         _, _, dataset_extents = dataset_model.intermediate_bbox
         if initialize:
             self.object.location = dataset_extents / 2.0

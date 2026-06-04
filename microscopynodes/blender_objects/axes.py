@@ -67,7 +67,7 @@ class Axes(MiNObject):
         return
         
     def set_settings(self, dataset_model):
-        initialize = self.DATASET_EXTENTS not in self.object
+        initialize = self.DATASET_INPUT_SCALE not in self.object
         tick_step_input_name = self._tick_step_input_name(dataset_model)
         for item in self.node_group.interface.items_tree:
             if getattr(item, "item_type", None) == 'SOCKET' and item.in_out == 'INPUT':

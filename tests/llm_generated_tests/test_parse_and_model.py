@@ -124,8 +124,9 @@ def test_holder_owns_import_location_and_dataset_size():
     do_load()
 
     holder = bpy.context.scene.MiN_reload
-    dataset_size = microscopynodes.load.Dataset(holder=holder).holder.dataset_size
-    dataset_extents = np.asarray(holder["_MiN_dataset_extents"])
+    holder_object = microscopynodes.load.Dataset(holder=holder).holder
+    dataset_size = holder_object.dataset_size
+    dataset_extents = holder_object.dataset_extents
     scene_import_transform = named_attribute(holder, "scene import transform")[0]
     centered_children = [
         child

@@ -120,10 +120,11 @@ class Dataset():
             min_obj = getattr(self, min_key.name.lower())
             if min_key not in required_objects and min_obj is None:
                 continue
+            initialize = min_obj is None
             if min_obj is None:
                 min_obj = MinObjectFactory(min_key)
                 setattr(self, min_key.name.lower(), min_obj)
-            if update_data:
+            if update_data or initialize:
                 min_obj.set_data(dataset_model)
             if update_settings:
                 min_obj.set_settings(dataset_model)
