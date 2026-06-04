@@ -219,7 +219,6 @@ class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
     name : Optional[str] 
-    relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
 
     local_files_exist: bool = False
 
@@ -254,13 +253,13 @@ class DatasetModel(BaseModel):
         
     @property
     def dataset_origin_world(self):
-        mins, _, extent = self.intermediate_bbox
-        return np.array(self.relative_loc, dtype=float) * extent - mins
+        mins, _, _ = self.intermediate_bbox
+        return -mins
 
     @property
     def dataset_center_world(self):
         _, _, extent = self.intermediate_bbox
-        return (np.array(self.relative_loc, dtype=float) + 0.5) * extent
+        return extent / 2.0
 
     @model_validator(mode="after")
     def set_defaults(self):
@@ -288,11 +287,22 @@ class DatasetModel(BaseModel):
 
 
 class SceneModel(BaseModel):
-    output_scale: float
+    output_scale: float # conversion factor for blender scales
+    import_transform: Tuple[float, float, float] = (0.5, 0.5, 0.0) # offset from world origin in inferred bbox
 
     @field_validator("output_scale", mode="before")
     def parse_output_scale(cls, v):
         return cls.output_scale_value(v)
+
+    @field_validator("import_transform", mode="before")
+    def parse_import_transform(cls, value):
+        if isinstance(value, str):
+            return {
+                "ZERO": (0.0, 0.0, 0.0),
+                "XY_CENTER": (0.5, 0.5, 0.0),
+                "XYZ_CENTER": (0.5, 0.5, 0.5),
+            }[value]
+        return tuple(float(component) for component in value)
 
     @classmethod
     def output_scale_value(cls, value):

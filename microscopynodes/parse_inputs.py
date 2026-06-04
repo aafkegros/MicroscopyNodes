@@ -18,14 +18,12 @@ def parse_blender_ui():
         scn.MiN_update_settings = True
 
     channels = parse_channellist()
-    relative_loc = parse_relative_loc()
     name = Path(scn.MiN_input_file).name
 
     # Build DatasetModel
     scene_model = DatasetModel(
         name=name,
         channels=channels,
-        relative_loc = relative_loc,
     )
     if scn.MiN_load_with_mask and scn.MiN_reload is not None:
         from .load import Dataset
@@ -98,13 +96,3 @@ def parse_pixel_size_values():
     if not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
         pixel_size *= selected_array_option().scale()
     return pixel_size
-
-
-def parse_relative_loc():
-    prefloc = addon_preferences(bpy.context).import_loc
-    if prefloc == "XY_CENTER":
-        return [-0.5,-0.5,0] 
-    if prefloc == "XYZ_CENTER":
-        return [-0.5,-0.5,-0.5] 
-    if prefloc == "ZERO":
-        return [0, 0, 0] 

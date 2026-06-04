@@ -50,6 +50,7 @@ class Scene():
     def scene_model(self):
         return SceneModel(
             output_scale=self.import_scale,
+            import_transform=self.scene.MiN_import_loc,
         )
 
     def resolve_auto_import_scale(self, dataset_model):

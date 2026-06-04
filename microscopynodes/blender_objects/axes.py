@@ -56,30 +56,34 @@ class Axes(MiNObject):
 
     def set_scene(self, scene_model):
         set_modifier_input(self.min_gn, "Output Scale", scene_model.output_scale)
-        self.object["_MiN_output_scale"] = float(scene_model.output_scale)
+        super().set_scene(scene_model)
         self.object.data.update()
         return
 
-    def set_input_scale(self, input_scale):
-        set_modifier_input(self.min_gn, "Input Scale", input_scale)
-        self.object["_MiN_input_scale"] = float(input_scale)
+    def set_input_scale(self, dataset_input_scale):
+        set_modifier_input(self.min_gn, "Input Scale", dataset_input_scale)
+        self.object[self.DATASET_INPUT_SCALE] = float(dataset_input_scale)
         self.object.data.update()
         return
         
     def set_settings(self, dataset_model):
+        initialize = self.DATASET_EXTENTS not in self.object
         tick_step_input_name = self._tick_step_input_name(dataset_model)
         for item in self.node_group.interface.items_tree:
             if getattr(item, "item_type", None) == 'SOCKET' and item.in_out == 'INPUT':
                 if item.name.startswith(f"{self.TICK_STEP_PREFIX} ("):
                     item.name = tick_step_input_name
                     break
-        _, _, extent_unit = dataset_model.intermediate_bbox
+        _, _, dataset_extents = dataset_model.intermediate_bbox
         
-        tick_step = self._nice_tick_step(extent_unit)
+        tick_step = self._nice_tick_step(dataset_extents)
         line_thickness = 0.25
 
-        self.object.location = dataset_model.dataset_center_world
-        self.object.scale = np.maximum(extent_unit, 1e-6)
+        if initialize:
+            self.object.location = dataset_extents / 2.0
+            self.object.scale = np.maximum(dataset_extents, 1e-6)
+
+        super().set_settings(dataset_model)
         self.set_input_scale(dataset_model.channels[0].data.unit)
 
         set_modifier_input(self.min_gn, tick_step_input_name, tick_step)

@@ -62,16 +62,6 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
 
     channels : bpy.props.CollectionProperty(type=ChannelDescriptor)
     
-    import_loc : EnumProperty(
-        name = 'Import location',
-        items=[
-            ("XY_CENTER", "XY Center","Center volume in XY" ,"", 0),
-            ("XYZ_CENTER", "XYZ Center","Center volume in XYZ" ,"", 1),
-            ("ZERO", "Origin"," Volume origin at world origin" ,"", 2),
-        ], 
-        description= "Defines the coordinate translation after import from input space to Blender meters",
-        default='XY_CENTER',
-    )
     surf_resolution : bpy.props.EnumProperty(
         name = "Meshing density of surfaces and masks",
         items=[
@@ -119,7 +109,6 @@ def addon_preferences(context: bpy.types.Context | None = None):
     except (AttributeError, KeyError):
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
-                import_loc="XY_CENTER",
                 surf_resolution="0",
                 invert_color=False,
                 n_default_channels=8,

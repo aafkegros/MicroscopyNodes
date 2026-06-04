@@ -90,11 +90,12 @@ class TIFLoadPanel(bpy.types.Panel):
 
         row = col.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
-        row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_EMPTY")
+        row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_MESH")
         if reload_object_is_valid:
             row.prop(bpy.context.scene, 'MiN_load_with_mask', icon="HIDE_OFF")
             row.prop(bpy.context.scene, 'MiN_update_data', icon="FILE")
             row.prop(bpy.context.scene, 'MiN_update_settings', icon="MATERIAL_DATA")
+
         
         
         # layout.separator()
@@ -133,7 +134,7 @@ class TIFLoadPanel(bpy.types.Panel):
         row.label(text="", icon='CON_SIZELIKE')
         row.prop(bpy.context.scene, 'MiN_import_scale', emboss=True,text="")
         row.label(text="", icon='ORIENTATION_PARENT')
-        row.prop(addon_preferences(bpy.context), 'import_loc', emboss=True,text="")
+        row.prop(bpy.context.scene, 'MiN_import_loc', emboss=True,text="")
 
        
 CLASSES = [TIFLoadPanel]

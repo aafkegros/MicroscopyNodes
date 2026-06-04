@@ -66,7 +66,7 @@ def prep_load(arrtype=None):
 
     prefs = addon_preferences(bpy.context)
     bpy.context.scene.MiN_import_scale = "AUTO_SCALE"
-    prefs.import_loc = "XY_CENTER"
+    bpy.context.scene.MiN_import_loc = "XY_CENTER"
     prefs.surf_resolution = "0"
     prefs.invert_color = False
     prefs.cache_option = "TEMPORARY"

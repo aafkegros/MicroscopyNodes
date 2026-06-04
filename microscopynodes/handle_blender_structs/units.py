@@ -70,11 +70,11 @@ def _holder_extent_units(holder):
 def auto_import_scale_for_scene(scene):
     input_extents = []
     for obj in scene.objects:
-        if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
+        if "_MiN_dataset_input_scale" not in obj:
             continue
         extent_units = _holder_extent_units(obj)
         if extent_units > 0:
-            input_extents.append(extent_units * float(obj["_MiN_input_scale"]))
+            input_extents.append(extent_units * float(obj["_MiN_dataset_input_scale"]))
 
     if not input_extents:
         return None
@@ -95,9 +95,12 @@ def update_import_scale(self, context):
             self.MiN_import_scale = import_scale
         return
 
-    scene_model = SceneModel(output_scale=self.MiN_import_scale)
+    scene_model = SceneModel(
+        output_scale=self.MiN_import_scale,
+        import_transform=self.MiN_import_loc,
+    )
     for obj in context.scene.objects:
-        if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
+        if "_MiN_dataset_input_scale" not in obj:
             continue
         MinObjectFactory(min_keys.HOLDER, obj=obj).set_scene(scene_model)
         for child in obj.children:

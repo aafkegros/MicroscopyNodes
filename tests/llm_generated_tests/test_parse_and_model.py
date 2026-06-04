@@ -5,6 +5,7 @@ import pytest
 from cmap import Colormap
 
 import microscopynodes
+from databpy import named_attribute
 from microscopynodes.data_model import ChannelModel, DatasetModel
 
 from ..utils import prep_load, do_load
@@ -107,12 +108,40 @@ def test_dataset_bbox_and_center_properties():
     dataset_model = DatasetModel(
         name="bbox-test",
         channels=[_make_channel()],
-        relative_loc=(-0.5, -0.5, 0.0),
     )
 
     mins, maxs, extent = dataset_model.intermediate_bbox
     np.testing.assert_allclose(mins, np.array([0.0, 0.0, 0.0]))
     np.testing.assert_allclose(maxs, np.array([4.0, 6.0, 8.0]))
     np.testing.assert_allclose(extent, np.array([4.0, 6.0, 8.0]))
-    np.testing.assert_allclose(dataset_model.dataset_origin_world, np.array([-2.0, -3.0, 0.0]))
-    np.testing.assert_allclose(dataset_model.dataset_center_world, np.array([0.0, 0.0, 4.0]))
+    np.testing.assert_allclose(dataset_model.dataset_origin_world, np.array([0.0, 0.0, 0.0]))
+    np.testing.assert_allclose(dataset_model.dataset_center_world, np.array([2.0, 3.0, 4.0]))
+
+
+def test_holder_owns_import_location_and_dataset_size():
+    prep_load("5D_5cube")
+    bpy.context.scene.MiN_import_scale = "MICROMETER_SCALE"
+    do_load()
+
+    holder = bpy.context.scene.MiN_reload
+    dataset_size = microscopynodes.load.Dataset(holder=holder).holder.dataset_size
+    dataset_extents = np.asarray(holder["_MiN_dataset_extents"])
+    scene_import_transform = named_attribute(holder, "scene import transform")[0]
+    centered_children = [
+        child
+        for child in holder.children
+        if "axes" in child.name.lower() or "slice cube" in child.name.lower()
+    ]
+
+    np.testing.assert_allclose(scene_import_transform, (0.5, 0.5, 0.0))
+    np.testing.assert_allclose(holder.location, -dataset_size * scene_import_transform)
+    for child in centered_children:
+        np.testing.assert_allclose(child.location, dataset_extents / 2.0)
+
+    holder.location.x += 1.0
+    bpy.context.scene.MiN_import_loc = "ZERO"
+
+    np.testing.assert_allclose(named_attribute(holder, "scene import transform")[0], (0.0, 0.0, 0.0))
+    np.testing.assert_allclose(holder.location, (1.0, 0.0, 0.0))
+    for child in centered_children:
+        np.testing.assert_allclose(child.location, dataset_extents / 2.0)

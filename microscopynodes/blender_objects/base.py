@@ -10,6 +10,11 @@ import numpy as np
 
 class MiNObject(BlenderObject):
     min_type = None # needs to be of type min_keys
+    DATASET_EXTENTS = "_MiN_dataset_extents"
+    DATASET_INPUT_SCALE = "_MiN_dataset_input_scale"
+    SCENE_WORLD_SCALE_BASE = "_MiN_scene_world_scale_base"
+    SCENE_OUTPUT_SCALE = "_MiN_scene_output_scale"
+    SCENE_IMPORT_OFFSET = "_MiN_scene_import_offset"
 
     def __init__(self, obj=None):
         super().__init__(obj) 
@@ -25,10 +30,22 @@ class MiNObject(BlenderObject):
         return
 
     def set_settings(self, dataset_model):
-        return
+        _, _, dataset_extents = dataset_model.intermediate_bbox
+        self.object[self.DATASET_EXTENTS] = tuple(dataset_extents)
+        self.object[self.DATASET_INPUT_SCALE] = float(dataset_model.channels[0].data.unit)
 
-    def set_scene(self, scene_model, **kwargs):
-        return
+    def set_scene(self, scene_model, scene_import_offset=(0.0, 0.0, 0.0)):
+        scene_world_scale = float(self.object[self.DATASET_INPUT_SCALE]) / float(scene_model.output_scale)
+        self.object[self.SCENE_WORLD_SCALE_BASE] = scene_world_scale
+        self.object[self.SCENE_OUTPUT_SCALE] = float(scene_model.output_scale)
+        self.object[self.SCENE_IMPORT_OFFSET] = tuple(scene_import_offset)
+
+    @property
+    def dataset_size(self):
+        root = self.object
+        while root.parent is not None:
+            root = root.parent
+        return np.asarray(self.object[self.DATASET_EXTENTS]) * np.abs(root.matrix_world.to_scale())
     
     @property
     def min_gn(self):
@@ -126,6 +143,7 @@ class ChannelObject(MiNObject):
         return
 
     def set_settings(self, dataset_model):
+        super().set_settings(dataset_model)
         self.dataset_name = dataset_model.name
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:

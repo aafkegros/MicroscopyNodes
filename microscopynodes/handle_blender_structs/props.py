@@ -8,7 +8,7 @@ import platform
 import tempfile
 
 from .min_keys import min_keys
-from .units import register_import_scale_property
+from .units import register_import_scale_property, update_import_scale
 
 
 def register_scene_props():
@@ -19,6 +19,17 @@ def register_scene_props():
     )
 
     register_import_scale_property(bpy.types.Scene)
+    bpy.types.Scene.MiN_import_loc = EnumProperty(
+        name="Import location",
+        items=[
+            ("XY_CENTER", "XY Center", "Center volume in XY", "", 0),
+            ("XYZ_CENTER", "XYZ Center", "Center volume in XYZ", "", 1),
+            ("ZERO", "Origin", "Volume origin at world origin", "", 2),
+        ],
+        description="Defines the coordinate translation after import",
+        default="XY_CENTER",
+        update=update_import_scale,
+    )
 
     bpy.types.Scene.MiN_load_start_frame = bpy.props.IntProperty(
     name = "", 
@@ -121,6 +132,7 @@ def unregister_scene_props():
     for prop in (
         "MiN_remake",
         "MiN_import_scale",
+        "MiN_import_loc",
         "MiN_load_start_frame",
         "MiN_load_end_frame",
         "MiN_overwrite_background_color",
