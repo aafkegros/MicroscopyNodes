@@ -129,7 +129,6 @@ class Dataset():
                 min_obj.set_data(dataset_model)
             if update_settings:
                 min_obj.set_settings(dataset_model)
-                min_obj.set_scene(self.scene.scene_model)
         self.ensure_links_of_objects(dataset_model)
         if update_settings:
             self.scene.update_dataset_scale(self, dataset_model)
