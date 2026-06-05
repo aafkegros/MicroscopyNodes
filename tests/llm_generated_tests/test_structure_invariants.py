@@ -5,7 +5,7 @@ import numpy as np
 
 import microscopynodes
 from microscopynodes.handle_blender_structs.min_keys import min_keys
-from microscopynodes.handle_blender_structs.node_handling import get_socket
+from microscopynodes.handle_blender_structs.node_handling import get_modifier_input_socket, get_socket
 
 from ..utils import prep_load, do_load
 
@@ -153,7 +153,7 @@ def test_visibility_socket_matches_channel_visibility():
             continue
         socket = get_socket(dataset.volume.node_group, ch, min_type="SWITCH")
         assert socket is not None
-        assert dataset.volume.gn_mod[socket.identifier] == True
+        assert get_modifier_input_socket(dataset.volume.gn_mod, socket) == True
 
 
 def test_volume_infer_visibility_returns_boolean_mask():

@@ -7,6 +7,7 @@ from cmap import Colormap
 import microscopynodes
 from databpy import named_attribute
 from microscopynodes.data_model import ChannelModel, DatasetModel
+from microscopynodes.handle_blender_structs.node_handling import get_modifier_input_socket
 
 from ..utils import prep_load, do_load
 
@@ -81,27 +82,27 @@ def test_import_scale_selector_rescales_loaded_holder_and_axes():
     input_scale_input = next(
         item
         for item in axes_modifier.node_group.interface.items_tree
-        if getattr(item, "item_type", None) == "SOCKET"
+        if item.item_type == "SOCKET"
         and item.in_out == "INPUT"
         and item.name == "Input Scale"
     )
     output_scale_input = next(
         item
         for item in axes_modifier.node_group.interface.items_tree
-        if getattr(item, "item_type", None) == "SOCKET"
+        if item.item_type == "SOCKET"
         and item.in_out == "INPUT"
         and item.name == "Output Scale"
     )
 
     assert tuple(holder.scale) == pytest.approx((1.0, 1.0, 1.0))
-    assert axes_modifier[input_scale_input.identifier] == pytest.approx(1e-6)
-    assert axes_modifier[output_scale_input.identifier] == pytest.approx(1e-6)
+    assert get_modifier_input_socket(axes_modifier, input_scale_input) == pytest.approx(1e-6)
+    assert get_modifier_input_socket(axes_modifier, output_scale_input) == pytest.approx(1e-6)
 
     bpy.context.scene.MiN_import_scale = "MICROMETER_CENTIMETER_SCALE"
 
     assert tuple(holder.scale) == pytest.approx((0.01, 0.01, 0.01))
-    assert axes_modifier[input_scale_input.identifier] == pytest.approx(1e-6)
-    assert axes_modifier[output_scale_input.identifier] == pytest.approx(1e-4)
+    assert get_modifier_input_socket(axes_modifier, input_scale_input) == pytest.approx(1e-6)
+    assert get_modifier_input_socket(axes_modifier, output_scale_input) == pytest.approx(1e-4)
 
 
 def test_dataset_bbox_and_center_properties():

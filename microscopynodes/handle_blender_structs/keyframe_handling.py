@@ -130,7 +130,7 @@ def frame_socket_identifier(node_group):
 
 
 def drive_modifier_frame_from_holder(modifier, holder_obj, socket_identifier):
-    data_path = f'["{socket_identifier}"]'
+    data_path = f"properties.inputs.{socket_identifier}.value"
     try:
         modifier.driver_remove(data_path)
     except (TypeError, RuntimeError):

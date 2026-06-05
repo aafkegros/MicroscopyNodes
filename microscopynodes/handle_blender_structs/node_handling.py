@@ -106,9 +106,18 @@ def get_interface_input(node_group, name):
             return item
     raise KeyError(f"Input socket '{name}' not found")
 
+def modifier_input(modifier, socket):
+    return getattr(modifier.properties.inputs, socket.identifier)
+
+def set_modifier_input_socket(modifier, socket, value):
+    modifier_input(modifier, socket).value = value
+
+def get_modifier_input_socket(modifier, socket):
+    return modifier_input(modifier, socket).value
+
 def set_modifier_input(modifier, name, value):
     item = get_interface_input(modifier.node_group, name)
-    modifier[item.identifier] = value
+    set_modifier_input_socket(modifier, item, value)
 
 def get_readable_enum(enum_name, enum):
     return bpy.context.scene.bl_rna.properties[enum_name].enum_items[enum].name

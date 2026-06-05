@@ -106,6 +106,7 @@ class Dataset():
             result = dataset_model.make_local_files()
             if not result["ok"]:
                 raise RuntimeError(result["error"])
+        self.scene.resolve_auto_import_scale(dataset_model)
 
         required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}
         for ch in dataset_model.channels:
@@ -128,6 +129,7 @@ class Dataset():
                 min_obj.set_data(dataset_model)
             if update_settings:
                 min_obj.set_settings(dataset_model)
+                min_obj.set_scene(self.scene.scene_model)
         self.ensure_links_of_objects(dataset_model)
         if update_settings:
             self.scene.update_dataset_scale(self, dataset_model)

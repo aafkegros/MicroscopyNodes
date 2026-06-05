@@ -11,10 +11,12 @@ name = "dailybpy"
 url = "https://bradyajohnston.github.io/dailybpy/"
 priority = "explicit"
 
+
 [tool.poetry.dependencies]
 python = "==3.13.9"
-# bpy = { version = "==5.1.0b", source = "dailybpy" }
-bpy = "==5.1.0"
+bpy = { url = "https://github.com/BradyAJohnston/dailybpy/releases/download/daily-2026-06-05/bpy-5.2.0b0-cp313-cp313-macosx_11_0_arm64.whl" }
+# bpy = { version = "==5.2.0b0", source = "dailybpy" , allow-prereleases = true }
+# bpy = "==5.1.0"
 dask = "==2026.1.2"
 importlib-metadata = "==8.7.0"
 tifffile = "==2026.2.24"
@@ -25,7 +27,7 @@ cmap = "==0.7.1"
 s3fs = "==2026.2.0"
 zmesh = "==1.9.0"
 databpy = "==0.7.0"
-nodebpy = "==0.17.0"
+nodebpy = "==520.0.0"
 pydantic = "*"
 
 [tool.poetry.group.dev.dependencies]

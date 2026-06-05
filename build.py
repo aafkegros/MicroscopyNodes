@@ -14,7 +14,7 @@ import tomllib
 toml_path = "microscopynodes/blender_manifest.toml"
 whl_path = "./microscopynodes/wheels"
 pyproject_path = Path("pyproject.toml")
-DEFAULT_BLENDER_PATH = "/Users/oanegros/Documents/blenderBuilds/stable/blender-5.1.0-macos-arm64+stable.adfe2921d5f3/Blender/Blender.app/Contents/MacOS/Blender"
+DEFAULT_BLENDER_PATH = "/Users/oanegros/Documents/blenderBuilds/daily/blender-5.2.0-beta+daily.29232053cf55+v5/Blender/Blender.app/Contents/MacOS/Blender"
 blender_path = os.environ.get("BLENDER_BIN", shutil.which("blender") or DEFAULT_BLENDER_PATH)
 
 

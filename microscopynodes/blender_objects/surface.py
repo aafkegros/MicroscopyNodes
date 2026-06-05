@@ -1,7 +1,7 @@
 import bpy
 
 from .base import MeshChannelObject
-from ..handle_blender_structs.node_handling import get_socket, group_input_output_for_socket, new_socket
+from ..handle_blender_structs.node_handling import get_socket, group_input_output_for_socket, new_socket, set_modifier_input_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch
@@ -65,7 +65,7 @@ class SurfaceObject(MeshChannelObject):
         threshold_socket.max_value = 1.001
         threshold_socket.attribute_domain = 'POINT'
 
-        self.gn_mod[threshold_socket.identifier] =  ch.metadata[self.min_type]['threshold']      
+        set_modifier_input_socket(self.gn_mod, threshold_socket, ch.metadata[self.min_type]['threshold'])
         threshold = group_input_output_for_socket(nodes.get('Group Input'), threshold_socket)
 
         grid_to_mesh = nodes.new('GeometryNodeGridToMesh')

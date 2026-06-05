@@ -4,7 +4,7 @@ import bpy
 
 from microscopynodes.file_to_array import *
 from microscopynodes.handle_blender_structs.min_keys import min_keys
-from microscopynodes.handle_blender_structs.node_handling import get_socket
+from microscopynodes.handle_blender_structs.node_handling import get_socket, set_modifier_input_socket
 import microscopynodes
 from microscopynodes.ui.preferences import addon_preferences
 
@@ -118,19 +118,19 @@ def check_channels(dataset_model, test_render=True):
                     raise ValueError(f"{min_type} not in dataset, while setting is True")
                 assert(ch_obj.ch_present(ch))
                 socket = get_socket(ch_obj.node_group, ch, min_type="SWITCH")
-                ch_obj.gn_mod[socket.identifier] = False
-                toggled.append((ch_obj, socket.identifier))
+                set_modifier_input_socket(ch_obj.gn_mod, socket, False)
+                toggled.append((ch_obj, socket))
 
     if test_render:
-        for ch_obj, socket_identifier in toggled:
-            ch_obj.gn_mod[socket_identifier] = False
-        for ch_obj, socket_identifier in toggled:
+        for ch_obj, socket in toggled:
+            set_modifier_input_socket(ch_obj.gn_mod, socket, False)
+        for ch_obj, socket in toggled:
             img1 = quick_render('1')
-            ch_obj.gn_mod[socket_identifier] = True
+            set_modifier_input_socket(ch_obj.gn_mod, socket, True)
             img2 = quick_render('2')
-            ch_obj.gn_mod[socket_identifier] = False
+            set_modifier_input_socket(ch_obj.gn_mod, socket, False)
             if np.array_equal(img1, img2):
-                raise ValueError(f"tried to turn off {socket_identifier}, render did not change")
+                raise ValueError(f"tried to turn off {socket.identifier}, render did not change")
             assert(not np.array_equal(img1, img2))
                 
                 

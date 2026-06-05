@@ -1,5 +1,5 @@
 import bpy
-from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_name_socket
+from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_modifier_input_socket, set_name_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
@@ -178,7 +178,11 @@ class ChannelObject(MiNObject):
 
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
-            self.gn_mod[socket.identifier] = bool(getattr(ch.viz, self.min_type.name.lower(), False))
+            set_modifier_input_socket(
+                self.gn_mod,
+                socket,
+                getattr(ch.viz, self.min_type.name.lower(), False)
+            )
         return
     
 
