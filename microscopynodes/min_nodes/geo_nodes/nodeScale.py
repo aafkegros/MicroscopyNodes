@@ -11,14 +11,8 @@ def _add_bundle_items(bundle_node, item_names, socket_type='BOOLEAN'):
 
 def scale_node_group():
     node_group = bpy.data.node_groups.get("Scale bars")
-    if node_group and any(
-        item.name == "Holder" and item.in_out == "INPUT"
-        for item in node_group.interface.items_tree
-        if getattr(item, "item_type", None) == "SOCKET"
-    ):
-        return node_group
     if node_group:
-        bpy.data.node_groups.remove(node_group)
+        return node_group
 
     node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name="Scale bars")
     links = node_group.links

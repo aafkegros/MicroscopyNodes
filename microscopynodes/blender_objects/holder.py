@@ -84,8 +84,6 @@ class Holder(MiNObject):
     def ensure_gn(self):
         for modifier in self.object.modifiers:
             if modifier.type == "NODES" and modifier.name == "[Microscopy Nodes holder]":
-                if not _holder_node_group_is_current(modifier.node_group):
-                    modifier.node_group = holder_node_group()
                 return modifier
         modifier = self.object.modifiers.new("[Microscopy Nodes holder]", "NODES")
         modifier.node_group = holder_node_group()
@@ -175,35 +173,10 @@ def _build_holder_bundle(tree):
 
 def holder_node_group():
     node_group = bpy.data.node_groups.get(HOLDER_NODE_GROUP_NAME)
-    if _holder_node_group_is_current(node_group):
-        return node_group
     if node_group is not None:
-        bpy.data.node_groups.remove(node_group)
+        return node_group
 
     with TreeBuilder.geometry(HOLDER_NODE_GROUP_NAME) as tree:
         _build_holder_bundle(tree)
 
     return tree.tree
-
-
-def _holder_node_group_is_current(node_group):
-    if node_group is None:
-        return False
-    required_inputs = {
-        "Geometry",
-        "Frame",
-        "Dataset BBox Min",
-        "Dataset BBox Max",
-        "Dataset Input Scale",
-        "Scene World Scale Base",
-        "Scene Output Scale",
-        "Scene Import Transform",
-    }
-    input_names = {
-        item.name
-        for item in node_group.interface.items_tree
-        if getattr(item, "item_type", None) == "SOCKET" and item.in_out == "INPUT"
-    }
-    if not required_inputs.issubset(input_names):
-        return False
-    return False

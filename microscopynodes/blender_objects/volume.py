@@ -64,7 +64,7 @@ class VolumeObject(ChannelObject):
         import_node.name = f"IMPORT_{ch.identifier}"
         import_node.label = ch.name
         for input_field in import_node.inputs:
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+            if input_field.name not in ("Include", "Normalized"):
                 input_field.hide = True
 
         affine_node = self.node_group.nodes.new("FunctionNodeCombineMatrix")
@@ -74,7 +74,6 @@ class VolumeObject(ChannelObject):
         for affine_socket in affine_node.inputs:
             if not affine_socket.is_linked:
                 affine_socket.hide = True
-        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 

@@ -74,6 +74,11 @@ class MiNObject(BlenderObject):
 class ChannelObject(MiNObject):
     shader_count = 10
 
+    def set_holder(self, holder):
+        for node in self.node_group.nodes:
+            if node.name.startswith("IMPORT_") and node.inputs.get("Holder") is not None:
+                node.inputs["Holder"].default_value = holder
+
     def set_channel_capacity(self, dataset_model):
         pref_buffer = int(getattr(addon_preferences(bpy.context), "extra_channel_slots", 2))
         self.shader_count = max(len(dataset_model.channels) + pref_buffer, 1)
@@ -159,7 +164,7 @@ class ChannelObject(MiNObject):
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if getattr(ch.viz, self.min_type.name.lower(), False)), None)
         if ch is not None:
-            self.object.location = dataset_model.dataset_origin_world
+            # self.object.location = dataset_model.dataset_origin_world
             self.object.rotation_euler = (0.0, 0.0, 0.0)
             self.object.scale = (1.0, 1.0, 1.0)
 

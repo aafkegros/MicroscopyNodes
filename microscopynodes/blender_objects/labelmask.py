@@ -8,6 +8,9 @@ from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 class LabelmaskObject(MeshChannelObject):
     min_type = min_keys.LABELMASK
 
+    def update_import_node(self, import_node, file_constructors, ch):
+        super().update_import_node(import_node, file_constructors, ch)
+
     def init_shader(self, mat):
         super().init_shader(mat)
         mat.blend_method = "BLEND"
@@ -28,7 +31,7 @@ class LabelmaskObject(MeshChannelObject):
         import_node.name = f"IMPORT_{ch.identifier}"
         import_node.label = ch.name
         for input_field in import_node.inputs:
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+            if input_field.name != "Include":
                 input_field.hide = True
 
         affine_node = nodes.new("FunctionNodeCombineMatrix")
@@ -38,7 +41,6 @@ class LabelmaskObject(MeshChannelObject):
         for affine_socket in affine_node.inputs:
             if not affine_socket.is_linked:
                 affine_socket.hide = True
-        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
