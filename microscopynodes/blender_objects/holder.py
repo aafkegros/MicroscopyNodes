@@ -6,6 +6,7 @@ from nodebpy.builder import CustomGeometryGroup
 from nodebpy.types import InputFloat, InputGeometry, InputInteger, InputVector
 
 from .base import MiNObject
+from ..handle_blender_structs.keyframe_handling import ensure_dataset_frame_animation
 from ..handle_blender_structs.node_handling import set_modifier_input
 from ..handle_blender_structs.min_keys import min_keys
 
@@ -48,6 +49,7 @@ class Holder(MiNObject):
     def set_settings(self, dataset_model):
         super().set_settings(dataset_model)
         self.ensure_gn()
+        ensure_dataset_frame_animation(self.object, dataset_model)
         set_modifier_input(self.gn_mod, "Dataset Input Scale", self.object[self.DATASET_INPUT_SCALE])
         self.object.hide_render = True
         self.object.display_type = 'WIRE'
@@ -124,18 +126,17 @@ class HolderBundle(CustomGeometryGroup):
 def _build_holder_bundle(tree):
     tree.tree.show_modifier_manage_panel = True
 
-    frame = tree.inputs.integer("Frame")
-    frame._interface_socket.default_attribute_name = "#frame"
+    frame = tree.inputs.integer("Frame", 0)
 
     inputs = {
         "Geometry": tree.inputs.geometry("Geometry"),
         "Frame": frame,
-        "Dataset BBox Min": tree.inputs.vector("Dataset BBox Min"),
-        "Dataset BBox Max": tree.inputs.vector("Dataset BBox Max"),
-        "Dataset Input Scale": tree.inputs.float("Dataset Input Scale", default_value=1.0),
-        "Scene World Scale Base": tree.inputs.float("Scene World Scale Base", default_value=1.0),
-        "Scene Output Scale": tree.inputs.float("Scene Output Scale", default_value=1.0),
-        "Scene Import Transform": tree.inputs.vector("Scene Import Transform"),
+        "Dataset BBox Min": tree.inputs.vector("Dataset BBox Min", hide_in_modifier=True),
+        "Dataset BBox Max": tree.inputs.vector("Dataset BBox Max", hide_in_modifier=True),
+        "Dataset Input Scale": tree.inputs.float("Dataset Input Scale", default_value=1.0, hide_in_modifier=True),
+        "Scene World Scale Base": tree.inputs.float("Scene World Scale Base", default_value=1.0, hide_in_modifier=True),
+        "Scene Output Scale": tree.inputs.float("Scene Output Scale", default_value=1.0, hide_in_modifier=True),
+        "Scene Import Transform": tree.inputs.vector("Scene Import Transform", hide_in_modifier=True),
     }
     geometry = tree.outputs.geometry("Geometry")
 
@@ -205,11 +206,4 @@ def _holder_node_group_is_current(node_group):
     }
     if not required_inputs.issubset(input_names):
         return False
-    for item in node_group.interface.items_tree:
-        if (
-            getattr(item, "item_type", None) == "SOCKET"
-            and item.in_out == "INPUT"
-            and item.name == "Frame"
-        ):
-            return item.default_attribute_name == "#frame"
     return False

@@ -1,7 +1,6 @@
 import bpy
 import platform
 
-from .handle_blender_structs.keyframe_handling import ensure_dataset_frame_driver, ensure_dataset_frame_property
 from .handle_blender_structs.node_handling import get_min_gn
 from .handle_blender_structs.min_keys import min_keys
 from .blender_objects.factories import MinObjectFactory
@@ -142,8 +141,6 @@ class Dataset():
         if self.holder is None:
             return
 
-        # ensure_dataset_frame_property(self.holder.object, dataset_model)
-
         for min_key in (min_keys.AXES, min_keys.SLICECUBE, min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
             min_obj = getattr(self, min_key.name.lower())
             if min_obj is not None:
@@ -161,9 +158,6 @@ class Dataset():
                     if getattr(ch.viz, min_obj.min_type.name.lower(), False):
                         min_obj.set_parent_and_slicer(self.holder.object, self.slicecube.object, ch)
 
-        # for min_obj in (self.volume, self.surface, self.labelmask):
-        #     if min_obj is not None:
-        #         ensure_dataset_frame_driver(self.holder.object, min_obj)
         return
 
 def set_background_color():
