@@ -129,6 +129,8 @@ class Dataset():
                 min_obj.set_data(dataset_model)
             if update_settings:
                 min_obj.set_settings(dataset_model)
+                min_obj.set_scene(self.scene.scene_model)
+
         self.ensure_links_of_objects(dataset_model)
         if update_settings:
             self.scene.update_dataset_scale(self, dataset_model)
@@ -140,13 +142,16 @@ class Dataset():
         if self.holder is None:
             return
 
-        ensure_dataset_frame_property(self.holder.object, dataset_model)
+        # ensure_dataset_frame_property(self.holder.object, dataset_model)
 
         for min_key in (min_keys.AXES, min_keys.SLICECUBE, min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
             min_obj = getattr(self, min_key.name.lower())
             if min_obj is not None:
                 min_obj.object.parent = self.holder.object
                 min_obj.object.matrix_parent_inverse.identity()
+
+        if self.axes is not None:
+            self.axes.set_holder(self.holder.object)
 
         if self.slicecube is not None:
             for min_obj in (self.volume, self.surface, self.labelmask):
@@ -156,9 +161,9 @@ class Dataset():
                     if getattr(ch.viz, min_obj.min_type.name.lower(), False):
                         min_obj.set_parent_and_slicer(self.holder.object, self.slicecube.object, ch)
 
-        for min_obj in (self.volume, self.surface, self.labelmask):
-            if min_obj is not None:
-                ensure_dataset_frame_driver(self.holder.object, min_obj)
+        # for min_obj in (self.volume, self.surface, self.labelmask):
+        #     if min_obj is not None:
+        #         ensure_dataset_frame_driver(self.holder.object, min_obj)
         return
 
 def set_background_color():

@@ -55,14 +55,19 @@ class Axes(MiNObject):
         return float(candidates[np.argmin(np.abs(counts - target_ticks))])
 
     def set_scene(self, scene_model):
-        set_modifier_input(self.min_gn, "Output Scale", scene_model.output_scale)
         super().set_scene(scene_model)
         self.object.data.update()
         return
 
     def set_input_scale(self, dataset_input_scale):
-        set_modifier_input(self.min_gn, "Input Scale", dataset_input_scale)
         self.object[self.DATASET_INPUT_SCALE] = float(dataset_input_scale)
+        self.object.data.update()
+        return
+
+    def set_holder(self, holder):
+        scale_node = self.node_group.nodes["Scale Bars"]
+        scale_node.node_tree = scale_node_group()
+        scale_node.inputs["Holder"].default_value = holder
         self.object.data.update()
         return
         
@@ -116,26 +121,6 @@ class Axes(MiNObject):
         interface.items_tree[-1].max_value = 3.4028234663852886e+38
         interface.items_tree[-1].attribute_domain = 'POINT'
 
-        interface.new_socket(name="Input Scale", in_out="INPUT", socket_type='NodeSocketFloat')
-        interface.items_tree[-1].default_value = 1.0
-        interface.items_tree[-1].min_value = 0.0
-        interface.items_tree[-1].max_value = 3.4028234663852886e+38
-        interface.items_tree[-1].attribute_domain = 'POINT'
-        if hasattr(interface.items_tree[-1], "hide_in_modifier"):
-            interface.items_tree[-1].hide_in_modifier = True
-        if hasattr(interface.items_tree[-1], "hide_value"):
-            interface.items_tree[-1].hide_value = True
-
-        interface.new_socket(name="Output Scale", in_out="INPUT", socket_type='NodeSocketFloat')
-        interface.items_tree[-1].default_value = 1.0
-        interface.items_tree[-1].min_value = 0.0
-        interface.items_tree[-1].max_value = 3.4028234663852886e+38
-        interface.items_tree[-1].attribute_domain = 'POINT'
-        if hasattr(interface.items_tree[-1], "hide_in_modifier"):
-            interface.items_tree[-1].hide_in_modifier = True
-        if hasattr(interface.items_tree[-1], "hide_value"):
-            interface.items_tree[-1].hide_value = True
-
         interface.new_socket(name="Grid", in_out="INPUT", socket_type='NodeSocketBool')
         interface.items_tree[-1].default_value = True
         interface.items_tree[-1].attribute_domain = 'POINT'
@@ -176,18 +161,7 @@ class Axes(MiNObject):
         scale_node.width = 260
         scale_node.location = (-50, 0)
 
-        world_per_unit = nodes.new("ShaderNodeMath")
-        world_per_unit.operation = "DIVIDE"
-        world_per_unit.name = "World per Unit"
-        world_per_unit.label = "World per Unit"
-        world_per_unit.location = (-350, -120)
-        world_per_unit.inputs[0].default_value = 1.0
-        world_per_unit.inputs[1].default_value = 1.0
-
         links.new(inputnode.outputs["Tick Step (unit)"], scale_node.inputs["Tick Step (unit)"])
-        links.new(inputnode.outputs["Input Scale"], world_per_unit.inputs[0])
-        links.new(inputnode.outputs["Output Scale"], world_per_unit.inputs[1])
-        links.new(world_per_unit.outputs[0], scale_node.inputs["World per Unit"])
         links.new(inputnode.outputs["Grid"], scale_node.inputs["Grid"])
         links.new(inputnode.outputs["Line thickness"], scale_node.inputs["Line thickness"])
         # links.new(crosshatch.outputs[0], scale_node.inputs["Tick Geometry"])

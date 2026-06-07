@@ -18,7 +18,6 @@ bpy = { url = "https://github.com/BradyAJohnston/dailybpy/releases/download/dail
 # bpy = { version = "==5.2.0b0", source = "dailybpy" , allow-prereleases = true }
 # bpy = "==5.1.0"
 dask = "==2026.1.2"
-importlib-metadata = "==8.7.0"
 tifffile = "==2026.2.24"
 imagecodecs = "==2025.3.30"
 zarr = "==3.1.5"
@@ -29,6 +28,7 @@ zmesh = "==1.9.0"
 databpy = "==0.7.0"
 nodebpy = "==520.0.0"
 pydantic = "*"
+networkx = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

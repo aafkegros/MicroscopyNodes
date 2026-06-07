@@ -1,9 +1,28 @@
 import bpy
 import numpy as np
 from databpy import create_object
+from nodebpy import TreeBuilder, geometry as g
+from nodebpy.builder import CustomGeometryGroup
+from nodebpy.types import InputFloat, InputGeometry, InputInteger, InputVector
 
 from .base import MiNObject
+from ..handle_blender_structs.node_handling import set_modifier_input
 from ..handle_blender_structs.min_keys import min_keys
+
+HOLDER_NODE_GROUP_NAME = "Microscopy Nodes Holder"
+
+HOLDER_BUNDLE_ITEMS = (
+    ("INT", "Frame"),
+    ("VECTOR", "Dataset BBox Min"),
+    ("VECTOR", "Dataset BBox Max"),
+    ("VECTOR", "Dataset BBox Extents"),
+    ("FLOAT", "Dataset Input Scale"),
+    ("FLOAT", "Scene World Scale Base"),
+    ("FLOAT", "Scene Output Scale"),
+    ("VECTOR", "Scene Import Offset"),
+    ("VECTOR", "Scene Import Transform"),
+)
+
 
 class Holder(MiNObject):
     min_type = min_keys.HOLDER
@@ -16,12 +35,20 @@ class Holder(MiNObject):
             collection=bpy.context.collection,
         )
         self.object.name = self.min_type.name.lower()
+        self.ensure_gn()
         return self.object
+
+    def set_data(self, dataset_model):
+        super().set_data(dataset_model)
+        self.ensure_gn()
+        mins, maxs, _ = self.dataset_intermediate_bbox
+        set_modifier_input(self.gn_mod, "Dataset BBox Min", mins)
+        set_modifier_input(self.gn_mod, "Dataset BBox Max", maxs)
 
     def set_settings(self, dataset_model):
         super().set_settings(dataset_model)
-        for modifier in list(self.object.modifiers):
-            self.object.modifiers.remove(modifier)
+        self.ensure_gn()
+        set_modifier_input(self.gn_mod, "Dataset Input Scale", self.object[self.DATASET_INPUT_SCALE])
         self.object.hide_render = True
         self.object.display_type = 'WIRE'
         self.object.name = dataset_model.name
@@ -32,6 +59,7 @@ class Holder(MiNObject):
         dataset_size = self.dataset_extents * scene_world_scale
         scene_import_transform = np.asarray(scene_model.import_transform, dtype=float)
 
+        self.object[self.SCENE_IMPORT_TRANSFORM_ATTRIBUTE] = tuple(scene_import_transform)
         self.store_named_attribute(
             np.asarray([scene_import_transform], dtype=float),
             self.SCENE_IMPORT_TRANSFORM_ATTRIBUTE,
@@ -47,3 +75,141 @@ class Holder(MiNObject):
         self.object.location = tuple(user_offset + scene_import_offset)
 
         super().set_scene(scene_model, scene_import_offset=scene_import_offset)
+        set_modifier_input(self.gn_mod, "Scene World Scale Base", self.object[self.SCENE_WORLD_SCALE_BASE])
+        set_modifier_input(self.gn_mod, "Scene Output Scale", self.object[self.SCENE_OUTPUT_SCALE])
+        set_modifier_input(self.gn_mod, "Scene Import Transform", self.object[self.SCENE_IMPORT_TRANSFORM_ATTRIBUTE])
+
+    def ensure_gn(self):
+        for modifier in self.object.modifiers:
+            if modifier.type == "NODES" and modifier.name == "[Microscopy Nodes holder]":
+                if not _holder_node_group_is_current(modifier.node_group):
+                    modifier.node_group = holder_node_group()
+                return modifier
+        modifier = self.object.modifiers.new("[Microscopy Nodes holder]", "NODES")
+        modifier.node_group = holder_node_group()
+        return modifier
+
+
+class HolderBundle(CustomGeometryGroup):
+    _name = HOLDER_NODE_GROUP_NAME
+
+    def __init__(
+        self,
+        geometry: InputGeometry = None,
+        frame: InputInteger = 0,
+        dataset_bbox_min: InputVector = (0.0, 0.0, 0.0),
+        dataset_bbox_max: InputVector = (0.0, 0.0, 0.0),
+        dataset_input_scale: InputFloat = 1.0,
+        scene_world_scale_base: InputFloat = 1.0,
+        scene_output_scale: InputFloat = 1.0,
+        scene_import_transform: InputVector = (0.0, 0.0, 0.0),
+    ):
+        super().__init__(
+            Geometry=geometry,
+            Frame=frame,
+            **{
+                "Dataset BBox Min": dataset_bbox_min,
+                "Dataset BBox Max": dataset_bbox_max,
+                "Dataset Input Scale": dataset_input_scale,
+                "Scene World Scale Base": scene_world_scale_base,
+                "Scene Output Scale": scene_output_scale,
+                "Scene Import Transform": scene_import_transform,
+            },
+        )
+
+    def _build_group(self, tree):
+        _build_holder_bundle(tree)
+
+
+def _build_holder_bundle(tree):
+    tree.tree.show_modifier_manage_panel = True
+
+    frame = tree.inputs.integer("Frame")
+    frame._interface_socket.default_attribute_name = "#frame"
+
+    inputs = {
+        "Geometry": tree.inputs.geometry("Geometry"),
+        "Frame": frame,
+        "Dataset BBox Min": tree.inputs.vector("Dataset BBox Min"),
+        "Dataset BBox Max": tree.inputs.vector("Dataset BBox Max"),
+        "Dataset Input Scale": tree.inputs.float("Dataset Input Scale", default_value=1.0),
+        "Scene World Scale Base": tree.inputs.float("Scene World Scale Base", default_value=1.0),
+        "Scene Output Scale": tree.inputs.float("Scene Output Scale", default_value=1.0),
+        "Scene Import Transform": tree.inputs.vector("Scene Import Transform"),
+    }
+    geometry = tree.outputs.geometry("Geometry")
+
+    extents = g.VectorMath.subtract(
+        vector=inputs["Dataset BBox Max"],
+        vector_001=inputs["Dataset BBox Min"],
+    ).o.vector
+    dataset_size = g.VectorMath.scale(
+        vector=extents,
+        scale=inputs["Scene World Scale Base"],
+    ).o.vector
+    scene_import_offset = g.VectorMath.scale(
+        vector=g.VectorMath.multiply(
+            vector=inputs["Scene Import Transform"],
+            vector_001=dataset_size,
+        ).o.vector,
+        scale=-1.0,
+    ).o.vector
+
+    bundle_values = {
+        **inputs,
+        "Dataset BBox Extents": extents,
+        "Scene Import Offset": scene_import_offset,
+    }
+
+    combine = g.CombineBundle(define_signature=True)
+    for socket_type, name in HOLDER_BUNDLE_ITEMS:
+        combine.node.bundle_items.new(socket_type, name)
+        tree.tree.links.new(bundle_values[name].socket, combine.node.inputs[name])
+
+    g.SetGeometryBundle(
+        geometry=inputs["Geometry"],
+        bundle=combine.o.bundle,
+    ).o.geometry >> geometry
+
+
+def holder_node_group():
+    node_group = bpy.data.node_groups.get(HOLDER_NODE_GROUP_NAME)
+    if _holder_node_group_is_current(node_group):
+        return node_group
+    if node_group is not None:
+        bpy.data.node_groups.remove(node_group)
+
+    with TreeBuilder.geometry(HOLDER_NODE_GROUP_NAME) as tree:
+        _build_holder_bundle(tree)
+
+    return tree.tree
+
+
+def _holder_node_group_is_current(node_group):
+    if node_group is None:
+        return False
+    required_inputs = {
+        "Geometry",
+        "Frame",
+        "Dataset BBox Min",
+        "Dataset BBox Max",
+        "Dataset Input Scale",
+        "Scene World Scale Base",
+        "Scene Output Scale",
+        "Scene Import Transform",
+    }
+    input_names = {
+        item.name
+        for item in node_group.interface.items_tree
+        if getattr(item, "item_type", None) == "SOCKET" and item.in_out == "INPUT"
+    }
+    if not required_inputs.issubset(input_names):
+        return False
+    for item in node_group.interface.items_tree:
+        if (
+            getattr(item, "item_type", None) == "SOCKET"
+            and item.in_out == "INPUT"
+            and item.name == "Frame"
+        ):
+            return item.default_attribute_name == "#frame"
+    return False

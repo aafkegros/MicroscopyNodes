@@ -6,6 +6,7 @@ from .join_grids import join_grids_node_group
 from .nodeMicroscopyGridToPoints import microscopy_grid_to_points_node_group
 from .nodeMaskGrid import mask_grid_node_group
 from .nodeMaskMesh import mask_mesh_node_group
+from .nodeHolderBundleInputs import holder_bundle_inputs_node_group
 from .nodeScale import scale_node_group
 from .nodeScaleBox import scalebox_node_group
 from . import ops
