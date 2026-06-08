@@ -2,7 +2,7 @@ from .base import MeshChannelObject
 from ..handle_blender_structs.node_handling import group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
-from ..min_nodes.geo_nodes.nodeMaskMesh import mask_mesh_node_group
+from ..min_nodes.geo_nodes.masking.nodeMaskMesh import mask_mesh_node_group
 from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 
 class LabelmaskObject(MeshChannelObject):
@@ -53,7 +53,7 @@ class LabelmaskObject(MeshChannelObject):
             mask_mesh.inputs["With"].default_value = 'Box'
 
         links.new(import_node.outputs["Geometry"], mask_mesh.inputs["Mesh"])
-        self.add_channel_to_bundle(ch, mask_mesh.outputs["Masked Mesh"], "GEOMETRY")
+        self.add_channel_to_bundle(ch, mask_mesh.outputs["Inside Mask"], "GEOMETRY")
         return
 
     def init_channel_shader(self, mat, ch):

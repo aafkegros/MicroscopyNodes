@@ -2,7 +2,6 @@ import bpy
 from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
 from nodebpy.types import (
-    InputBoolean,
     InputCollection,
     InputFloat,
     InputGeometry,
@@ -28,7 +27,6 @@ class MaskGrid(CustomGeometryGroup):
         mesh: InputGeometry = None,
         mask_resolution: InputFloat = 0.3,
         mask: InputFloat = 0.0,
-        invert: InputBoolean = False,
     ):
         super().__init__(
             **{
@@ -39,7 +37,6 @@ class MaskGrid(CustomGeometryGroup):
                 "Mesh": mesh,
                 "Mask Resolution": mask_resolution,
                 "Mask": mask,
-                "Invert": invert,
             }
         )
 
@@ -70,8 +67,8 @@ def _build_mask_grid(tree):
         hide_value=True,
         optional_label=True,
     )
-    invert = tree.inputs.boolean("Invert")
-    masked_grid = tree.outputs.float("Masked Grid")
+    inside_mask = tree.outputs.float("Inside Mask")
+    outside_mask = tree.outputs.float("Outside Mask")
 
     object_geometry = g.ObjectInfo(
         object=object,
@@ -133,15 +130,15 @@ def _build_mask_grid(tree):
         false=sampled_mask,
         true=box_mask,
     ).o.output
-    mask_factor = g.Switch.float(
-        switch=invert,
-        false=mask_value,
-        true=g.BooleanMath.l_not(mask_value).o.boolean,
-    ).o.output
-
     g.PruneGrid.float(
-        grid=g.Math.multiply(grid, mask_factor).o.value,
-    ).o.grid >> masked_grid
+        grid=g.Math.multiply(grid, mask_value).o.value,
+    ).o.grid >> inside_mask
+    g.PruneGrid.float(
+        grid=g.Math.multiply(
+            grid,
+            g.BooleanMath.l_not(mask_value).o.boolean,
+        ).o.value,
+    ).o.grid >> outside_mask
 
 
 def mask_grid_node_group():

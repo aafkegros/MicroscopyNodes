@@ -2,7 +2,7 @@ import bpy
 from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_modifier_input_socket, set_name_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.combine_channels import join_microscopy_grids_and_meshes_node_group
-from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
+from ..min_nodes.geo_nodes.masking.nodeMaskGrid import mask_grid_node_group
 from ..min_nodes.shader_nodes import add_shaders_node, filter_geometry_by_attribute_node
 from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
@@ -312,7 +312,7 @@ class ChannelObject(MiNObject):
             mask_grid.inputs["With"].default_value = 'Box'
 
         links.new(grid_socket, mask_grid.inputs["Grid"])
-        return mask_grid.outputs["Masked Grid"]
+        return mask_grid.outputs["Inside Mask"]
 
     def add_ch_to_shader(self, mat, ch, shader_socket):
         nodes = mat.node_tree.nodes
@@ -369,7 +369,7 @@ class MeshChannelObject(ChannelObject):
         filter_attribute.name = f"[filter_geometry_by_attribute_{ch.identifier}]"
         filter_attribute.node_tree = filter_geometry_by_attribute_node()
         filter_attribute.label = "Filter Geometry by Attribute"
-        filter_attribute.location = (-400, y_offset)
+        filter_attribute.location = (680, y_offset - 65)
 
         color_lut = nodes.new("ShaderNodeValToRGB")
         color_lut.name = f"[color_lut_{ch.identifier}]"
@@ -383,7 +383,7 @@ class MeshChannelObject(ChannelObject):
         princ.inputs.get('Alpha').default_value = 0.8
 
 
-        frame, _ = self.add_ch_to_shader(mat, ch, princ.outputs[0])
+        frame, _ = self.add_ch_to_shader(mat, ch, filter_attribute.outputs["Shader"])
 
         node_attr.parent = frame
         color_lut.parent = frame
@@ -391,7 +391,8 @@ class MeshChannelObject(ChannelObject):
         filter_attribute.parent = frame
 
         links.new(node_attr.outputs.get('Fac'), filter_attribute.inputs["Attribute"])
-        links.new(filter_attribute.outputs["Attribute"], color_lut.inputs.get("Fac"))
         links.new(color_lut.outputs[0], princ.inputs.get('Base Color'))
         links.new(color_lut.outputs[0], princ.inputs[28])
+        links.new(princ.outputs[0], filter_attribute.inputs["Shader"])
+        color_lut.inputs[0].default_value = 1.0
         return

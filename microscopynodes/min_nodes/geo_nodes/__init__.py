@@ -3,19 +3,16 @@ from .nodeGridVerts import grid_verts_node_group
 from .import_microscopy_meshes import import_microscopy_meshes_node_group
 from .import_microscopy_volume import import_microscopy_volume_node_group
 from .nodeMicroscopyGridToPoints import microscopy_grid_to_points_node_group
-from .nodeMaskGrid import mask_grid_node_group
-from .nodeMaskMesh import mask_mesh_node_group
 from .nodeHolderBundleInputs import holder_bundle_inputs_node_group
 from .nodeScale import scale_node_group
 from .nodeScaleBox import scalebox_node_group
 from . import combine_channels
+from . import masking
 from . import ops
 import bpy
 
 
 ADD_MENU_NODE_GROUPS = [
-    "Mask Grid",
-    "Mask Mesh",
     "Microscopy Grid to Points",
 ]
 
@@ -29,6 +26,17 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
         layout.menu(
             "MIN_MT_COMBINE_CHANNELS_ADD",
             text="Combine Channels",
+            icon="ADD",
+        )
+        layout.menu(
+            "MIN_MT_MASKING_ADD",
+            text="Masking",
+            icon="MOD_MASK",
+        )
+        layout.menu(
+            "MIN_MT_CMAP_ADD",
+            text="LUTs",
+            icon="COLOR",
         )
         for node_name in ADD_MENU_NODE_GROUPS:
             operator = layout.operator(
@@ -45,25 +53,28 @@ def MIN_add_geometry_node_menu(self, context):
     tree_type = getattr(space, "tree_type", None)
 
     if area_ui_type == "GeometryNodeTree" or tree_type == "GeometryNodeTree":
-        self.layout.menu("MIN_MT_GEOMETRY_NODES_ADD", text="Microscopy Nodes")
+        self.layout.menu(
+            "MIN_MT_GEOMETRY_NODES_ADD",
+            text="Microscopy Nodes",
+            icon="VOLUME_DATA",
+        )
 
 
 NODE_GROUPS = {
     "crosshatch": crosshatch_node_group,
     "Import Microscopy Meshes": import_microscopy_meshes_node_group,
     "Import Microscopy Volume": import_microscopy_volume_node_group,
-    "Mask Grid": mask_grid_node_group,
-    "Mask Mesh": mask_mesh_node_group,
     "Microscopy Grid to Points": microscopy_grid_to_points_node_group,
     "Scale bars": scale_node_group,
     "_grid_verts": grid_verts_node_group,
     "_scalebox": scalebox_node_group,
     **combine_channels.NODE_GROUPS,
+    **masking.NODE_GROUPS,
 }
 
 CLASSES = [
     MIN_MT_GEOMETRY_NODES_ADD,
-] + combine_channels.CLASSES + ops.CLASSES
+] + combine_channels.CLASSES + masking.CLASSES + ops.CLASSES
 
 
 def geometry_node_group(name):
