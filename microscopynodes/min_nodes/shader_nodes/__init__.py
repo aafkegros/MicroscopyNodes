@@ -26,10 +26,22 @@ class MIN_MT_CMAP_REPLACE(bpy.types.Menu):
     def draw(self, context):
         cmap_menus.draw_category_menus(self, context, "microscopynodes.replace_lut", "REPLACE")
 
+
+class MIN_MT_SHADER_NODES_ADD(bpy.types.Menu):
+    bl_idname = "MIN_MT_SHADER_NODES_ADD"
+    bl_label = "Microscopy Nodes"
+
+    def draw(self, context):
+        self.layout.menu("MIN_MT_CMAP_ADD", text="LUTs", icon="COLOR")
+
+
 def MIN_add_shader_node_menu(self, context):
     if  context.area.ui_type == 'ShaderNodeTree':
-        layout = self.layout
-        layout.menu("MIN_MT_CMAP_ADD", text="LUTs", icon="COLOR")
+        self.layout.menu(
+            "MIN_MT_SHADER_NODES_ADD",
+            text="Microscopy Nodes",
+            icon="VOLUME_DATA",
+        )
 
 
 def MIN_context_shader_node_menu(self, context):
@@ -40,7 +52,11 @@ def MIN_context_shader_node_menu(self, context):
             layout.operator("microscopynodes.reverse_lut", text="Reverse LUT", icon="ARROW_LEFTRIGHT")
 
 
-CLASSES = [MIN_MT_CMAP_ADD, MIN_MT_CMAP_REPLACE] + cmap_menus.CLASSES + ops.CLASSES
+CLASSES = [
+    MIN_MT_CMAP_ADD,
+    MIN_MT_CMAP_REPLACE,
+    MIN_MT_SHADER_NODES_ADD,
+] + cmap_menus.CLASSES + ops.CLASSES
 
 NODE_GROUPS = {
     "Normalize Luminance": normalize_luminance_node,
