@@ -54,16 +54,6 @@ class Axes(MiNObject):
         counts = tick_counts[valid]
         return float(candidates[np.argmin(np.abs(counts - target_ticks))])
 
-    def set_scene(self, scene_model):
-        super().set_scene(scene_model)
-        self.object.data.update()
-        return
-
-    def set_input_scale(self, dataset_input_scale):
-        self.object[self.DATASET_INPUT_SCALE] = float(dataset_input_scale)
-        self.object.data.update()
-        return
-
     def set_holder(self, holder):
         scale_node = self.node_group.nodes["Scale Bars"]
         scale_node.node_tree = scale_node_group()
@@ -72,7 +62,7 @@ class Axes(MiNObject):
         return
         
     def set_settings(self, dataset_model):
-        initialize = self.DATASET_INPUT_SCALE not in self.object
+        initialize = self.object.parent is None
         tick_step_input_name = self._tick_step_input_name(dataset_model)
         for item in self.node_group.interface.items_tree:
             if item.item_type == 'SOCKET' and item.in_out == 'INPUT':
@@ -87,9 +77,6 @@ class Axes(MiNObject):
         if initialize:
             self.object.location = dataset_extents / 2.0
             self.object.scale = np.maximum(dataset_extents, 1e-6)
-
-        super().set_settings(dataset_model)
-        self.set_input_scale(dataset_model.channels[0].data.unit)
 
         set_modifier_input(self.min_gn, tick_step_input_name, tick_step)
         set_modifier_input(self.min_gn, "Grid", True)

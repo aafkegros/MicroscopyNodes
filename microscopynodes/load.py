@@ -66,8 +66,6 @@ class Scene():
         scene_model = self.scene_model
         if dataset.holder is not None:
             dataset.holder.set_scene(scene_model)
-        if dataset.axes is not None:
-            dataset.axes.set_scene(scene_model)
 
 class Dataset():
     def __init__(self, holder=None, dataset_model=None, scene=None):
@@ -128,7 +126,6 @@ class Dataset():
                 min_obj.set_data(dataset_model)
             if update_settings:
                 min_obj.set_settings(dataset_model)
-                min_obj.set_scene(self.scene.scene_model)
 
         self.ensure_links_of_objects(dataset_model)
         if update_settings:

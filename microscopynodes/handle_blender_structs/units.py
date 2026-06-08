@@ -87,7 +87,6 @@ def update_import_scale(self, context):
     from ..blender_objects.factories import MinObjectFactory
     from ..data_model import SceneModel
     from .min_keys import min_keys
-    from .node_handling import get_min_gn
 
     if self.MiN_import_scale == AUTO_IMPORT_SCALE:
         import_scale = auto_import_scale_for_scene(context.scene)
@@ -103,11 +102,6 @@ def update_import_scale(self, context):
         if "_MiN_dataset_input_scale" not in obj:
             continue
         MinObjectFactory(min_keys.HOLDER, obj=obj).set_scene(scene_model)
-        for child in obj.children:
-            min_gn = get_min_gn(child)
-            if min_gn is None or "axes" not in min_gn.name.lower():
-                continue
-            MinObjectFactory(min_keys.AXES, obj=child).set_scene(scene_model)
 
 
 def import_scale_property(update=update_import_scale):

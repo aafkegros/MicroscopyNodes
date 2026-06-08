@@ -10,11 +10,6 @@ import numpy as np
 
 class MiNObject(BlenderObject):
     min_type = None # needs to be of type min_keys
-    DATASET_INTERMEDIATE_BBOX = "_MiN_dataset_intermediate_bbox"
-    DATASET_INPUT_SCALE = "_MiN_dataset_input_scale"
-    SCENE_WORLD_SCALE_BASE = "_MiN_scene_world_scale_base"
-    SCENE_OUTPUT_SCALE = "_MiN_scene_output_scale"
-    SCENE_IMPORT_OFFSET = "_MiN_scene_import_offset"
 
     def __init__(self, obj=None):
         super().__init__(obj) 
@@ -27,33 +22,7 @@ class MiNObject(BlenderObject):
         self.object.name = self.min_type.name.lower()
 
     def set_data(self, dataset_model):
-        self.object[self.DATASET_INTERMEDIATE_BBOX] = tuple(
-            np.asarray(dataset_model.intermediate_bbox).ravel()
-        )
-
-    def set_settings(self, dataset_model):
-        self.object[self.DATASET_INPUT_SCALE] = float(dataset_model.channels[0].data.unit)
-
-    def set_scene(self, scene_model, scene_import_offset=(0.0, 0.0, 0.0)):
-        scene_world_scale = float(self.object[self.DATASET_INPUT_SCALE]) / float(scene_model.output_scale)
-        self.object[self.SCENE_WORLD_SCALE_BASE] = scene_world_scale
-        self.object[self.SCENE_OUTPUT_SCALE] = float(scene_model.output_scale)
-        self.object[self.SCENE_IMPORT_OFFSET] = tuple(scene_import_offset)
-
-    @property
-    def dataset_size(self):
-        root = self.object
-        while root.parent is not None:
-            root = root.parent
-        return self.dataset_extents * np.abs(root.matrix_world.to_scale())
-
-    @property
-    def dataset_intermediate_bbox(self):
-        return np.asarray(self.object[self.DATASET_INTERMEDIATE_BBOX]).reshape(3, 3)
-
-    @property
-    def dataset_extents(self):
-        return self.dataset_intermediate_bbox[2]
+        return
     
     @property
     def min_gn(self):
@@ -137,7 +106,6 @@ class ChannelObject(MiNObject):
 
 
     def set_data(self, dataset_model):
-        super().set_data(dataset_model)
         self.dataset_name = dataset_model.name
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
@@ -157,7 +125,6 @@ class ChannelObject(MiNObject):
         return
 
     def set_settings(self, dataset_model):
-        super().set_settings(dataset_model)
         self.dataset_name = dataset_model.name
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:

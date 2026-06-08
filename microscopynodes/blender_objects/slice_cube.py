@@ -32,11 +32,10 @@ class SliceCubeObject(MiNObject):
         return slicecube
 
     def set_settings(self, dataset_model):
-        initialize = self.DATASET_INPUT_SCALE not in self.object
+        initialize = self.object.parent is None
         _, _, dataset_extents = dataset_model.intermediate_bbox
         if initialize:
             self.object.location = dataset_extents / 2.0
             self.object.scale = np.maximum(dataset_extents / 2.0 + 1e-5, 1e-5)
-        super().set_settings(dataset_model)
         self.object.display_type = 'BOUNDS'
     

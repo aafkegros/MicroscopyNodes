@@ -27,6 +27,9 @@ HOLDER_BUNDLE_ITEMS = (
 
 class Holder(MiNObject):
     min_type = min_keys.HOLDER
+    DATASET_INTERMEDIATE_BBOX = "_MiN_dataset_intermediate_bbox"
+    DATASET_INPUT_SCALE = "_MiN_dataset_input_scale"
+    SCENE_IMPORT_OFFSET = "_MiN_scene_import_offset"
     SCENE_IMPORT_TRANSFORM_ATTRIBUTE = "scene import transform"
 
     def init_obj(self):
@@ -40,14 +43,16 @@ class Holder(MiNObject):
         return self.object
 
     def set_data(self, dataset_model):
-        super().set_data(dataset_model)
+        self.object[self.DATASET_INTERMEDIATE_BBOX] = tuple(
+            np.asarray(dataset_model.intermediate_bbox).ravel()
+        )
         self.ensure_gn()
         mins, maxs, _ = self.dataset_intermediate_bbox
         set_modifier_input(self.gn_mod, "Dataset BBox Min", mins)
         set_modifier_input(self.gn_mod, "Dataset BBox Max", maxs)
 
     def set_settings(self, dataset_model):
-        super().set_settings(dataset_model)
+        self.object[self.DATASET_INPUT_SCALE] = float(dataset_model.channels[0].data.unit)
         self.ensure_gn()
         ensure_dataset_frame_animation(self.object, dataset_model)
         set_modifier_input(self.gn_mod, "Dataset Input Scale", self.object[self.DATASET_INPUT_SCALE])
@@ -76,10 +81,22 @@ class Holder(MiNObject):
         self.object.scale = (scene_world_scale,) * 3
         self.object.location = tuple(user_offset + scene_import_offset)
 
-        super().set_scene(scene_model, scene_import_offset=scene_import_offset)
-        set_modifier_input(self.gn_mod, "Scene World Scale Base", self.object[self.SCENE_WORLD_SCALE_BASE])
-        set_modifier_input(self.gn_mod, "Scene Output Scale", self.object[self.SCENE_OUTPUT_SCALE])
+        self.object[self.SCENE_IMPORT_OFFSET] = tuple(scene_import_offset)
+        set_modifier_input(self.gn_mod, "Scene World Scale Base", scene_world_scale)
+        set_modifier_input(self.gn_mod, "Scene Output Scale", float(scene_model.output_scale))
         set_modifier_input(self.gn_mod, "Scene Import Transform", self.object[self.SCENE_IMPORT_TRANSFORM_ATTRIBUTE])
+
+    @property
+    def dataset_size(self):
+        return self.dataset_extents * np.abs(self.object.matrix_world.to_scale())
+
+    @property
+    def dataset_intermediate_bbox(self):
+        return np.asarray(self.object[self.DATASET_INTERMEDIATE_BBOX]).reshape(3, 3)
+
+    @property
+    def dataset_extents(self):
+        return self.dataset_intermediate_bbox[2]
 
     def ensure_gn(self):
         for modifier in self.object.modifiers:
