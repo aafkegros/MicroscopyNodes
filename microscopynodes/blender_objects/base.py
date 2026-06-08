@@ -3,7 +3,7 @@ from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, s
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.combine_channels import join_microscopy_grids_and_meshes_node_group
 from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
-from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
+from ..min_nodes.shader_nodes import add_shaders_node, filter_geometry_by_attribute_node
 from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
 import numpy as np
@@ -148,6 +148,7 @@ class ChannelObject(MiNObject):
         
         self.update_gn(ch)
         mat = self.add_material(ch)
+        self.update_channel_shader_attribute(mat, ch)
         self.update_material(mat, ch)
 
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
@@ -291,9 +292,11 @@ class ChannelObject(MiNObject):
         item.name = ch.name
         combine[f"channel_{ch.identifier}"] = item.name
 
-        channel_attribute = self.node_group.nodes.get(f"[channel_load_{ch.identifier}]")
+    def update_channel_shader_attribute(self, mat, ch):
+        channel_attribute = mat.node_tree.nodes.get(f"[channel_load_{ch.identifier}]")
         if channel_attribute is not None:
             channel_attribute.attribute_name = ch.name
+            channel_attribute.label = ch.name
 
     def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
         nodes = self.node_group.nodes
@@ -356,33 +359,39 @@ class MeshChannelObject(ChannelObject):
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
 
+        node_attr = nodes.new(type='ShaderNodeAttribute')
+        node_attr.location = (-600, y_offset)
+        node_attr.name = f"[channel_load_{ch.identifier}]"
+        node_attr.attribute_name = ch.name
+        node_attr.label = ch.name
+
+        filter_attribute = nodes.new("ShaderNodeGroup")
+        filter_attribute.name = f"[filter_geometry_by_attribute_{ch.identifier}]"
+        filter_attribute.node_tree = filter_geometry_by_attribute_node()
+        filter_attribute.label = "Filter Geometry by Attribute"
+        filter_attribute.location = (-400, y_offset)
+
         color_lut = nodes.new("ShaderNodeValToRGB")
         color_lut.name = f"[color_lut_{ch.identifier}]"
-        color_lut.location = (-20, y_offset - 35)
+        color_lut.location = (-200, y_offset)
         color_lut.width = 300
         color_lut.outputs[1].hide = True
 
         princ = nodes.new("ShaderNodeBsdfPrincipled")
         princ.name = f"[{ch.identifier}] principled"
-        princ.location = (390, y_offset - 35)
+        princ.location = (240, y_offset)
         princ.inputs.get('Alpha').default_value = 0.8
 
-        channel_index = nodes.new("ShaderNodeGroup")
-        channel_index.name = f"[channel_index_{ch.identifier}]"
-        channel_index.node_tree = channel_index_node()
-        channel_index.label = "Channel index"
-        channel_index.location = (710, y_offset - 65)
-        channel_index.inputs["Index"].default_value = ch.data.ix
-        expand_node_ui(channel_index)
 
-        frame, _ = self.add_ch_to_shader(mat, ch, channel_index.outputs["Shader"])
+        frame, _ = self.add_ch_to_shader(mat, ch, princ.outputs[0])
 
+        node_attr.parent = frame
         color_lut.parent = frame
         princ.parent = frame
-        channel_index.parent = frame
+        filter_attribute.parent = frame
 
+        links.new(node_attr.outputs.get('Fac'), filter_attribute.inputs["Attribute"])
+        links.new(filter_attribute.outputs["Attribute"], color_lut.inputs.get("Fac"))
         links.new(color_lut.outputs[0], princ.inputs.get('Base Color'))
-        links.new(color_lut.outputs[0], princ.inputs[27])
-        links.new(princ.outputs[0], channel_index.inputs["Shader"])
-        color_lut.inputs[0].default_value = 1.0
+        links.new(color_lut.outputs[0], princ.inputs[28])
         return

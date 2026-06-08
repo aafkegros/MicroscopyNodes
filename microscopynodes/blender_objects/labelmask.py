@@ -95,10 +95,10 @@ class LabelmaskObject(MeshChannelObject):
                 remap.inputs.get('Revolving Colormap').default_value = (color_lut.color_ramp.interpolation == 'CONSTANT')
                 remap.inputs.get('# Colors').default_value = max(len(color_lut.color_ramp.elements), 5)
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
-            if princ is not None and ch.viz.emission and princ.inputs[28].default_value == 0.0:
-                princ.inputs[28].default_value = 0.5
-            elif princ is not None and not ch.viz.emission and princ.inputs[28].default_value == 0.5:
-                princ.inputs[28].default_value = 0
+            if princ is not None and ch.viz.emission and princ.inputs[29].default_value == 0.0:
+                princ.inputs[29].default_value = 0.5
+            elif princ is not None and not ch.viz.emission and princ.inputs[29].default_value == 0.5:
+                princ.inputs[29].default_value = 0
         except Exception as e:
             print(e)
             pass

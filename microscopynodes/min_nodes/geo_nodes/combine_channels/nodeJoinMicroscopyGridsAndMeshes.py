@@ -71,8 +71,8 @@ def _build_join_microscopy_grids_and_meshes(tree):
 
     indexed_mesh = g.StoreNamedAttribute.point.integer(
         geometry=mesh_closure.input.o["Geometry"],
-        name="channel ix",
-        value=mesh_closure.input.o["Iteration"],
+        name=mesh_closure.input.o["Name"],
+        value=1,
     ).o.geometry
     joined_meshes = g.JoinGeometry(
         geometry=[

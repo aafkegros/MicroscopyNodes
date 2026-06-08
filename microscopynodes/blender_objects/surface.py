@@ -85,10 +85,10 @@ class SurfaceObject(MeshChannelObject):
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
             colornode = mat.node_tree.nodes.get(f"[color_lut_{ch.identifier}]")
             set_color_ramp_from_ch(ch, colornode)
-            if princ is not None and ch.viz.emission and princ.inputs[28].default_value == 0.0:
-                princ.inputs[28].default_value = 0.5
-            elif princ is not None and not ch.viz.emission and princ.inputs[28].default_value == 0.5:
-                princ.inputs[28].default_value = 0
+            if princ is not None and ch.viz.emission and princ.inputs[29].default_value == 0.0:
+                princ.inputs[29].default_value = 0.5
+            elif princ is not None and not ch.viz.emission and princ.inputs[29].default_value == 0.5:
+                princ.inputs[29].default_value = 0
         except Exception as e:
             print(e, 'in update surface shader')
             pass
