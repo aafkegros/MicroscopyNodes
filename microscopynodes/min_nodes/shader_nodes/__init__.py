@@ -8,6 +8,7 @@ from .nodeSliceCube import slice_cube_node_group
 from .nodeAddShaders import add_shaders_node
 from .handle_cmap import set_color_ramp_from_ch, get_colormap, colormap_to_lut
 from .nodeRemapObjectID import remap_oid_node
+from . import channel_handling
 from . import ops
 import bpy
 
@@ -32,6 +33,11 @@ class MIN_MT_SHADER_NODES_ADD(bpy.types.Menu):
     bl_label = "Microscopy Nodes"
 
     def draw(self, context):
+        self.layout.operator(
+            "microscopynodes.add_empty_channel",
+            text="Add Empty Channel",
+            icon="ADD",
+        )
         self.layout.menu("MIN_MT_CMAP_ADD", text="LUTs", icon="COLOR")
 
 
@@ -56,7 +62,7 @@ CLASSES = [
     MIN_MT_CMAP_ADD,
     MIN_MT_CMAP_REPLACE,
     MIN_MT_SHADER_NODES_ADD,
-] + cmap_menus.CLASSES + ops.CLASSES
+] + channel_handling.CLASSES + cmap_menus.CLASSES + ops.CLASSES
 
 NODE_GROUPS = {
     "Normalize Luminance": normalize_luminance_node,
