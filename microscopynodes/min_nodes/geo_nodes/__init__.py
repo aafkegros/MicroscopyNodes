@@ -1,11 +1,10 @@
 from .nodeCrosshatch import crosshatch_node_group
-from .nodeGridVerts import grid_verts_node_group
 from .import_microscopy_meshes import import_microscopy_meshes_node_group
 from .import_microscopy_volume import import_microscopy_volume_node_group
 from .nodeMicroscopyGridToPoints import microscopy_grid_to_points_node_group
 from .nodeHolderBundleInputs import holder_bundle_inputs_node_group
-from .nodeScale import scale_node_group
-from .nodeScaleBox import scalebox_node_group
+from .annotation import grid_verts_node_group, scale_node_group, scalebox_node_group
+from . import annotation
 from . import combine_channels
 from . import masking
 from . import ops
@@ -32,6 +31,11 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
             "MIN_MT_MASKING_ADD",
             text="Masking",
             icon="MOD_MASK",
+        )
+        layout.menu(
+            "MIN_MT_ANNOTATION_ADD",
+            text="Annotation",
+            icon="FONT_DATA",
         )
         layout.menu(
             "MIN_MT_CMAP_ADD",
@@ -65,16 +69,14 @@ NODE_GROUPS = {
     "Import Microscopy Meshes": import_microscopy_meshes_node_group,
     "Import Microscopy Volume": import_microscopy_volume_node_group,
     "Microscopy Grid to Points": microscopy_grid_to_points_node_group,
-    "Scale bars": scale_node_group,
-    "_grid_verts": grid_verts_node_group,
-    "_scalebox": scalebox_node_group,
+    **annotation.NODE_GROUPS,
     **combine_channels.NODE_GROUPS,
     **masking.NODE_GROUPS,
 }
 
 CLASSES = [
     MIN_MT_GEOMETRY_NODES_ADD,
-] + combine_channels.CLASSES + masking.CLASSES + ops.CLASSES
+] + annotation.CLASSES + combine_channels.CLASSES + masking.CLASSES + ops.CLASSES
 
 
 def geometry_node_group(name):

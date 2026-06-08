@@ -3,7 +3,8 @@ import numpy as np
 
 from ..handle_blender_structs.min_keys import min_keys
 from ..handle_blender_structs.node_handling import set_modifier_input
-from ..min_nodes.geo_nodes import crosshatch_node_group, scale_node_group
+from ..min_nodes.geo_nodes import crosshatch_node_group
+from ..min_nodes.geo_nodes.annotation import scale_node_group
 from .base import MiNObject
 
 
@@ -55,7 +56,7 @@ class Axes(MiNObject):
         return float(candidates[np.argmin(np.abs(counts - target_ticks))])
 
     def set_holder(self, holder):
-        scale_node = self.node_group.nodes["Scale Bars"]
+        scale_node = self.node_group.nodes["Scale Grid"]
         scale_node.node_tree = scale_node_group()
         scale_node.inputs["Holder"].default_value = holder
         self.object.data.update()
@@ -143,8 +144,8 @@ class Axes(MiNObject):
 
         scale_node = nodes.new("GeometryNodeGroup")
         scale_node.node_tree = scale_node_group()
-        scale_node.name = "Scale Bars"
-        scale_node.label = "Scale Bars"
+        scale_node.name = "Scale Grid"
+        scale_node.label = "Scale Grid"
         scale_node.width = 260
         scale_node.location = (-50, 0)
 

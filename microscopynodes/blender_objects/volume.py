@@ -182,7 +182,6 @@ class VolumeObject(ChannelObject):
         node_attr.name = f"[channel_load_{ch.identifier}]"
         node_attr.attribute_name = ch.name
         node_attr.label = ch.name
-        node_attr.hide = True
 
         ramp_node = nodes.new(type="ShaderNodeValToRGB")
         ramp_node.location = (-1200, y_offset)

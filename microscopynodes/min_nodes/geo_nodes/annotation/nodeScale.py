@@ -1,7 +1,7 @@
 import bpy
 from .nodeScaleBox import scalebox_node_group, AXIS_ITEM_NAMES
 from .nodeGridVerts import grid_verts_node_group
-from .nodeHolderBundleInputs import holder_bundle_inputs_node_group
+from ..nodeHolderBundleInputs import holder_bundle_inputs_node_group
 
 
 def _add_bundle_items(bundle_node, item_names, socket_type='BOOLEAN'):
@@ -10,11 +10,11 @@ def _add_bundle_items(bundle_node, item_names, socket_type='BOOLEAN'):
 
 
 def scale_node_group():
-    node_group = bpy.data.node_groups.get("Scale bars")
+    node_group = bpy.data.node_groups.get("Scale Grid")
     if node_group:
         return node_group
 
-    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name="Scale bars")
+    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name="Scale Grid")
     links = node_group.links
     interface = node_group.interface
 
