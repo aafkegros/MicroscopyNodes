@@ -88,6 +88,12 @@ def draw_category_menus(self, context, op, opname):
     for category in CMAP_CATEGORIES:
         self.layout.menu(cmap_bl(category, opname=opname)[0], text=cmap_bl(category,opname=opname)[1].capitalize(), icon=CMAP_CATEGORIES[category])
     self.layout.menu(single_color_bl(opname)[0], text=single_color_bl(opname)[1], icon="MESH_PLANE")
+    if opname == "ADD":
+        self.layout.operator(
+            "microscopynodes.add_pixel_intensities_lut",
+            text="Pixel Intensities",
+            icon="IMAGE_ALPHA",
+        )
 
 
 CLASSES = []
