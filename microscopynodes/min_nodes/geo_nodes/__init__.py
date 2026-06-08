@@ -2,7 +2,6 @@ from .nodeCrosshatch import crosshatch_node_group
 from .nodeGridVerts import grid_verts_node_group
 from .import_microscopy_meshes import import_microscopy_meshes_node_group
 from .import_microscopy_volume import import_microscopy_volume_node_group
-from .join_grids import join_grids_node_group
 from .nodeMicroscopyGridToPoints import microscopy_grid_to_points_node_group
 from .nodeMaskGrid import mask_grid_node_group
 from .nodeMaskMesh import mask_mesh_node_group
@@ -53,7 +52,6 @@ NODE_GROUPS = {
     "crosshatch": crosshatch_node_group,
     "Import Microscopy Meshes": import_microscopy_meshes_node_group,
     "Import Microscopy Volume": import_microscopy_volume_node_group,
-    "Join Grids": join_grids_node_group,
     "Mask Grid": mask_grid_node_group,
     "Mask Mesh": mask_mesh_node_group,
     "Microscopy Grid to Points": microscopy_grid_to_points_node_group,

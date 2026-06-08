@@ -69,8 +69,7 @@ class SurfaceObject(MeshChannelObject):
         links.new(masked_grid, grid_to_mesh.inputs.get('Grid'))
         links.new(threshold, grid_to_mesh.inputs.get("Threshold"))
 
-        out_ch = self.store_channel_attribute(x + 1000, y, ch, grid_to_mesh.outputs.get('Mesh'))
-        links.new(out_ch, join_node.inputs["Geometry"])
+        self.add_channel_to_bundle(ch, grid_to_mesh.outputs.get("Mesh"), "GEOMETRY")
         return
 
     def update_gn(self, ch):

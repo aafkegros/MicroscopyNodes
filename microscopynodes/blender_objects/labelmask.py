@@ -53,8 +53,7 @@ class LabelmaskObject(MeshChannelObject):
             mask_mesh.inputs["With"].default_value = 'Box'
 
         links.new(import_node.outputs["Geometry"], mask_mesh.inputs["Mesh"])
-        out_ch = self.store_channel_attribute(x + 450, y, ch, mask_mesh.outputs["Masked Mesh"])
-        links.new(out_ch, join_node.inputs["Geometry"])
+        self.add_channel_to_bundle(ch, mask_mesh.outputs["Masked Mesh"], "GEOMETRY")
         return
 
     def init_channel_shader(self, mat, ch):

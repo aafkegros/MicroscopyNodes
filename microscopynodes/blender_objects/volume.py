@@ -5,7 +5,6 @@ from .base import ChannelObject
 from ..handle_blender_structs.node_handling import expand_node_ui, group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
-from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
 from ..min_nodes.geo_nodes.nodeActiveGridPositions import active_grid_positions_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch, volume_alpha_node
@@ -23,33 +22,6 @@ class VolumeObject(ChannelObject):
         links = mat.node_tree.links
         links.new(nodes["Add Shaders"].outputs[0], nodes["Material Output"].inputs["Volume"])
         return
-
-    def init_gn(self):
-        super().init_gn()
-        nodes = self.node_group.nodes
-        links = self.node_group.links
-
-        join_node = nodes.new("GeometryNodeGroup")
-        join_node.node_tree = join_grids_node_group(self.shader_count)
-        join_node.name = "Join"
-        join_node.location = (800, -100)
-        join_node.hide = True
-        join_node.inputs["Total channels"].default_value = self.shader_count
-
-        set_material = nodes.new('GeometryNodeSetMaterial')
-        set_material.name = "Set Material"
-        set_material.location = (1100, -100)
-
-        links.new(join_node.outputs[0], set_material.inputs['Geometry'])
-        links.new(set_material.outputs[0], nodes["Group Output"].inputs["Geometry"])
-        return
-
-    def ensure_channel_capacity(self):
-        super().ensure_channel_capacity()
-        join_node = self.node_group.nodes.get("Join")
-        if join_node is not None:
-            join_node.node_tree = join_grids_node_group(self.shader_count)
-            join_node.inputs["Total channels"].default_value = self.shader_count
 
     def add_ch_to_gn(self, ch):
         in_node = self.node_group.nodes.get('Group Input')
@@ -79,11 +51,7 @@ class VolumeObject(ChannelObject):
 
         masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
 
-        join_node.inputs["Total channels"].default_value = max(
-            join_node.inputs["Total channels"].default_value,
-            min(ch.data.ix + 1, self.shader_count),
-        )
-        links.new(masked_grid, join_node.inputs[str(min(ch.data.ix, self.shader_count - 1))])
+        self.add_channel_to_bundle(ch, masked_grid, "FLOAT")
         return
 
     def update_import_node(self, import_node, file_constructors, ch):
@@ -108,7 +76,7 @@ class VolumeObject(ChannelObject):
             channel_grid = nodes.new("GeometryNodeGetNamedGrid")
             channel_grid.name = "[visibility] Channel 0"
             channel_grid.data_type = "FLOAT"
-            channel_grid.inputs["Name"].default_value = "Channel 0"
+            channel_grid.inputs["Name"].default_value = nodes["Channel Bundle"].bundle_items[0].name
             channel_grid.location = (1300, -100)
 
             active_points = nodes.new("GeometryNodeGroup")
@@ -212,7 +180,7 @@ class VolumeObject(ChannelObject):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1600, y_offset)
         node_attr.name = f"[channel_load_{ch.identifier}]"
-        node_attr.attribute_name = f'Channel {ch.data.ix}'
+        node_attr.attribute_name = ch.name
         node_attr.label = ch.name
         node_attr.hide = True
 

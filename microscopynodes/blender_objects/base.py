@@ -1,6 +1,7 @@
 import bpy
 from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_modifier_input_socket, set_name_socket
 from ..handle_blender_structs.min_keys import min_keys
+from ..min_nodes.geo_nodes.combine_channels import join_microscopy_grids_and_meshes_node_group
 from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
 from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
 from ..ui.preferences import addon_preferences
@@ -140,6 +141,7 @@ class ChannelObject(MiNObject):
         if not self.ch_present(ch): 
             return
 
+        self.update_channel_bundle_name(ch)
         for ix, socket in enumerate(self.node_group.interface.items_tree):
             if isinstance(socket, bpy.types.NodeTreeInterfaceSocket) and ch.identifier in socket.default_attribute_name:
                 set_name_socket(socket, ch.name)
@@ -227,6 +229,7 @@ class ChannelObject(MiNObject):
     def init_gn(self):
         node_group = self.node_group
         nodes = node_group.nodes
+        links = node_group.links
 
         nodes.clear()
 
@@ -236,6 +239,23 @@ class ChannelObject(MiNObject):
         outputnode = nodes.new('NodeGroupOutput')
         outputnode.location = (1400, -100)
         outputnode.is_active_output = True
+
+        channel_bundle = nodes.new("NodeCombineBundle")
+        channel_bundle.name = "Channel Bundle"
+        channel_bundle.location = (650, -100)
+
+        join_node = nodes.new("GeometryNodeGroup")
+        join_node.node_tree = join_microscopy_grids_and_meshes_node_group()
+        join_node.name = "Join"
+        join_node.location = (850, -100)
+
+        set_material = nodes.new("GeometryNodeSetMaterial")
+        set_material.name = "Set Material"
+        set_material.location = (1100, -100)
+
+        links.new(channel_bundle.outputs["Bundle"], join_node.inputs["Channel Bundle"])
+        links.new(join_node.outputs["Geometry"], set_material.inputs["Geometry"])
+        links.new(set_material.outputs["Geometry"], outputnode.inputs["Geometry"])
         return
 
     def add_ch_to_gn(self, ch):
@@ -243,11 +263,37 @@ class ChannelObject(MiNObject):
 
     def next_channel_location(self, in_node, join_node):
         min_y_loc = in_node.location[1] + 300
-        skip_names = {in_node.name, "Group Output", join_node.name, "Set Material"}
+        skip_names = {
+            in_node.name,
+            "Group Output",
+            "Channel Bundle",
+            join_node.name,
+            "Set Material",
+        }
         for node in self.node_group.nodes:
             if node.name not in skip_names:
                 min_y_loc = min(min_y_loc, node.location[1])
         return in_node.location[0] + 400, min_y_loc - 300
+
+    def add_channel_to_bundle(self, ch, socket, data_type):
+        combine = self.node_group.nodes["Channel Bundle"]
+        item = combine.bundle_items.new(data_type, ch.name)
+        combine[f"channel_{ch.identifier}"] = item.name
+        bundle_input = combine.inputs[item.name]
+        self.node_group.links.new(socket, bundle_input)
+
+    def update_channel_bundle_name(self, ch):
+        combine = self.node_group.nodes["Channel Bundle"]
+        item_name = combine.get(f"channel_{ch.identifier}")
+        if item_name is None:
+            return
+        item = next(item for item in combine.bundle_items if item.name == item_name)
+        item.name = ch.name
+        combine[f"channel_{ch.identifier}"] = item.name
+
+        channel_attribute = self.node_group.nodes.get(f"[channel_load_{ch.identifier}]")
+        if channel_attribute is not None:
+            channel_attribute.attribute_name = ch.name
 
     def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
         nodes = self.node_group.nodes
@@ -295,35 +341,6 @@ class ChannelObject(MiNObject):
 
 class MeshChannelObject(ChannelObject):
     shader_y_step = 500
-
-    def store_channel_attribute(self, x, y, ch, geometry_socket):
-        store_channel = self.node_group.nodes.new("GeometryNodeStoreNamedAttribute")
-        store_channel.name = f"STORE_CHANNEL_{ch.identifier}"
-        store_channel.location = (x, y)
-        store_channel.data_type = 'INT'
-        store_channel.domain = 'FACE'
-        store_channel.inputs["Selection"].default_value = True
-        store_channel.inputs["Name"].default_value = "channel ix"
-        store_channel.inputs["Value"].default_value = ch.data.ix
-        self.node_group.links.new(geometry_socket, store_channel.inputs["Geometry"])
-        return store_channel.outputs["Geometry"]
-
-    def init_gn(self):
-        super().init_gn()
-        outputnode = self.node_group.nodes.get('Group Output')
-        links = self.node_group.links
-
-        join_node = self.node_group.nodes.new('GeometryNodeJoinGeometry')
-        join_node.name = "Join"
-        join_node.location = (800, -100)
-
-        set_material = self.node_group.nodes.new('GeometryNodeSetMaterial')
-        set_material.name = "Set Material"
-        set_material.location = (1100, -100)
-
-        links.new(join_node.outputs[0], set_material.inputs['Geometry'])
-        links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
-        return
 
     def init_shader(self, mat):
         super().init_shader(mat)
