@@ -9,6 +9,7 @@ from .nodeMaskMesh import mask_mesh_node_group
 from .nodeHolderBundleInputs import holder_bundle_inputs_node_group
 from .nodeScale import scale_node_group
 from .nodeScaleBox import scalebox_node_group
+from . import combine_channels
 from . import ops
 import bpy
 
@@ -26,6 +27,10 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        layout.menu(
+            "MIN_MT_COMBINE_CHANNELS_ADD",
+            text="Combine Channels",
+        )
         for node_name in ADD_MENU_NODE_GROUPS:
             operator = layout.operator(
                 "microscopynodes.add_geometry_node_group",
@@ -55,9 +60,12 @@ NODE_GROUPS = {
     "Scale bars": scale_node_group,
     "_grid_verts": grid_verts_node_group,
     "_scalebox": scalebox_node_group,
+    **combine_channels.NODE_GROUPS,
 }
 
-CLASSES = [MIN_MT_GEOMETRY_NODES_ADD] + ops.CLASSES
+CLASSES = [
+    MIN_MT_GEOMETRY_NODES_ADD,
+] + combine_channels.CLASSES + ops.CLASSES
 
 
 def geometry_node_group(name):
