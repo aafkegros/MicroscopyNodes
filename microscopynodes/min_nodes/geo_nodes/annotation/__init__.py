@@ -1,12 +1,18 @@
 import bpy
 
 from .nodeGridVerts import grid_verts_node_group
+from .nodeScaleBarDynamic import scale_bar_dynamic_node_group
+from .nodeScaleBarRigid import scale_bar_rigid_node_group
 from .nodeScale import scale_node_group
 from .nodeScaleBox import scalebox_node_group
+from .nodeTimeAnnotation import time_annotation_node_group
 
 
 NODE_GROUPS = {
+    "Scale Bar (dynamic)": scale_bar_dynamic_node_group,
+    "Scale Bar (Rigid)": scale_bar_rigid_node_group,
     "Scale Grid": scale_node_group,
+    "Time Annotation": time_annotation_node_group,
     "_grid_verts": grid_verts_node_group,
     "_scalebox": scalebox_node_group,
 }
@@ -14,6 +20,9 @@ NODE_GROUPS = {
 
 ADD_MENU_NODE_GROUPS = [
     "Scale Grid",
+    "Scale Bar (dynamic)",
+    "Scale Bar (Rigid)",
+    "Time Annotation",
 ]
 
 
