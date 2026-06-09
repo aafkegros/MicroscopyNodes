@@ -35,7 +35,8 @@ def _build_scale_bar_dynamic(tree):
     self_scale = g.ObjectInfo(
         object=g.SelfObject().o.self_object,
     ).o.scale
-    scale_x = g.SeparateXYZ(vector=self_scale).o.x
+    object_scale = g.SeparateXYZ(vector=self_scale)
+    scale_x = object_scale.o.x
     physical_width = holder_inputs.o.scene_output_scale * scale_x
     physical_exponent = g.Math(
         value=physical_width,
@@ -67,9 +68,9 @@ def _build_scale_bar_dynamic(tree):
     ).o.value
 
     rigid = ScaleBarRigid(
-        object=holder,
+        holder=holder,
         length=length,
-        size=1.0,
+        size=object_scale.o.y,
         decimals=1,
     )
     unit_switch = g.IndexSwitch.menu(index=unit_index)

@@ -17,14 +17,14 @@ class ScaleBarRigid(CustomGeometryGroup):
 
     def __init__(
         self,
-        object: InputObject = None,
+        holder: InputObject = None,
         unit: InputMenu = None,
         length: InputFloat = 0.0,
         size: InputFloat = 0.0,
         decimals: InputInteger = 0,
     ):
         super().__init__(
-            Object=object,
+            Holder=holder,
             Unit=unit,
             Length=length,
             Size=size,
@@ -75,7 +75,11 @@ def _build_scale_bar_rigid(tree):
         value_001=holder_inputs.o.scene_output_scale,
         operation="DIVIDE",
     ).o.value * length
-    bar_size = g.CombineXYZ(x=scene_length, y=size, z=0.0).o.vector
+    bar_thickness = size * 0.15
+    text_size = size * 0.65
+    text_offset = bar_thickness + size * 0.03 + text_size * 0.5
+
+    bar_size = g.CombineXYZ(x=scene_length, y=bar_thickness, z=0.0).o.vector
     bar_offset = g.VectorMath(
         vector=bar_size,
         vector_001=(2.0, 2.0, 1.0),
@@ -88,13 +92,12 @@ def _build_scale_bar_rigid(tree):
 
     value = g.ValueToString(value=length, decimals=decimals).o.string
     label = g.JoinStrings(strings=(value, unit_label), delimiter=" ").o.string
-    text_size = size * 10.0
     text = g.FillCurve(
         curve=g.StringToCurves(string=label, size=text_size).o.curve_instances,
     ).o.mesh
     text = g.SetPosition(
         geometry=text,
-        offset=g.CombineXYZ(y=text_size / 3.0).o.vector,
+        offset=g.CombineXYZ(y=text_offset).o.vector,
     ).o.geometry
 
     geometry = g.JoinGeometry(geometry=(bar, text)).o.geometry

@@ -1,5 +1,6 @@
 import bpy
 
+from .nodeAlignTextToActiveCamera import align_text_to_active_camera_node_group
 from .nodeGridVerts import grid_verts_node_group
 from .nodeScaleBarDynamic import scale_bar_dynamic_node_group
 from .nodeScaleBarRigid import scale_bar_rigid_node_group
@@ -9,6 +10,7 @@ from .nodeTimeAnnotation import time_annotation_node_group
 
 
 NODE_GROUPS = {
+    "Align Text To Active Camera": align_text_to_active_camera_node_group,
     "Scale Bar (dynamic)": scale_bar_dynamic_node_group,
     "Scale Bar (Rigid)": scale_bar_rigid_node_group,
     "Scale Grid": scale_node_group,
@@ -23,6 +25,7 @@ ADD_MENU_NODE_GROUPS = [
     "Scale Bar (dynamic)",
     "Scale Bar (Rigid)",
     "Time Annotation",
+    "Align Text To Active Camera",
 ]
 
 
