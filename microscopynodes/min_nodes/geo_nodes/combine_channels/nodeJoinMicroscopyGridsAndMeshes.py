@@ -21,6 +21,8 @@ class JoinMicroscopyGridsAndMeshes(CustomGeometryGroup):
 
 
 def _build_join_microscopy_grids_and_meshes(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     channel_bundle = tree.inputs.bundle("Channel Bundle")
@@ -106,7 +108,7 @@ def join_microscopy_grids_and_meshes_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_join_microscopy_grids_and_meshes(tree)
 
     return tree.tree

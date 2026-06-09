@@ -27,6 +27,8 @@ class IterateOverGrids(CustomGeometryGroup):
 
 
 def _build_iterate_over_grids(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     grid_bundle = tree.inputs.bundle("Grid Bundle")
@@ -94,7 +96,7 @@ def iterate_over_grids_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_iterate_over_grids(tree)
 
     return tree.tree

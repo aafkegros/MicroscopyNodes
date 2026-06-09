@@ -18,6 +18,8 @@ class AlignTextToActiveCamera(CustomGeometryGroup):
 
 
 def _build_align_text_to_active_camera(tree):
+    tree._arrange = "simple"
+
     geometry = tree.inputs.geometry("Geometry")
     output = tree.outputs.geometry("Geometry")
 
@@ -36,7 +38,7 @@ def align_text_to_active_camera_node_group():
     if node_group is not None:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_align_text_to_active_camera(tree)
 
     return tree.tree

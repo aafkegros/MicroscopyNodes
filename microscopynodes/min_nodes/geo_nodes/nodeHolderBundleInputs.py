@@ -29,6 +29,8 @@ class HolderBundleInputs(CustomGeometryGroup):
 
 
 def _build_holder_bundle_inputs(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     holder = tree.inputs.object("Holder")
@@ -63,7 +65,7 @@ def holder_bundle_inputs_node_group():
     if node_group is not None:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_holder_bundle_inputs(tree)
 
     return tree.tree

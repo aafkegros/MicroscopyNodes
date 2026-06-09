@@ -40,6 +40,8 @@ class MaskMesh(CustomGeometryGroup):
 
 
 def _build_mask_mesh(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     mesh = tree.inputs.geometry("Mesh")
@@ -106,7 +108,7 @@ def mask_mesh_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_mask_mesh(tree)
 
     return tree.tree

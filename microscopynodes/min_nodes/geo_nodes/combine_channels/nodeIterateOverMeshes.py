@@ -27,6 +27,8 @@ class IterateOverMeshes(CustomGeometryGroup):
 
 
 def _build_iterate_over_meshes(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     geometry_bundle = tree.inputs.bundle("Geometry Bundle")
@@ -92,7 +94,7 @@ def iterate_over_meshes_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_iterate_over_meshes(tree)
 
     return tree.tree

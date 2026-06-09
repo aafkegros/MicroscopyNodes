@@ -24,6 +24,8 @@ class ScaleBarDynamic(CustomGeometryGroup):
 
 
 def _build_scale_bar_dynamic(tree):
+    tree._arrange = "simple"
+
     holder = tree.inputs.object("Holder")
     mesh = tree.outputs.geometry("Mesh")
 
@@ -88,7 +90,7 @@ def scale_bar_dynamic_node_group():
     if node_group is not None:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_scale_bar_dynamic(tree)
 
     return tree.tree

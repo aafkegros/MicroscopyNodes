@@ -36,6 +36,8 @@ class ScaleBarRigid(CustomGeometryGroup):
 
 
 def _build_scale_bar_rigid(tree):
+    tree._arrange = "simple"
+
     holder = tree.inputs.object("Holder")
     unit = tree.inputs.menu("Unit", default_value="µm", optional_label=True)
     length = tree.inputs.float("Length", 1)
@@ -127,7 +129,7 @@ def scale_bar_rigid_node_group():
     if node_group is not None:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_scale_bar_rigid(tree)
 
     return tree.tree
