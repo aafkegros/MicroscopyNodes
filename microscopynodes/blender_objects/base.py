@@ -77,9 +77,7 @@ class ChannelObject(MiNObject):
         bpy.ops.object.modifier_add(type='NODES')
         obj.modifiers[-1].node_group = node_group
         obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
-        node_group.interface.new_socket(name="Frame", in_out="INPUT",socket_type='NodeSocketInt')
         node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
-        node_group.interface.items_tree[-1].default_attribute_name = "[frame]"
         self.init_gn()
         for dim in range(3):
             obj.lock_location[dim] = True
@@ -144,7 +142,7 @@ class ChannelObject(MiNObject):
         self.update_channel_bundle_name(ch)
         for ix, socket in enumerate(self.node_group.interface.items_tree):
             if isinstance(socket, bpy.types.NodeTreeInterfaceSocket) and ch.identifier in socket.default_attribute_name:
-                set_name_socket(socket, ch.name)
+                set_name_socket(socket, ch.name.replace("-", "_"))
         
         self.update_gn(ch)
         mat = self.add_material(ch)
@@ -289,14 +287,14 @@ class ChannelObject(MiNObject):
         if item_name is None:
             return
         item = next(item for item in combine.bundle_items if item.name == item_name)
-        item.name = ch.name
+        item.name = ch.name.replace("-", "_")
         combine[f"channel_{ch.identifier}"] = item.name
 
     def update_channel_shader_attribute(self, mat, ch):
         channel_attribute = mat.node_tree.nodes.get(f"[channel_load_{ch.identifier}]")
         if channel_attribute is not None:
-            channel_attribute.attribute_name = ch.name
-            channel_attribute.label = ch.name
+            channel_attribute.attribute_name = ch.name.replace("-", "_")
+            channel_attribute.label = ch.name.replace("-", "_")
 
     def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
         nodes = self.node_group.nodes
