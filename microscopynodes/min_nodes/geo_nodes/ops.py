@@ -28,6 +28,9 @@ class MIN_OT_Add_Geometry_Node_Group(Operator):
             if node is None:
                 raise RuntimeError("No active node created")
             node.node_tree = node_group
+            holder_input = node.inputs.get("Holder")
+            if holder_input is not None and context.scene.MiN_reload is not None:
+                holder_input.default_value = context.scene.MiN_reload
             if node_group.name == "Mask Grid":
                 node.width = node_group.default_group_node_width
             node.show_options = False

@@ -25,7 +25,7 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
         layout.menu(
             "MIN_MT_COMBINE_CHANNELS_ADD",
             text="Combine Channels",
-            icon="ADD",
+            icon="MOD_ARRAY",
         )
         layout.menu(
             "MIN_MT_MASKING_ADD",
