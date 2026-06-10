@@ -50,13 +50,11 @@ def _build_time_annotation(tree):
     )
     input_unit = tree.inputs.menu(
         "Input Unit",
-        default_value="frame",
-        optional_label=True,
+        default_value="frame"
     )
     output_unit = tree.inputs.menu(
         "Output Unit",
-        default_value="frame",
-        optional_label=True,
+        default_value="frame"
     )
     decimals = tree.inputs.integer("Decimals", default_value=0, min_value=0)
     size = tree.inputs.float("Size", default_value=1.0, min_value=0.0)
