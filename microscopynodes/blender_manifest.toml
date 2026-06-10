@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "microscopynodes"
-version = "3.0.1"
+version = "3.1.0"
 name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Aafke Gros <aafke.gros@embl.de>"
@@ -29,9 +29,9 @@ copyright =[
 wheels = [
 	"./wheels/aiobotocore-3.7.0-py3-none-any.whl",
 	"./wheels/aiohappyeyeballs-2.6.2-py3-none-any.whl",
-	"./wheels/aiohttp-3.13.5-cp313-cp313-macosx_11_0_arm64.whl",
-	"./wheels/aiohttp-3.13.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
-	"./wheels/aiohttp-3.13.5-cp313-cp313-win_amd64.whl",
+	"./wheels/aiohttp-3.14.1-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/aiohttp-3.14.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+	"./wheels/aiohttp-3.14.1-cp313-cp313-win_amd64.whl",
 	"./wheels/aioitertools-0.13.0-py3-none-any.whl",
 	"./wheels/aiosignal-1.4.0-py3-none-any.whl",
 	"./wheels/annotated_types-0.7.0-py3-none-any.whl",
@@ -50,17 +50,16 @@ wheels = [
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_arm64.whl",
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl",
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-win_amd64.whl",
-	"./wheels/idna-3.16-py3-none-any.whl",
+	"./wheels/idna-3.18-py3-none-any.whl",
 	"./wheels/imagecodecs-2025.3.30-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/imagecodecs-2025.3.30-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
 	"./wheels/imagecodecs-2025.3.30-cp313-cp313-win_amd64.whl",
-	"./wheels/importlib_metadata-8.7.0-py3-none-any.whl",
 	"./wheels/jmespath-1.1.0-py3-none-any.whl",
 	"./wheels/locket-1.0.0-py2.py3-none-any.whl",
 	"./wheels/multidict-6.7.1-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/multidict-6.7.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
 	"./wheels/multidict-6.7.1-cp313-cp313-win_amd64.whl",
-	"./wheels/nodebpy-0.17.0-py3-none-any.whl",
+	"./wheels/nodebpy-520.0.0-py3-none-any.whl",
 	"./wheels/numcodecs-0.16.5-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/numcodecs-0.16.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
 	"./wheels/numcodecs-0.16.5-cp313-cp313-win_amd64.whl",
@@ -84,14 +83,13 @@ wheels = [
 	"./wheels/typing_extensions-4.15.0-py3-none-any.whl",
 	"./wheels/typing_inspection-0.4.2-py3-none-any.whl",
 	"./wheels/urllib3-2.7.0-py3-none-any.whl",
-	"./wheels/wrapt-2.2.0-cp313-cp313-macosx_11_0_arm64.whl",
-	"./wheels/wrapt-2.2.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
-	"./wheels/wrapt-2.2.0-cp313-cp313-win_amd64.whl",
+	"./wheels/wrapt-2.2.1-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/wrapt-2.2.1-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+	"./wheels/wrapt-2.2.1-cp313-cp313-win_amd64.whl",
 	"./wheels/yarl-1.24.2-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/yarl-1.24.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
 	"./wheels/yarl-1.24.2-cp313-cp313-win_amd64.whl",
 	"./wheels/zarr-3.1.5-py3-none-any.whl",
-	"./wheels/zipp-4.1.0-py3-none-any.whl",
 	"./wheels/zmesh-1.9.0-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/zmesh-1.9.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
 	"./wheels/zmesh-1.9.0-cp313-cp313-win_amd64.whl",
