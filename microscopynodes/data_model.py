@@ -29,15 +29,15 @@ class ChannelDataModel(BaseModel):
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
     source_axes_order: str | None = None
     source_data: da.Array = Field(alias="data") # lazy link to source data
-    mask: np.ndarray | da.Array | None = None
+    mask: np.ndarray | da.Array | None = None # scalable 
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
     frame_end: int = None
 
-    source: str  #for logging
+    source: str  # URI of the data
     min_rescale_xyz: Tuple[float, float, float] = (1.0, 1.0, 1.0)
-    _data_cache: da.Array | None = PrivateAttr(default=None)
+    _data_cache: da.Array | None = PrivateAttr(default=None) # check if necessary?
 
     @field_validator("min_rescale_xyz")
     def validate_min_rescale_xyz(cls, v):
@@ -174,7 +174,7 @@ class ChannelVizModel(BaseModel):
     labelmask: bool = False
     emission: bool = True
     cmap: Colormap | None = None
-    surf_resolution: int = 0
+    surf_resolution: int = 0 # will be deprecated?
 
     @model_validator(mode="before")
     @classmethod
