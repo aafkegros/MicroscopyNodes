@@ -36,9 +36,10 @@ class LabelmaskIO(DataIO):
             if Path(fname).exists():
                 if ch.force_remaking_files:
                     Path(fname).unlink()
+                    fname_ids.unlink(missing_ok=True)
                 else:
                     continue
-            with open(str(fname_ids), "ab+") as ofs:
+            with open(str(fname_ids), "wb") as ofs:
                 ofs.write("oid\n".encode("utf-8"))
 
             timeframe_arr = take_index(ch.data.data, constructor["t"], "t", ch.data.axes_order).compute()
@@ -79,8 +80,8 @@ class LabelmaskIO(DataIO):
                 int(line)
                 for filepath in files
                 if filepath.exists()
-                for i, line in enumerate(open(filepath))
-                if i > 0
+                for line in open(filepath)
+                if line.strip() and line.strip() != "oid"
             ),
             default=0,
         )
