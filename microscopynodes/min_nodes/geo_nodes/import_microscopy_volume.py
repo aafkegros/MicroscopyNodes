@@ -152,20 +152,43 @@ def _build_import_microscopy_volume(tree):
         grid=output_grid.o.grid,
         transform=channel_affine_matrix,
     ).o.grid
-    transformed_volume = g.StoreNamedGrid.float(
+
+    fake_topology = g.CubeGridTopology(
+        bounds_min=(-1.0, -1.0, -1.0),
+        bounds_max=(1.0, 1.0, 1.0),
+        resolution_x=3,
+        resolution_y=3,
+        resolution_z=3,
+    ).o.topology
+    fake_grid = g.FieldToGrid.float(
+        topology=fake_topology,
+        items={"Grid": 0.0},
+    ).node.outputs["Grid"]
+    fake_transform = g.CombineMatrix(
+        column_1_row_1=1e-3,
+        column_2_row_2=1e-3,
+        column_3_row_3=1e-3,
+        column_4_row_1=1_000_000.0,
+        column_4_row_2=1_000_000.0,
+        column_4_row_3=1_000_000.0,
+    ).o.matrix
+    invalid_grid = g.SetGridTransform.float(
+        grid=fake_grid,
+        transform=fake_transform,
+    ).o.grid
+    selected_grid = g.Switch.float(
+        switch=include,
+        false=invalid_grid,
+        true=transformed_grid,
+    ).o.output
+    output_volume = g.StoreNamedGrid.float(
         volume=output_grid.o.volume,
         name=grid_name,
-        grid=transformed_grid,
+        grid=selected_grid,
     ).o.volume
 
-    g.Switch.geometry(
-        switch=include,
-        true=transformed_volume,
-    ).o.output >> volume_output
-    g.Switch.float(
-        switch=include,
-        true=transformed_grid,
-    ).o.output >> grid_output
+    output_volume >> volume_output
+    selected_grid >> grid_output
 
 
 def import_microscopy_volume_node_group():

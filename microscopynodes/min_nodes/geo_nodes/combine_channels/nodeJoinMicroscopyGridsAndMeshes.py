@@ -1,7 +1,7 @@
 import bpy
 from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
-from nodebpy.types import InputBundle
+from nodebpy.types import InputBoolean, InputBundle
 
 from .nodeIterateOverGrids import IterateOverGrids
 from .nodeIterateOverMeshes import IterateOverMeshes
@@ -13,8 +13,17 @@ GROUP_NAME = "Join Microscopy Grids and Meshes"
 class JoinMicroscopyGridsAndMeshes(CustomGeometryGroup):
     _name = GROUP_NAME
 
-    def __init__(self, channel_bundle: InputBundle = None):
-        super().__init__(**{"Channel Bundle": channel_bundle})
+    def __init__(
+        self,
+        channel_bundle: InputBundle = None,
+        join_invalid_grids: InputBoolean = True,
+    ):
+        super().__init__(
+            **{
+                "Channel Bundle": channel_bundle,
+                "Join Invalid Grids": join_invalid_grids,
+            }
+        )
 
     def _build_group(self, tree):
         _build_join_microscopy_grids_and_meshes(tree)
@@ -26,6 +35,15 @@ def _build_join_microscopy_grids_and_meshes(tree):
     tree.tree.show_modifier_manage_panel = True
 
     channel_bundle = tree.inputs.bundle("Channel Bundle")
+    join_invalid_grids = tree.inputs.boolean(
+        "Join Invalid Grids",
+        default_value=True,
+        description=(
+            "This includes removed grids in the output, which allows more "
+            "stable updating of Cycles. May cause an unlikely artefact, "
+            "so could be turned off, if so."
+        ),
+    )
     geometry = tree.outputs.geometry("Geometry")
 
     grid_closure = g.ClosureZone()
@@ -52,7 +70,9 @@ def _build_join_microscopy_grids_and_meshes(tree):
     stored_geometry >> grid_closure.output.i["Accumulated Geometry"]
     grid_closure.input.o["Accumulated Grid"] >> grid_closure.output.i["Accumulated Grid"]
 
-    iterate_grids = IterateOverGrids()
+    iterate_grids = IterateOverGrids(
+        iterate_invalid_grids=join_invalid_grids,
+    )
     tree.tree.links.new(
         channel_bundle.socket,
         iterate_grids.node.inputs["Grid Bundle"],
