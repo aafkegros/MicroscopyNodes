@@ -5,6 +5,7 @@ from . import annotation
 from . import combine_channels
 from . import masking
 from . import ops
+from . import project
 from . import utilities
 import bpy
 
@@ -36,6 +37,11 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
             icon="COLOR",
         )
         layout.menu(
+            "MIN_MT_PROJECT_ADD",
+            text="Project",
+            icon="GIZMO",
+        )
+        layout.menu(
             "MIN_MT_UTILITIES_ADD",
             text="Utilities",
             icon="TOOL_SETTINGS",
@@ -62,12 +68,13 @@ NODE_GROUPS = {
     **annotation.NODE_GROUPS,
     **combine_channels.NODE_GROUPS,
     **masking.NODE_GROUPS,
+    **project.NODE_GROUPS,
     **utilities.NODE_GROUPS,
 }
 
 CLASSES = [
     MIN_MT_GEOMETRY_NODES_ADD,
-] + annotation.CLASSES + combine_channels.CLASSES + masking.CLASSES + utilities.CLASSES + ops.CLASSES
+] + annotation.CLASSES + combine_channels.CLASSES + masking.CLASSES + project.CLASSES + utilities.CLASSES + ops.CLASSES
 
 
 def geometry_node_group(name):
