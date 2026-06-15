@@ -193,7 +193,7 @@ def holder_node_group():
     if node_group is not None:
         return node_group
 
-    with TreeBuilder.geometry(HOLDER_NODE_GROUP_NAME) as tree:
+    with TreeBuilder.geometry(HOLDER_NODE_GROUP_NAME, arrange="simple") as tree:
         _build_holder_bundle(tree)
 
     return tree.tree

@@ -1,7 +1,9 @@
 import bpy
 from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
-from nodebpy.types import InputFloat
+from nodebpy.types import InputBundle
+
+from .combine_channels.nodeMaxOfGrids import MaxOfGrids
 
 
 GROUP_NAME = "Active Grid Positions"
@@ -10,8 +12,8 @@ GROUP_NAME = "Active Grid Positions"
 class ActiveGridPositions(CustomGeometryGroup):
     _name = GROUP_NAME
 
-    def __init__(self, grid: InputFloat = 0.0):
-        super().__init__(Grid=grid)
+    def __init__(self, grid_bundle: InputBundle = None):
+        super().__init__(**{"Grid Bundle": grid_bundle})
 
     def _build_group(self, tree):
         _build_active_grid_positions(tree)
@@ -22,9 +24,10 @@ def _build_active_grid_positions(tree):
 
     tree.tree.show_modifier_manage_panel = True
 
-    grid = tree.inputs.float("Grid", hide_value=True, structure_type="GRID")
+    grid_bundle = tree.inputs.bundle("Grid Bundle")
     points_output = tree.outputs.geometry("Points")
 
+    grid = MaxOfGrids(grid_bundle=grid_bundle).o.grid
     points = g.GridToPoints.float(grid)
     indices = g.CombineXYZ(
         x=points.o.x,

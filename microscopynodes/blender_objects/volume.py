@@ -68,27 +68,17 @@ class VolumeObject(ChannelObject):
         output = nodes.get("Group Output")
         output_socket = output.inputs["Geometry"]
 
-        active_points = nodes.get("[visibility] Active Grid Positions")
-        channel_grid = nodes.get("[visibility] Channel 0")
-        if active_points is None:
-            original_socket = output_socket.links[0].from_socket
+        original_socket = output_socket.links[0].from_socket
+        active_points = nodes.new("GeometryNodeGroup")
+        active_points.name = "[visibility] Active Grid Positions"
+        active_points.node_tree = active_grid_positions_node_group()
+        active_points.location = (1300, -100)
 
-            channel_grid = nodes.new("GeometryNodeGetNamedGrid")
-            channel_grid.name = "[visibility] Channel 0"
-            channel_grid.data_type = "FLOAT"
-            channel_grid.inputs["Name"].default_value = nodes["Channel Bundle"].bundle_items[0].name
-            channel_grid.location = (1300, -100)
-
-            active_points = nodes.new("GeometryNodeGroup")
-            active_points.name = "[visibility] Active Grid Positions"
-            active_points.node_tree = active_grid_positions_node_group()
-            active_points.location = (1550, -100)
-
-            links.new(original_socket, channel_grid.inputs["Volume"])
-            links.new(channel_grid.outputs["Grid"], active_points.inputs["Grid"])
-            links.new(active_points.outputs["Points"], output_socket)
-        else:
-            original_socket = channel_grid.inputs["Volume"].links[0].from_socket
+        links.new(
+            nodes["Channel Bundle"].outputs["Bundle"],
+            active_points.inputs["Grid Bundle"],
+        )
+        links.new(active_points.outputs["Points"], output_socket)
 
         try:
             bpy.context.view_layer.update()
@@ -107,7 +97,6 @@ class VolumeObject(ChannelObject):
         finally:
             links.new(original_socket, output_socket)
             nodes.remove(active_points)
-            nodes.remove(channel_grid)
 
     def _read_vector_attribute(self, point_cloud, name):
         point_count = len(point_cloud.attributes["position"].data)

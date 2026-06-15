@@ -11,6 +11,11 @@ from .min_keys import min_keys
 from .units import register_import_scale_property, update_import_scale
 
 
+def update_load_with_mask(scene, context):
+    if scene.MiN_load_with_mask:
+        scene.MiN_update_settings = False
+
+
 def register_scene_props():
     bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 
@@ -117,8 +122,9 @@ def register_scene_props():
 
     bpy.types.Scene.MiN_load_with_mask = BoolProperty(
         name = "",
-        description = "Only reload 'visible' data - not masked by slice cube or other masking. Use this to select a region of bigger-than-RAM data.",
+        description = "Reload only volume voxels remaining after spatial masking, such as the slice cube. Useful for loading a selected region of datasets larger than RAM. Shader visibility is ignored; label masks and surfaces are not yet supported",
         default = False,
+        update = update_load_with_mask,
     )
 
     bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
