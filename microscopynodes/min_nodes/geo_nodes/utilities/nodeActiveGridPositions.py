@@ -3,7 +3,7 @@ from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
 from nodebpy.types import InputBundle
 
-from .combine_channels.nodeMaxOfGrids import MaxOfGrids
+from ..combine_channels.nodeMaxOfGrids import MaxOfGrids
 
 
 GROUP_NAME = "Active Grid Positions"

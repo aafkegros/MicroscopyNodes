@@ -4,8 +4,8 @@ import numpy as np
 from .base import ChannelObject
 from ..handle_blender_structs.node_handling import expand_node_ui, group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
-from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
-from ..min_nodes.geo_nodes.nodeActiveGridPositions import active_grid_positions_node_group
+from ..min_nodes.geo_nodes.utilities.import_microscopy_volume import import_microscopy_volume_node_group
+from ..min_nodes.geo_nodes.utilities.nodeActiveGridPositions import active_grid_positions_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch, volume_alpha_node
 

@@ -9,7 +9,7 @@ from nodebpy.types import (
     InputString,
 )
 
-from .nodeHolderBundleInputs import HolderBundleInputs
+from ..nodeHolderBundleInputs import HolderBundleInputs
 
 
 GROUP_NAME = "Import Microscopy Meshes"
