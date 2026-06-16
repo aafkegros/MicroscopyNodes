@@ -46,7 +46,7 @@ class ChannelObject(MiNObject):
 
     def set_holder(self, holder):
         for node in self.node_group.nodes:
-            if node.name.startswith("IMPORT_") and node.inputs.get("Holder") is not None:
+            if node.inputs.get("Holder") is not None:
                 node.inputs["Holder"].default_value = holder
 
     def set_channel_capacity(self, dataset_model):

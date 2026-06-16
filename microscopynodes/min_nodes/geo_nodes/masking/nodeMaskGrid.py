@@ -9,6 +9,7 @@ from nodebpy.types import (
     InputObject,
 )
 
+from ..nodeHolderBundleInputs import HolderBundleInputs
 from .nodeMaskBoxField import ClipFieldToBox
 
 
@@ -25,6 +26,7 @@ class MaskGrid(CustomGeometryGroup):
         object: InputObject = None,
         collection: InputCollection = None,
         mesh: InputGeometry = None,
+        holder: InputObject = None,
         mask_resolution: InputFloat = 0.3,
         mask: InputFloat = 0.0,
     ):
@@ -35,6 +37,7 @@ class MaskGrid(CustomGeometryGroup):
                 "Object": object,
                 "Collection": collection,
                 "Mesh": mesh,
+                "Holder": holder,
                 "Mask Resolution": mask_resolution,
                 "Mask": mask,
             }
@@ -58,6 +61,12 @@ def _build_mask_grid(tree):
     object = tree.inputs.object("Object")
     collection = tree.inputs.collection("Collection", optional_label=True)
     mesh = tree.inputs.geometry("Mesh")
+    holder = tree.inputs.object(
+        "Holder",
+        optional_label=True,
+        hide_value=True,
+        hide_in_modifier=True,
+    )
     mask_resolution = tree.inputs.float(
         "Mask Resolution",
         0.3,
@@ -95,12 +104,17 @@ def _build_mask_grid(tree):
     realized = g.RealizeInstances(
         mask_source.o.output,
     ).o.geometry
+    holder_inputs = HolderBundleInputs(holder=holder)
+    voxel_size = g.Math.divide(
+        value=mask_resolution,
+        value_001=holder_inputs.o.scene_world_scale_base,
+    ).o.value
 
     volume_grid = g.GetNamedGrid.float(
         volume=g.MeshToVolume(
             mesh=realized,
             resolution_mode="Size",
-            voxel_size=mask_resolution,
+            voxel_size=voxel_size,
             interior_band_width=0.0,
         ).o.volume,
         name="density",
