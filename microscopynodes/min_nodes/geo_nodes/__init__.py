@@ -4,9 +4,9 @@ from .annotation import grid_verts_node_group, scale_node_group, scalebox_node_g
 from . import annotation
 from . import combine_channels
 from . import masking
+from . import measure
 from . import ops
 from . import process
-from . import project
 from . import utilities
 import bpy
 
@@ -38,8 +38,8 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
             icon="COLOR",
         )
         layout.menu(
-            "MIN_MT_PROJECT_ADD",
-            text="Project",
+            "MIN_MT_MEASURE_ADD",
+            text="Measure",
             icon="GIZMO",
         )
         layout.menu(
@@ -74,14 +74,14 @@ NODE_GROUPS = {
     **annotation.NODE_GROUPS,
     **combine_channels.NODE_GROUPS,
     **masking.NODE_GROUPS,
+    **measure.NODE_GROUPS,
     **process.NODE_GROUPS,
-    **project.NODE_GROUPS,
     **utilities.NODE_GROUPS,
 }
 
 CLASSES = [
     MIN_MT_GEOMETRY_NODES_ADD,
-] + annotation.CLASSES + combine_channels.CLASSES + masking.CLASSES + process.CLASSES + project.CLASSES + utilities.CLASSES + ops.CLASSES
+] + annotation.CLASSES + combine_channels.CLASSES + masking.CLASSES + measure.CLASSES + process.CLASSES + utilities.CLASSES + ops.CLASSES
 
 
 def geometry_node_group(name):
