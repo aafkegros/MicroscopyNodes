@@ -35,13 +35,12 @@ def _build_mesh_regionprops(tree):
     )
     bbox_center = tree.outputs.vector("BBox Center", description="Bounding-box center")
     surface_area = tree.outputs.float("Area", description="Total surface area")
-    closed_volume = tree.outputs.float(
-        "Volume",
-        description="Closed-surface volume from oriented faces",
-    )
-    equivalent_diameter = tree.outputs.float(
-        "Equivalent Diameter",
-        description="Diameter of a sphere with the same volume",
+    inferred_volume = tree.outputs.float(
+        "Inferred Volume",
+        description=(
+            "Volume inferred from face normals; works well only for closed, "
+            "consistently oriented meshes"
+        ),
     )
     components = tree.outputs.vector(
         "Principal Components",
@@ -89,11 +88,11 @@ def _build_mesh_regionprops(tree):
     ).o.mean >> centroid
     bbox.o.min >> bbox_min
     bbox.o.max >> bbox_max
-    (bbox.o.max - bbox.o.min) >> bbox_extents
+    extents = bbox.o.max - bbox.o.min
+    extents >> bbox_extents
     ((bbox.o.min + bbox.o.max) * 0.5) >> bbox_center
     measured_area >> surface_area
-    measured_volume >> closed_volume
-    (measured_volume * (6.0 / 3.141592653589793)).power(1.0 / 3.0) >> equivalent_diameter
+    measured_volume >> inferred_volume
     pca.o.principal_components >> components
     pca.o.rotation >> rotation
     pca.o.longest_axis >> longest
