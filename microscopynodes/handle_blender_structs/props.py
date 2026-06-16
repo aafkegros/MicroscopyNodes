@@ -83,10 +83,9 @@ def register_scene_props():
             ("MICROMETER", "µm","Micrometer" ,"", 2),
             ("MILLIMETER", "mm","Millimeter" ,"", 3),
             ("METER", "m","Meter" ,"", 4),
-            ("AU", "a.u.","Arbitrary units, used to calculate an isotropic pixel size in Z." ,"", 5),
         ], 
         description= "Unit of pixel sizes",
-        default="AU",
+        default="MICROMETER",
     )
 
     bpy.types.Scene.MiN_ch_names = StringProperty( # | separated list of channel names from file

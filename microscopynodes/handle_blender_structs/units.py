@@ -4,9 +4,9 @@ UNIT_VALUES = {
     "MICROMETER": 1e-6,
     "MILLIMETER": 1e-3,
     "METER": 1.0,
-    "AU": 1.0,
 }
 
+DEFAULT_UNIT = "MICROMETER"
 AUTO_IMPORT_SCALE = "AUTO_SCALE"
 DEFAULT_IMPORT_SCALE = "MICROMETER_SCALE"
 AUTO_TARGET_EXTENT_METERS = 10
@@ -169,7 +169,7 @@ def unit_name(unit):
     for name, candidate in UNIT_VALUES.items():
         if candidate == value:
             return name
-    return "AU"
+    return DEFAULT_UNIT
 
 
 def parse_unit(unit):
@@ -183,4 +183,4 @@ def parse_unit(unit):
         return "MILLIMETER"
     if unit in ['m', 'meter', 'M', 'METER']:
         return "METER"
-    return "AU"
+    return DEFAULT_UNIT
