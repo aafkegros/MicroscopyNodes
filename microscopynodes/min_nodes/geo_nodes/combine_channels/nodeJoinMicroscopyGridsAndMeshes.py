@@ -16,7 +16,7 @@ class JoinMicroscopyGridsAndMeshes(CustomGeometryGroup):
     def __init__(
         self,
         channel_bundle: InputBundle = None,
-        join_invalid_grids: InputBoolean = True,
+        join_invalid_grids: InputBoolean = False,
     ):
         super().__init__(
             **{
@@ -37,7 +37,7 @@ def _build_join_microscopy_grids_and_meshes(tree):
     channel_bundle = tree.inputs.bundle("Channel Bundle")
     join_invalid_grids = tree.inputs.boolean(
         "Join Invalid Grids",
-        default_value=True,
+        default_value=False,
         description=(
             "This includes removed grids in the output, which allows more "
             "stable updating of Cycles. May cause an unlikely artefact, "
