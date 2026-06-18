@@ -1,11 +1,13 @@
 import bpy
 
+from .nodeExplodeInstances import explode_instances_node_group
 from .nodeMeshRegionprops import mesh_regionprops_node_group
 from .nodeProjectGridToMesh import project_grid_to_mesh_node_group
 from .nodeSampleGridOnMesh import sample_grid_on_mesh_node_group
 
 
 NODE_GROUPS = {
+    "Explode Instances": explode_instances_node_group,
     "Sample Grid on Mesh": sample_grid_on_mesh_node_group,
     "Project Grid to Mesh": project_grid_to_mesh_node_group,
     "Mesh Regionprops": mesh_regionprops_node_group,

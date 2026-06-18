@@ -8,18 +8,25 @@ from .nodeIterateOverMeshes import (
     IterateOverMeshes,
     iterate_over_meshes_node_group,
 )
+from .nodeIterateOverSubvolumes import (
+    IterateOverSubvolumes,
+    iterate_over_subvolumes_node_group,
+)
 from .nodeJoinMicroscopyGridsAndMeshes import (
     join_microscopy_grids_and_meshes_node_group,
 )
 from .nodeMaxOfGrids import max_of_grids_node_group
+from .nodeMergeSubvolumesToGrid import merge_subvolumes_to_grid_node_group
 from .nodeSumOfGrids import sum_of_grids_node_group
 
 
 NODE_GROUPS = {
     "Sum of Grids": sum_of_grids_node_group,
     "Max of Grids": max_of_grids_node_group,
+    "Merge Subvolumes to Grid": merge_subvolumes_to_grid_node_group,
     "Iterate Over Grids": iterate_over_grids_node_group,
     "Iterate Over Meshes": iterate_over_meshes_node_group,
+    "Iterate Over Subvolumes": iterate_over_subvolumes_node_group,
     "Join Microscopy Grids and Meshes": join_microscopy_grids_and_meshes_node_group,
 }
 

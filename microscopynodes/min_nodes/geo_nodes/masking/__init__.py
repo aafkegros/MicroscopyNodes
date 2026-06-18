@@ -2,11 +2,13 @@ import bpy
 
 from .nodeMaskGrid import mask_grid_node_group
 from .nodeMaskMesh import mask_mesh_node_group
+from .nodeSplitToSubvolumes import split_to_subvolumes_node_group
 
 
 NODE_GROUPS = {
     "Mask Grid": mask_grid_node_group,
     "Mask Mesh": mask_mesh_node_group,
+    "Split to Subvolumes": split_to_subvolumes_node_group,
 }
 
 
