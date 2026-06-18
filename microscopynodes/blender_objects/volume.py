@@ -172,20 +172,33 @@ class VolumeObject(ChannelObject):
         node_attr.attribute_name = ch.name
         node_attr.label = ch.name
 
-        ramp_node = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node.location = (-1200, y_offset)
-        ramp_node.width = 1000
-        ramp_node.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
-        ramp_node.color_ramp.elements[0].color = (1,1,1,0)
-        ramp_node.color_ramp.elements[1].color = (1,1,1,1)
-        ramp_node.color_ramp.elements[1].position = 1
-        ramp_node.name = f'[alpha_ramp_{ch.identifier}]'
-        ramp_node.label = "Pixel Intensities"
-        ramp_node.show_options = True
+        contrast_limits = nodes.new(type="ShaderNodeValToRGB")
+        contrast_limits.location = (-1200, y_offset + 40)
+        contrast_limits.width = 1000
+        contrast_limits.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
+        contrast_limits.color_ramp.elements[0].color = (1,1,1,0)
+        contrast_limits.color_ramp.elements[1].color = (1,1,1,1)
+        contrast_limits.color_ramp.elements[1].position = 1
+        contrast_limits.name = f'[contrast_limits_{ch.identifier}]'
+        contrast_limits.label = "Color contrast Limits"
+        contrast_limits.show_options = True
         if 'threshold_upper' in ch.metadata[self.min_type]:
-            ramp_node.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
-        ramp_node.outputs[0].hide = True
-        links.new(node_attr.outputs.get('Fac'), ramp_node.inputs.get("Fac"))  
+            contrast_limits.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
+        contrast_limits.outputs[0].hide = True
+        links.new(node_attr.outputs.get('Fac'), contrast_limits.inputs.get("Fac"))
+
+        alpha_limits = nodes.new(type="ShaderNodeValToRGB")
+        alpha_limits.location = (-1200, y_offset - 150)
+        alpha_limits.width = 1000
+        alpha_limits.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
+        alpha_limits.color_ramp.elements[0].color = (0,0,0,0)
+        alpha_limits.color_ramp.elements[1].color = (0,0,0,1)
+        alpha_limits.color_ramp.elements[1].position = 1
+        alpha_limits.name = f'[alpha_limits_{ch.identifier}]'
+        alpha_limits.label = "Alpha Limits"
+        alpha_limits.show_options = True
+        alpha_limits.outputs[0].hide = True
+        links.new(node_attr.outputs.get('Fac'), alpha_limits.inputs.get("Fac"))
 
         histnode = self.draw_histogram(nodes, (-1200, y_offset + 300), 1000, ch.metadata[self.min_type]['histogram'])
         histnode.name = f'[Histogram_{ch.identifier}]'
@@ -194,9 +207,8 @@ class VolumeObject(ChannelObject):
         alphanode.node_tree = volume_alpha_node()
         alphanode.name = f'[volume_alpha_{ch.identifier}]'
         alphanode.location = (-300, y_offset - 120)
-        alphanode.inputs.get("Alpha").default_value = 10
-        alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
-        links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
+        alphanode.inputs.get("Alpha Multiplier").default_value = 10
+        links.new(alpha_limits.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
         expand_node_ui(alphanode)
 
@@ -206,7 +218,7 @@ class VolumeObject(ChannelObject):
         color_lut.name = f"[color_lut_{ch.identifier}]"
         color_lut.show_options = True
         color_lut.outputs[1].hide = True
-        links.new(ramp_node.outputs[1], color_lut.inputs[0])
+        links.new(contrast_limits.outputs[1], color_lut.inputs[0])
 
         microscopy_shading = nodes.new("ShaderNodeGroup")
         microscopy_shading.node_tree = microscopy_shading_node()
@@ -219,7 +231,7 @@ class VolumeObject(ChannelObject):
         expand_node_ui(microscopy_shading)
 
         frame, _ = self.add_ch_to_shader(mat, ch, microscopy_shading.outputs["Shader"])
-        for node in (node_attr, ramp_node, histnode, alphanode, color_lut, microscopy_shading):
+        for node in (node_attr, contrast_limits, alpha_limits, histnode, alphanode, color_lut, microscopy_shading):
             node.parent = frame
 
         links.new(color_lut.outputs[0], microscopy_shading.inputs["Color"])
