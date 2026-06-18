@@ -19,10 +19,9 @@ def _set_holder_input(context, holder_input):
     parent_holder = _object_parent_holder(context)
     if parent_holder is not None:
         holder_input.default_value = parent_holder
-        holder_input.hide_value = True
+        holder_input.hide = True
         return
 
-    holder_input.hide_value = False
     if context.scene.MiN_reload is not None:
         holder_input.default_value = context.scene.MiN_reload
 

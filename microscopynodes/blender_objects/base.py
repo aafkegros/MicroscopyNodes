@@ -48,7 +48,7 @@ class ChannelObject(MiNObject):
         for node in self.node_group.nodes:
             if node.inputs.get("Holder") is not None:
                 node.inputs["Holder"].default_value = holder
-                node.inputs["Holder"].hide_value = True
+                node.inputs["Holder"].hide = True
 
     def set_channel_capacity(self, dataset_model):
         pref_buffer = int(getattr(addon_preferences(bpy.context), "extra_channel_slots", 2))
