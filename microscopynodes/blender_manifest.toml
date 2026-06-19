@@ -23,7 +23,7 @@ license = [
   "SPDX:GPL-3.0-or-later"
 ]
 copyright =[
-	"2023-2025 Aafke Gros",
+	"2023-2026 Aafke Gros",
 ]
 
 wheels = [
