@@ -11,6 +11,7 @@ class Scene():
     # This is essentially a placeholder for a more developed Scene Object that actually knows of its data
     def __init__(self, scene=None, overwrite_background_color=False, overwrite_render_settings=False):
         self.scene = scene or bpy.context.scene # TODO catch uninitialized scene
+        self.set_auto_scale_if_empty()
 
         if overwrite_background_color:
             set_background_color()
@@ -36,6 +37,14 @@ class Scene():
     def set_render_settings(self):
         set_render_settings()
         return
+
+    def set_auto_scale_if_empty(self):
+        from .handle_blender_structs.dependent_props import poll_holder
+        from .handle_blender_structs.units import AUTO_IMPORT_SCALE
+
+        has_holder = any(poll_holder(self.scene, obj) for obj in self.scene.objects)
+        if not has_holder:
+            self.scene.MiN_import_scale = AUTO_IMPORT_SCALE
 
     @property
     def import_scale(self):
@@ -127,8 +136,8 @@ class Dataset():
             if update_settings:
                 min_obj.set_settings(dataset_model)
 
-        self.ensure_links_of_objects(dataset_model)
         if update_settings:
+            self.ensure_links_of_objects(dataset_model)
             self.scene.update_dataset_scale(self, dataset_model)
         if self.holder is not None:
             bpy.context.scene.MiN_reload = self.holder.object
