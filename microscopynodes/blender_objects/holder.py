@@ -11,6 +11,8 @@ from ..handle_blender_structs.node_handling import set_modifier_input
 from ..handle_blender_structs.min_keys import min_keys
 
 HOLDER_NODE_GROUP_NAME = "Microscopy Nodes Holder"
+HOLDER_INTERNAL_NODE_GROUP_NAME = "Microscopy Nodes Holder Internal"
+HOLDER_NODE_GROUP_BUILDER = "single-internal-node"
 
 HOLDER_BUNDLE_ITEMS = (
     ("INT", "Frame"),
@@ -108,7 +110,7 @@ class Holder(MiNObject):
 
 
 class HolderBundle(CustomGeometryGroup):
-    _name = HOLDER_NODE_GROUP_NAME
+    _name = HOLDER_INTERNAL_NODE_GROUP_NAME
 
     def __init__(
         self,
@@ -141,9 +143,16 @@ class HolderBundle(CustomGeometryGroup):
 def _build_holder_bundle(tree):
     tree.tree.show_modifier_manage_panel = True
 
+    inputs = _new_holder_inputs(tree)
+    geometry = tree.outputs.geometry("Geometry")
+
+    _build_holder_bundle_from_inputs(tree, inputs, geometry)
+
+
+def _new_holder_inputs(tree):
     frame = tree.inputs.integer("Frame", 0)
 
-    inputs = {
+    return {
         "Geometry": tree.inputs.geometry("Geometry"),
         "Frame": frame,
         "Dataset BBox Min": tree.inputs.vector("Dataset BBox Min", hide_in_modifier=True),
@@ -153,7 +162,9 @@ def _build_holder_bundle(tree):
         "Scene Output Scale": tree.inputs.float("Scene Output Scale", default_value=1.0, hide_in_modifier=True),
         "Scene Import Transform": tree.inputs.vector("Scene Import Transform", hide_in_modifier=True),
     }
-    geometry = tree.outputs.geometry("Geometry")
+
+
+def _build_holder_bundle_from_inputs(tree, inputs, geometry):
 
     extents = g.VectorMath.subtract(
         vector=inputs["Dataset BBox Max"],
@@ -190,10 +201,47 @@ def _build_holder_bundle(tree):
 
 def holder_node_group():
     node_group = bpy.data.node_groups.get(HOLDER_NODE_GROUP_NAME)
+    if node_group is not None and node_group.get("builder") == HOLDER_NODE_GROUP_BUILDER:
+        return node_group
+    if node_group is not None:
+        bpy.data.node_groups.remove(node_group, do_unlink=True)
+
+    with TreeBuilder.geometry(HOLDER_NODE_GROUP_NAME, arrange="simple") as tree:
+        _build_holder_outer_group(tree)
+
+    tree.tree["builder"] = HOLDER_NODE_GROUP_BUILDER
+    return tree.tree
+
+
+def holder_internal_node_group():
+    node_group = bpy.data.node_groups.get(HOLDER_INTERNAL_NODE_GROUP_NAME)
     if node_group is not None:
         return node_group
 
-    with TreeBuilder.geometry(HOLDER_NODE_GROUP_NAME, arrange="simple") as tree:
+    with TreeBuilder.geometry(HOLDER_INTERNAL_NODE_GROUP_NAME, arrange="simple") as tree:
         _build_holder_bundle(tree)
 
     return tree.tree
+
+
+def _build_holder_outer_group(tree):
+    tree.tree.show_modifier_manage_panel = True
+
+    inputs = _new_holder_inputs(tree)
+    geometry = tree.outputs.geometry("Geometry")
+    group_input = tree._input_node()
+    group_output = tree._output_node()
+    group_input.hide = True
+    group_output.hide = True
+
+    holder_internal = tree.tree.nodes.new("GeometryNodeGroup")
+    holder_internal.name = "Holder"
+    holder_internal.label = "Holder"
+    holder_internal.node_tree = holder_internal_node_group()
+    holder_internal.location = (0, 0)
+    holder_internal.width = 220
+    holder_internal.hide = True
+
+    for name, input_socket in inputs.items():
+        tree.tree.links.new(input_socket.socket, holder_internal.inputs[name])
+    tree.tree.links.new(holder_internal.outputs["Geometry"], geometry.socket)
