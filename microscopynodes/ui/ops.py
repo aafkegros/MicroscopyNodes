@@ -2,7 +2,7 @@ import bpy
 from bpy.types import Operator
 import threading
 from ..data_model import DatasetModel
-from ..load import Scene, Dataset
+from ..blender_state import Scene, Dataset
 from ..parse_inputs import parse_blender_ui
 from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
 from ..handle_blender_structs.progress_handling import clear_progress

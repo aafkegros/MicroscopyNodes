@@ -26,7 +26,7 @@ def parse_blender_ui():
         channels=channels,
     )
     if scn.MiN_load_with_mask and scn.MiN_reload is not None:
-        from .load import Dataset
+        from .blender_state import Dataset
 
         infer_visibility_to_channel_data(
             Dataset(holder=scn.MiN_reload),
