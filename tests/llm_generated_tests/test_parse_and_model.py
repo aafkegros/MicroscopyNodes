@@ -79,32 +79,31 @@ def test_import_scale_selector_rescales_loaded_holder_and_axes():
 
     do_load()
     holder = bpy.context.scene.MiN_reload
-    axes = next(child for child in holder.children if "axes" in child.name.lower())
-    axes_modifier = next(mod for mod in axes.modifiers if "Microscopy Nodes" in mod.name)
-    input_scale_input = next(
+    holder_modifier = next(mod for mod in holder.modifiers if "Microscopy Nodes" in mod.name)
+    dataset_input_scale = next(
         item
-        for item in axes_modifier.node_group.interface.items_tree
+        for item in holder_modifier.node_group.interface.items_tree
         if item.item_type == "SOCKET"
         and item.in_out == "INPUT"
-        and item.name == "Input Scale"
+        and item.name == "Dataset Input Scale"
     )
-    output_scale_input = next(
+    scene_output_scale = next(
         item
-        for item in axes_modifier.node_group.interface.items_tree
+        for item in holder_modifier.node_group.interface.items_tree
         if item.item_type == "SOCKET"
         and item.in_out == "INPUT"
-        and item.name == "Output Scale"
+        and item.name == "Scene Output Scale"
     )
 
     assert tuple(holder.scale) == pytest.approx((1.0, 1.0, 1.0))
-    assert get_modifier_input_socket(axes_modifier, input_scale_input) == pytest.approx(1e-6)
-    assert get_modifier_input_socket(axes_modifier, output_scale_input) == pytest.approx(1e-6)
+    assert get_modifier_input_socket(holder_modifier, dataset_input_scale) == pytest.approx(1e-6)
+    assert get_modifier_input_socket(holder_modifier, scene_output_scale) == pytest.approx(1e-6)
 
     bpy.context.scene.MiN_import_scale = "MICROMETER_CENTIMETER_SCALE"
 
     assert tuple(holder.scale) == pytest.approx((0.01, 0.01, 0.01))
-    assert get_modifier_input_socket(axes_modifier, input_scale_input) == pytest.approx(1e-6)
-    assert get_modifier_input_socket(axes_modifier, output_scale_input) == pytest.approx(1e-4)
+    assert get_modifier_input_socket(holder_modifier, dataset_input_scale) == pytest.approx(1e-6)
+    assert get_modifier_input_socket(holder_modifier, scene_output_scale) == pytest.approx(1e-4)
 
 
 def test_dataset_bbox_and_center_properties():
