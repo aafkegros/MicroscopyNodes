@@ -6,7 +6,9 @@ from microscopynodes.file_to_array import *
 from microscopynodes.handle_blender_structs.min_keys import min_keys
 from microscopynodes.handle_blender_structs.node_handling import get_socket, set_modifier_input_socket
 import microscopynodes
+from microscopynodes.blender_state import Dataset, Scene
 from microscopynodes.ui.preferences import addon_preferences
+from microscopynodes.ui.gui_to_data_model import parse_blender_ui
 
 import numpy as np
 import pytest
@@ -87,9 +89,9 @@ def prep_load(arrtype=None):
     return
 
 def do_load():
-    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
-    microscopynodes.load.Scene.from_blender_ui()
-    dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    dataset_model = parse_blender_ui()
+    Scene.from_blender_ui()
+    dataset = Dataset(holder=bpy.context.scene.MiN_reload)
     dataset.set_state(
         dataset_model,
         update_data=bpy.context.scene.MiN_update_data,
@@ -101,7 +103,7 @@ def do_load():
 def check_channels(dataset_model, test_render=True):
     img1 = None
     holder = bpy.context.scene.MiN_reload
-    dataset = microscopynodes.load.Dataset(holder=holder)
+    dataset = Dataset(holder=holder)
     if test_render:
         img1 = quick_render('1')
         dataset.axes.object.hide_render = True

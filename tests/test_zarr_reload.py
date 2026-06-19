@@ -31,7 +31,7 @@ def test_reload(which_not_update):
     
     ch_dicts1 = do_load()
     objects1 = set([obj.name for obj in bpy.data.objects])
-    dataset1 = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    dataset1 = Dataset(holder=bpy.context.scene.MiN_reload)
     state1 = _reload_debug_state("first", ch_dicts1, dataset1, objects1)
 
     assert bpy.context.scene.MiN_reload is not None
@@ -46,7 +46,7 @@ def test_reload(which_not_update):
     bpy.context.scene.MiN_selected_array_option = str(len(bpy.context.scene.MiN_array_options) -2)
     ch_dicts2 = do_load()
     objects2 = set([obj.name for obj in bpy.data.objects])
-    dataset2 = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    dataset2 = Dataset(holder=bpy.context.scene.MiN_reload)
     state2 = _reload_debug_state("second", ch_dicts2, dataset2, objects2)
     
     if bpy.context.scene.MiN_update_data:

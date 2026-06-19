@@ -3,12 +3,12 @@ import numpy as np
 import tempfile
 from pathlib import Path
 
-from .handle_blender_structs.dependent_props import ensure_valid_reload_object
-from .file_to_array import selected_array_option, channel_data_model
-from .ui.preferences import addon_preferences
+from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
+from ..file_to_array import selected_array_option, channel_data_model
+from .preferences import addon_preferences
 
 from typing import List
-from .data_model import DatasetModel, ChannelModel
+from ..data_model import DatasetModel, ChannelModel
 
 def parse_blender_ui():
     scn = bpy.context.scene
@@ -26,7 +26,7 @@ def parse_blender_ui():
         channels=channels,
     )
     if scn.MiN_load_with_mask and scn.MiN_reload is not None:
-        from .blender_state import Dataset
+        from ..blender_state import Dataset
 
         infer_visibility_to_channel_data(
             Dataset(holder=scn.MiN_reload),

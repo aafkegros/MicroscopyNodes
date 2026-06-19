@@ -6,8 +6,10 @@ from cmap import Colormap
 
 import microscopynodes
 from databpy import named_attribute
+from microscopynodes.blender_state import Dataset, Scene
 from microscopynodes.data_model import ChannelModel, DatasetModel
 from microscopynodes.handle_blender_structs.node_handling import get_modifier_input_socket
+from microscopynodes.ui.gui_to_data_model import parse_blender_ui
 
 from ..utils import prep_load, do_load
 
@@ -49,8 +51,8 @@ def test_parse_physical_scale_mode_uses_physical_pixel_sizes():
     bpy.context.scene.MiN_z_size = 2.0
     _set_import_scale("MICROMETER_SCALE")
 
-    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
-    scene = microscopynodes.load.Scene()
+    dataset_model = parse_blender_ui()
+    scene = Scene()
 
     assert scene.output_scale == pytest.approx(1e-6)
     assert dataset_model.unit_label == "µm"
@@ -63,8 +65,8 @@ def test_parse_physical_scale_mode_uses_physical_unit_label():
     prep_load("5D_5cube")
     _set_import_scale("MICROMETER_SCALE")
 
-    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
-    scene = microscopynodes.load.Scene()
+    dataset_model = parse_blender_ui()
+    scene = Scene()
 
     assert scene.output_scale == pytest.approx(1e-6)
     assert dataset_model.unit_label == "µm"
@@ -125,7 +127,7 @@ def test_holder_owns_import_location_and_dataset_size():
     do_load()
 
     holder = bpy.context.scene.MiN_reload
-    holder_object = microscopynodes.load.Dataset(holder=holder).holder
+    holder_object = Dataset(holder=holder).holder
     dataset_size = holder_object.dataset_size
     dataset_extents = holder_object.dataset_extents
     scene_import_transform = named_attribute(holder, "scene import transform")[0]

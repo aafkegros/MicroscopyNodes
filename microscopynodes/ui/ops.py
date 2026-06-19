@@ -3,7 +3,7 @@ from bpy.types import Operator
 import threading
 from ..data_model import DatasetModel
 from ..blender_state import Scene, Dataset
-from ..parse_inputs import parse_blender_ui
+from .gui_to_data_model import parse_blender_ui
 from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
 from ..handle_blender_structs.progress_handling import clear_progress
 
@@ -89,8 +89,6 @@ class TifLoadOperator(bpy.types.Operator):
         self.prev_active_obj = bpy.context.active_object
         # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))
         
-        # self.params = parse_inputs.parse_initial()
-        # self.thread = threading.Thread(name='loading thread', target=load.load_threaded, args=(self.params,))
         wm.modal_handler_add(self)
         self.thread.start()
         return {'RUNNING_MODAL'}

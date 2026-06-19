@@ -2,6 +2,7 @@ import bpy
 import pytest
 
 import microscopynodes
+from microscopynodes.blender_state import Dataset
 from microscopynodes.handle_blender_structs.min_keys import min_keys
 from microscopynodes.handle_blender_structs.node_handling import get_socket, set_modifier_input_socket
 
@@ -24,7 +25,7 @@ SPARSE_LOADABLE = [
 
 
 def _dataset_from_reload():
-    return microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    return Dataset(holder=bpy.context.scene.MiN_reload)
 
 
 def _render_histogram_shift_for_channel(dataset, ch, min_type):

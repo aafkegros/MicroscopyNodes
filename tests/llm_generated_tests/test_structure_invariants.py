@@ -4,14 +4,16 @@ import bpy
 import numpy as np
 
 import microscopynodes
+from microscopynodes.blender_state import Dataset, Scene
 from microscopynodes.handle_blender_structs.min_keys import min_keys
 from microscopynodes.handle_blender_structs.node_handling import get_modifier_input_socket, get_socket
+from microscopynodes.ui.gui_to_data_model import parse_blender_ui
 
 from ..utils import prep_load, do_load
 
 
 def _dataset_from_reload():
-    return microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    return Dataset(holder=bpy.context.scene.MiN_reload)
 
 
 def _set_slice_cube_to_normalized_bounds(dataset_model, dataset, bounds_min, bounds_max):
@@ -47,13 +49,13 @@ def _load_single_surface_with_affine_translation(translation):
         ch.surface = (ch.ix == 0)
         ch.labelmask = False
 
-    dataset_model = microscopynodes.parse_inputs.parse_blender_ui()
+    dataset_model = parse_blender_ui()
     affine = np.array(dataset_model.channels[0].data.affine, dtype=float)
     affine[:3, 3] = np.array(translation, dtype=float)
     dataset_model.channels[0].data.affine = affine.tolist()
 
-    microscopynodes.load.Scene.from_blender_ui()
-    dataset = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    Scene.from_blender_ui()
+    dataset = Dataset(holder=bpy.context.scene.MiN_reload)
     dataset.set_state(
         dataset_model,
         update_data=bpy.context.scene.MiN_update_data,
@@ -128,7 +130,7 @@ def test_surface_reload_does_not_reconnect_removed_shader_link():
     mat.node_tree.links.remove(output_input.links[0])
     assert len(output_input.links) == 0
 
-    reloaded = microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    reloaded = Dataset(holder=bpy.context.scene.MiN_reload)
     reloaded.set_state(
         dataset_model,
         update_data=bpy.context.scene.MiN_update_data,
@@ -190,7 +192,7 @@ def test_parse_clears_reload_when_holder_no_longer_passes_poll():
     bpy.context.scene.MiN_update_data = False
     bpy.context.scene.MiN_update_settings = False
 
-    microscopynodes.parse_inputs.parse_blender_ui()
+    parse_blender_ui()
 
     assert bpy.context.scene.MiN_reload is None
     assert bpy.context.scene.MiN_update_data is True
@@ -214,7 +216,7 @@ def test_parse_clears_reload_when_holder_is_unlinked_from_scene():
     bpy.context.scene.MiN_update_data = False
     bpy.context.scene.MiN_update_settings = False
 
-    microscopynodes.parse_inputs.parse_blender_ui()
+    parse_blender_ui()
 
     assert bpy.context.scene.MiN_reload is None
     assert bpy.context.scene.MiN_update_data is True
