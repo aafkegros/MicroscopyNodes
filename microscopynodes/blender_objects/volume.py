@@ -185,6 +185,7 @@ class VolumeObject(ChannelObject):
         if 'threshold_upper' in ch.metadata[self.min_type]:
             contrast_limits.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
         contrast_limits.outputs[0].hide = True
+        expand_node_ui(contrast_limits)
         links.new(node_attr.outputs.get('Fac'), contrast_limits.inputs.get("Fac"))
 
         alpha_limits = nodes.new(type="ShaderNodeValToRGB")

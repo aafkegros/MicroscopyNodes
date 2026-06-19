@@ -189,25 +189,33 @@ def set_render_settings():
                 setattr(eevee, attr, value)
 
     scn.view_settings.view_transform = 'Standard'
-
+    scn.cycles.volume_biased = True
     scn.cycles.transparent_max_bounces = 40
     scn.cycles.use_denoising = False
 
-    set_viewport_scene_world()
+    set_workspace_viewport_scene_world()
     return
 
 
-def set_viewport_scene_world():
-    screen = getattr(bpy.context, "screen", None)
-    if screen is None:
-        return
-    for area in screen.areas:
-        if area.type != 'VIEW_3D':
-            continue
-        for space in area.spaces:
-            if space.type != 'VIEW_3D':
+def set_workspace_viewport_scene_world(workspace_name="Shading"):
+    ws = bpy.data.workspaces.get(workspace_name)
+    if ws is None:
+        raise RuntimeError(f"No workspace named {workspace_name!r}")
+
+    for screen in ws.screens:
+        for area in screen.areas:
+            if area.type != "VIEW_3D":
                 continue
-            shading = space.shading
-            for attr in ("use_scene_world", "use_scene_world_render"):
-                if hasattr(shading, attr):
-                    setattr(shading, attr, True)
+
+            for space in area.spaces:
+                if space.type != "VIEW_3D":
+                    continue
+
+                space.shading.type = "RENDERED"
+                space.shading.use_scene_world_render = True
+                space.shading.use_scene_lights_render = True
+
+                space.shading.use_scene_world = True
+                space.shading.use_scene_lights = True
+
+            area.tag_redraw()
