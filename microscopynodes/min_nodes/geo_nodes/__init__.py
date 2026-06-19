@@ -39,7 +39,7 @@ class MIN_MT_GEOMETRY_NODES_ADD(bpy.types.Menu):
         )
         layout.menu(
             "MIN_MT_MEASURE_ADD",
-            text="Measure",
+            text="Measure / Project",
             icon="GIZMO",
         )
         layout.menu(
