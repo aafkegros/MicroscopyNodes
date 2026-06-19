@@ -114,7 +114,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
                 n_default_channels=8,
                 extra_channel_slots=2,
                 cache_option="TEMPORARY",
-                cache_path=str(Path("~", ".microscopynodes").expanduser()),
+                cache_path=str(Path("~", "microscopynodes_cache").expanduser()),
                 channels=[default_channel(ix) for ix in range(8)],
             )
         return DEFAULT_PREFERENCES
