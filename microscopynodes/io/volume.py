@@ -11,6 +11,7 @@ from ..handle_blender_structs.min_keys import min_keys
 
 
 NR_HIST_BINS = 2**16
+MIN_MASKED_CHUNK_SIZE_XYZ = (256, 256, 128)
 
 
 def get_leading_trailing_zero_float(arr):
@@ -145,17 +146,26 @@ class VolumeIO(DataIO):
         if not np.any(mask):
             return
 
-        data = ch.data.data
+        data = self.rechunk_masked_data(ch.data.data, ch.data.axes_order)
         data_shape = self.data_shape_xyz(ch)
         mask_shape = np.array(mask.shape, dtype=int)
+        active_bounds = self.mask_data_bounds(mask, data_shape)
         spatial_slices = {
-            dim: self.chunks_to_slices(data.chunks[ch.data.axes_order.index(dim)])
-            for dim in "xyz"
+            dim: self.slices_overlapping_bounds(
+                self.chunks_to_slices(data.chunks[ch.data.axes_order.index(dim)]),
+                active_bounds[dim_ix],
+            )
+            for dim_ix, dim in enumerate("xyz")
             if dim in ch.data.axes_order
         }
-
-        for region_slices in itertools.product(*spatial_slices.values()):
-            slices_by_dim = dict(zip(spatial_slices, region_slices))
+        missing_spatial_slices = {
+            dim: [slice(0, 1)]
+            for dim in "xyz"
+            if dim not in spatial_slices
+        }
+        spatial_slices = {**spatial_slices, **missing_spatial_slices}
+        for region_slices in itertools.product(*(spatial_slices[dim] for dim in "xyz")):
+            slices_by_dim = dict(zip("xyz", region_slices))
             xyz_start = np.array([
                 slices_by_dim[dim].start if dim in slices_by_dim else 0
                 for dim in "xyz"
@@ -164,7 +174,7 @@ class VolumeIO(DataIO):
                 slices_by_dim[dim].stop if dim in slices_by_dim else 1
                 for dim in "xyz"
             ], dtype=int)
-            mask_indices = [
+            mask_axis_indices = [
                 np.minimum(
                     np.floor(np.arange(start, stop) * mask_length / data_length).astype(int),
                     mask_length - 1,
@@ -172,7 +182,7 @@ class VolumeIO(DataIO):
                 for start, stop, mask_length, data_length
                 in zip(xyz_start, xyz_stop, mask_shape, data_shape)
             ]
-            mask_region = mask[np.ix_(*mask_indices)]
+            mask_region = mask[np.ix_(*mask_axis_indices)]
             if not np.any(mask_region):
                 continue
 
@@ -183,6 +193,43 @@ class VolumeIO(DataIO):
                 for dim in ch.data.axes_order
             )
             yield xyz_start, data[data_slices], mask_region
+
+    def rechunk_masked_data(self, data, axes_order):
+        if not hasattr(data, "rechunk") or not hasattr(data, "chunks"):
+            return data
+
+        rechunk = {}
+        for dim, target in zip("xyz", MIN_MASKED_CHUNK_SIZE_XYZ):
+            if dim not in axes_order:
+                continue
+            axis = axes_order.index(dim)
+            chunks = data.chunks[axis]
+            if max(chunks) < target:
+                rechunk[axis] = min(target, data.shape[axis])
+
+        if not rechunk:
+            return data
+
+        return data.rechunk(rechunk)
+
+    def mask_data_bounds(self, mask, data_shape):
+        active = np.argwhere(mask)
+        mask_start = active.min(axis=0)
+        mask_stop = active.max(axis=0) + 1
+        mask_shape = np.array(mask.shape, dtype=int)
+        data_start = np.floor(mask_start * data_shape / mask_shape).astype(int)
+        data_stop = np.ceil(mask_stop * data_shape / mask_shape).astype(int)
+        data_start = np.clip(data_start, 0, data_shape)
+        data_stop = np.clip(data_stop, data_start + 1, data_shape)
+        return tuple(slice(int(start), int(stop)) for start, stop in zip(data_start, data_stop))
+
+    def slices_overlapping_bounds(self, slices, bounds):
+        overlapping = [
+            region
+            for region in slices
+            if region.stop > bounds.start and region.start < bounds.stop
+        ]
+        return overlapping
 
     def data_shape_xyz(self, ch):
         return np.array([

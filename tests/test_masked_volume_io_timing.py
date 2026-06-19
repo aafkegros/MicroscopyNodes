@@ -26,23 +26,22 @@ def _procedural_data(shape, chunks):
     return empty.map_blocks(block_values, dtype=np.float32)
 
 
-def _mask_centers_from_box(mask_shape, box_offset, box_shape):
-    slices = [
-        np.arange(offset, min(offset + size, axis_size), dtype=np.float64)
+def _mask_from_box(mask_shape, box_offset, box_shape):
+    mask = np.zeros(mask_shape, dtype=bool)
+    box_slices = tuple(
+        slice(offset, min(offset + size, axis_size))
         for offset, size, axis_size in zip(box_offset, box_shape, mask_shape)
-    ]
-    grids = np.meshgrid(*slices, indexing="ij")
-    centers = np.stack([grid.ravel() for grid in grids], axis=1)
-    return (centers + 0.5) / np.array(mask_shape)
+    )
+    mask[box_slices] = True
+    return mask
 
 
-def _channel(data, mask, mask_voxel_size):
+def _channel(data, mask):
     return SimpleNamespace(
         data=SimpleNamespace(
             axes_order="xyz",
             data=data,
-            mask_indices=mask,
-            mask_voxel_size=mask_voxel_size,
+            mask=mask,
         )
     )
 
@@ -52,17 +51,21 @@ def _gib(shape, dtype=np.float32):
 
 
 def _region_voxel_count(io, ch):
-    return sum(
-        int(np.prod(xyz_stop - xyz_start))
-        for xyz_start, xyz_stop in io.mask_center_regions(
-            ch.data.mask_indices,
-            io.data_shape_xyz(ch),
-            np.maximum(
-                np.ceil(np.array(ch.data.mask_voxel_size, dtype=float) * io.data_shape_xyz(ch)).astype(int),
-                1,
-            ),
-        )
-    )
+    data_shape = io.data_shape_xyz(ch)
+    mask = np.asarray(ch.data.mask, dtype=bool)
+    active = np.argwhere(mask)
+    if len(active) == 0:
+        return 0
+
+    axis_counts = []
+    for axis in range(3):
+        mask_shape = mask.shape[axis]
+        data_length = data_shape[axis]
+        starts = np.floor(np.arange(mask_shape) * data_length / mask_shape).astype(int)
+        stops = np.floor(np.arange(1, mask_shape + 1) * data_length / mask_shape).astype(int)
+        axis_counts.append(stops - starts)
+
+    return int(sum(np.prod([axis_counts[axis][index] for axis, index in enumerate(mask_index)]) for mask_index in active))
 
 
 @pytest.mark.parametrize(
@@ -83,9 +86,8 @@ def test_masked_volume_writer_timing_for_sizes_and_offsets(
     box_shape,
 ):
     data = _procedural_data(data_shape, data_chunks)
-    mask = _mask_centers_from_box(mask_shape, box_offset, box_shape)
-    mask_voxel_size = tuple(1 / np.array(mask_shape))
-    ch = _channel(data, mask, mask_voxel_size)
+    mask = _mask_from_box(mask_shape, box_offset, box_shape)
+    ch = _channel(data, mask)
     constructor = {"t": 0}
     vdb_path = Path(tmp_path) / (
         f"masked_{'x'.join(map(str, data_shape))}_"
@@ -97,7 +99,7 @@ def test_masked_volume_writer_timing_for_sizes_and_offsets(
     histogram_values = io.make_masked_vdb(vdb_path, ch, constructor, scale=1.0)
     elapsed = perf_counter() - started
 
-    active_mask_voxels = len(mask)
+    active_mask_voxels = int(np.count_nonzero(mask))
     data_per_mask_voxel = int(np.prod(np.array(data_shape) // np.array(mask_shape)))
     expected_max_values = active_mask_voxels * data_per_mask_voxel
     region_voxels = _region_voxel_count(io, ch)
@@ -139,9 +141,8 @@ def test_masked_volume_writer_timing_millions_of_values(
     box_shape,
 ):
     data = _procedural_data(data_shape, data_chunks)
-    mask = _mask_centers_from_box(mask_shape, box_offset, box_shape)
-    mask_voxel_size = tuple(1 / np.array(mask_shape))
-    ch = _channel(data, mask, mask_voxel_size)
+    mask = _mask_from_box(mask_shape, box_offset, box_shape)
+    ch = _channel(data, mask)
     constructor = {"t": 0}
     vdb_path = Path(tmp_path) / (
         f"masked_million_{'x'.join(map(str, data_shape))}_"
@@ -153,7 +154,7 @@ def test_masked_volume_writer_timing_millions_of_values(
     histogram_values = io.make_masked_vdb(vdb_path, ch, constructor, scale=1.0)
     elapsed = perf_counter() - started
 
-    active_mask_voxels = len(mask)
+    active_mask_voxels = int(np.count_nonzero(mask))
     data_per_mask_voxel = int(np.prod(np.array(data_shape) // np.array(mask_shape)))
     expected_max_values = active_mask_voxels * data_per_mask_voxel
     region_voxels = _region_voxel_count(io, ch)
@@ -198,9 +199,8 @@ def test_masked_volume_writer_timing_logical_10gib_data(
     box_shape,
 ):
     data = _procedural_data(data_shape, data_chunks)
-    mask = _mask_centers_from_box(mask_shape, box_offset, box_shape)
-    mask_voxel_size = tuple(1 / np.array(mask_shape))
-    ch = _channel(data, mask, mask_voxel_size)
+    mask = _mask_from_box(mask_shape, box_offset, box_shape)
+    ch = _channel(data, mask)
     constructor = {"t": 0}
     vdb_path = Path(tmp_path) / (
         f"masked_10gib_{'x'.join(map(str, data_shape))}_"
@@ -212,7 +212,7 @@ def test_masked_volume_writer_timing_logical_10gib_data(
     histogram_values = io.make_masked_vdb(vdb_path, ch, constructor, scale=1.0)
     elapsed = perf_counter() - started
 
-    active_mask_voxels = len(mask)
+    active_mask_voxels = int(np.count_nonzero(mask))
     data_per_mask_voxel = int(np.prod(np.array(data_shape) // np.array(mask_shape)))
     expected_max_values = active_mask_voxels * data_per_mask_voxel
     region_voxels = _region_voxel_count(io, ch)
