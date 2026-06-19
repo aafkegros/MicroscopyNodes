@@ -21,6 +21,11 @@ def colormap_to_lut(colormap, max_values=32):
 
 def get_colormap(name, single_color=(1, 1, 1)):
     name = name.lower()
+    if name.startswith("black_to_single_color:"):
+        return Colormap([
+            (0.001, 0.001, 0.001, 1.0),
+            Color(name.split(":", 1)[1]),
+        ])
     if name.startswith("single_color:"):
         return Colormap([Color(name.split(":", 1)[1])])
     if name == "single_color":
@@ -68,6 +73,11 @@ def set_color_ramp(ramp_node, lut, linear, name):
             elem.color = gamma_to_linear_rgba(color)
 
     ramp_node.color_ramp.interpolation = "LINEAR" if linear else "CONSTANT"
-    label = name.split(":", 1)[1] if name.startswith("single_color:") else name
+    if name.startswith("black_to_single_color:"):
+        label = f"Black to {name.split(':', 1)[1]}"
+    elif name.startswith("single_color:"):
+        label = name.split(":", 1)[1]
+    else:
+        label = name
     ramp_node.label = label.capitalize()
     return

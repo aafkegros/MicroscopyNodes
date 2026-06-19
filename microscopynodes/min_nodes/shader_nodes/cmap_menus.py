@@ -44,20 +44,23 @@ def cmap_submenu_class(op, opname, category, namespace=None):
     )
     return menu_class
 
-def single_color_submenu_class(op, opname):
+def single_color_submenu_class(op, opname, black_to_color=False):
     def draw(self, context):
         for color_name in color_names():
-            op_ = self.layout.operator(op, text=color_name)
-            op_.cmap_name = f"single_color:{color_name}"
+            label = f"Black to {color_name}" if self.black_to_color else color_name
+            prefix = "black_to_single_color" if self.black_to_color else "single_color"
+            op_ = self.layout.operator(op, text=label)
+            op_.cmap_name = f"{prefix}:{color_name}"
 
     cls_elements = {
-            'bl_idname': single_color_bl(opname)[0],
-            'bl_label': single_color_bl(opname)[1],
+            'bl_idname': single_color_bl(opname, black_to_color)[0],
+            'bl_label': single_color_bl(opname, black_to_color)[1],
+            'black_to_color': black_to_color,
             'draw' : draw
         }
 
     menu_class = type(
-        single_color_bl(opname)[0],
+        single_color_bl(opname, black_to_color)[0],
         (bpy.types.Menu,),
         cls_elements
     )
@@ -76,7 +79,9 @@ def cmap_bl(category, namespace=None, name=None, opname=None):
         return f"MIN_MT_{category.upper()}_{namespace.upper()}_{opname.upper()}", namespace
     return f"MIN_MT_{category.upper()}_{opname.upper()}", category
 
-def single_color_bl(opname=None):
+def single_color_bl(opname=None, black_to_color=False):
+    if black_to_color:
+        return f"MIN_MT_BLACK_TO_SINGLE_COLOR_{opname.upper()}", "Black to Single Color"
     return f"MIN_MT_SINGLE_COLOR_{opname.upper()}", "Single Color"
 
 def cmap_catalog():
@@ -88,6 +93,7 @@ def draw_category_menus(self, context, op, opname):
     for category in CMAP_CATEGORIES:
         self.layout.menu(cmap_bl(category, opname=opname)[0], text=cmap_bl(category,opname=opname)[1].capitalize(), icon=CMAP_CATEGORIES[category])
     self.layout.menu(single_color_bl(opname)[0], text=single_color_bl(opname)[1], icon="MESH_PLANE")
+    self.layout.menu(single_color_bl(opname, black_to_color=True)[0], text=single_color_bl(opname, black_to_color=True)[1], icon="RESTRICT_COLOR_OFF")
     if opname == "ADD":
         self.layout.operator(
             "microscopynodes.add_pixel_intensities_lut",
@@ -99,6 +105,7 @@ def draw_category_menus(self, context, op, opname):
 CLASSES = []
 for op, opname in [('microscopynodes.add_lut', "ADD"), ('microscopynodes.replace_lut', 'REPLACE')]:
     CLASSES.append(single_color_submenu_class(op, opname))
+    CLASSES.append(single_color_submenu_class(op, opname, black_to_color=True))
     CLASSES = CLASSES + [cmap_submenu_class(op, opname, category) for category in CMAP_CATEGORIES]
     for category in CMAP_CATEGORIES:
         CLASSES.extend([cmap_submenu_class(op, opname, category, namespace) for namespace in cmap_namespaces(categories=category)])
