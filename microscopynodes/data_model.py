@@ -6,6 +6,16 @@ from .handle_blender_structs.min_keys import min_keys
 from .handle_blender_structs.units import output_scale_for_import_scale, unit_label_from_value, unit_value
 import dask.array as da
 
+#######
+#
+# the data model is an intermediate shape that can easily be generated from code, back and forth the input GUI and into local cache files
+# This can be handed to the blender_state managers to impact only the state of the tracked variables
+# The rest of blender state is left to Blender itself to manage, as i do not want to mirror the entirety of Blender state
+#
+#######
+
+
+
 # subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
 INIT_COLORS = [
     Color("#008AE4"),
