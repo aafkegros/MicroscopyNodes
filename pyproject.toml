@@ -13,8 +13,8 @@ priority = "explicit"
 
 
 [tool.poetry.dependencies]
-python = "==3.13.9"
-bpy = { url = "https://github.com/BradyAJohnston/dailybpy/releases/download/daily-2026-06-05/bpy-5.2.0b0-cp313-cp313-macosx_11_0_arm64.whl" }
+python = "==3.13.13"
+bpy = { url = "https://github.com/BradyAJohnston/dailybpy/releases/download/daily-2026-06-24/bpy-5.2.0b0+202606241158-cp313-cp313-macosx_11_0_arm64.whl" }
 # bpy = { version = "==5.2.0b0", source = "dailybpy" , allow-prereleases = true }
 # bpy = "==5.1.0"
 dask = "==2026.1.2"
@@ -35,6 +35,7 @@ pytest-cov = "*"
 pytest-snapshot = "*"
 imageio = "*"
 mike = "*"
+tomlkit = "*"
 
 [build-system]
 requires = ["poetry-core>=1.1.0"]
