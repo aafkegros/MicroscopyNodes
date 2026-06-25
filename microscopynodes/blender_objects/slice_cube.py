@@ -6,6 +6,7 @@ from ..handle_blender_structs.min_keys import min_keys
 from ..handle_blender_structs.node_handling import (
     expand_node_ui,
 )
+from ..min_nodes.geo_nodes.annotation.nodeScaleBox import AXIS_ITEM_NAMES, scalebox_node_group
 from ..min_nodes.geo_nodes.measure.nodeSampleGridOnMesh import sample_grid_on_mesh_node_group
 from ..min_nodes.geo_nodes.utilities.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.shader_nodes import (
@@ -19,6 +20,8 @@ class SliceCubeObject(MiNObject):
     min_type = min_keys.SLICECUBE
     shader_count = 10
     shader_y_step = 700
+    projection_frame_name = "[Slice Cube Projection Frame]"
+    projection_frame_label = "Slice Cube Projection: Only Used If Show Slice Projection Is On"
     
     def init_obj(self): 
         super().init_obj()
@@ -50,6 +53,9 @@ class SliceCubeObject(MiNObject):
             return
         if mod.node_group.nodes.get("Show Slice Projection Switch") is None:
             self.init_gn()
+            return
+        if self.interface_socket("Sampling Pixel Spacing") is None:
+            self.init_gn()
 
     def init_gn(self):
         node_group = self.node_group
@@ -64,14 +70,15 @@ class SliceCubeObject(MiNObject):
             socket_type='NodeSocketBool',
         )
         show_data_socket.default_value = False
-        subdivisions_socket = node_group.interface.new_socket(
-            name='Sampling Resolution Level',
+        pixel_spacing_socket = node_group.interface.new_socket(
+            name='Sampling Pixel Spacing',
             in_out="INPUT",
-            socket_type='NodeSocketInt',
+            socket_type='NodeSocketFloat',
         )
-        subdivisions_socket.default_value = 7
-        subdivisions_socket.min_value = 0
-        subdivisions_socket.max_value = 11
+        pixel_spacing_socket.default_value = 0.1
+        pixel_spacing_socket.min_value = 1e-6
+        if hasattr(pixel_spacing_socket, "subtype"):
+            pixel_spacing_socket.subtype = 'DISTANCE'
         node_group.interface.new_socket(name='Geometry', in_out="OUTPUT", socket_type='NodeSocketGeometry')
 
         inputnode = nodes.new('NodeGroupInput')
@@ -81,11 +88,7 @@ class SliceCubeObject(MiNObject):
         outputnode.location = (700, 0)
         outputnode.is_active_output = True
 
-        subdivide_mesh = nodes.new("GeometryNodeSubdivideMesh")
-        subdivide_mesh.name = "Subdivide Slice Cube"
-        subdivide_mesh.location = (-220, 0)
-        links.new(inputnode.outputs["Geometry"], subdivide_mesh.inputs["Mesh"])
-        links.new(inputnode.outputs["Sampling Resolution Level"], subdivide_mesh.inputs["Level"])
+        projection_grid = self.build_projection_grid_nodes(nodes, links, inputnode)
 
         projection_switch = nodes.new("GeometryNodeSwitch")
         projection_switch.name = "Show Slice Projection Switch"
@@ -99,12 +102,46 @@ class SliceCubeObject(MiNObject):
         capture_show_data.location = (520, 0)
         capture_show_data.inputs["Name"].default_value = "Show Slice Projection"
 
+        set_material = nodes.new("GeometryNodeSetMaterial")
+        set_material.name = "Set Projection Material"
+        set_material.location = (650, 0)
+
         links.new(inputnode.outputs["Geometry"], projection_switch.inputs["False"])
-        links.new(subdivide_mesh.outputs["Mesh"], projection_switch.inputs["True"])
+        links.new(projection_grid.outputs["Geometry"], projection_switch.inputs["True"])
         links.new(inputnode.outputs["Show Slice Projection"], projection_switch.inputs["Switch"])
         links.new(projection_switch.outputs["Output"], capture_show_data.inputs["Geometry"])
         links.new(inputnode.outputs["Show Slice Projection"], capture_show_data.inputs["Value"])
-        links.new(capture_show_data.outputs["Geometry"], outputnode.inputs["Geometry"])
+        links.new(capture_show_data.outputs["Geometry"], set_material.inputs["Geometry"])
+        links.new(set_material.outputs["Geometry"], outputnode.inputs["Geometry"])
+        self.frame_projection_nodes(nodes)
+
+    def build_projection_grid_nodes(self, nodes, links, inputnode):
+        projection_box = nodes.new("GeometryNodeGroup")
+        projection_box.node_tree = slice_projection_box_node_group()
+        projection_box.name = "Slice Projection Grid"
+        projection_box.location = (inputnode.location[0] + 260, inputnode.location[1] - 320)
+        links.new(inputnode.outputs["Sampling Pixel Spacing"], projection_box.inputs["Sampling Pixel Spacing"])
+        return projection_box
+
+    def projection_frame(self, nodes):
+        frame = nodes.get(self.projection_frame_name)
+        if frame is None:
+            frame = nodes.new("NodeFrame")
+            frame.name = self.projection_frame_name
+        frame.label = self.projection_frame_label
+        frame.label_size = 50
+        frame.shrink = True
+        frame.use_custom_color = True
+        frame.color = (0.0, 0.0, 0.0)
+        return frame
+
+    def frame_projection_nodes(self, nodes, extra_nodes=()):
+        frame = self.projection_frame(nodes)
+        for node in list(nodes) + list(extra_nodes):
+            if node is frame:
+                continue
+            node.parent = frame
+        return frame
 
     def clear_interface(self, node_group):
         try:
@@ -114,6 +151,14 @@ class SliceCubeObject(MiNObject):
             pass
         for item in reversed(node_group.interface.items_tree):
             node_group.interface.remove(item=item)
+
+    def interface_socket(self, name):
+        if self.node_group is None:
+            return None
+        for item in self.node_group.interface.items_tree:
+            if getattr(item, "item_type", None) == 'SOCKET' and item.in_out == 'INPUT' and item.name == name:
+                return item
+        return None
 
     def set_data(self, dataset_model):
         self.ensure_gn()
@@ -177,9 +222,11 @@ class SliceCubeObject(MiNObject):
         true_input = projection_switch.inputs["True"]
         previous_geometry = true_input.links[0].from_socket
         previous_node = previous_geometry.node
+        channel_load_x = import_node.location[0] + import_node.width
+        previous_x = max(previous_node.location[0], channel_load_x)
         sampler.location = (
-            previous_node.location[0] + 200,
-            nodes["Subdivide Slice Cube"].location[1],
+            previous_x + 260,
+            nodes["Slice Projection Grid"].location[1],
         )
         sampler.inputs["Name"].default_value = ch.name.replace("-", "_")
         sampler.inputs["Mesh parented by holder"].default_value = False
@@ -188,14 +235,16 @@ class SliceCubeObject(MiNObject):
         links.new(import_node.outputs["Grid"], sampler.inputs["Grid"])
         links.new(previous_geometry, sampler.inputs["Mesh"])
         links.new(sampler.outputs["Mesh"], true_input)
+        self.frame_projection_nodes(nodes, (import_node, affine_node, sampler))
         self.move_projection_tail(sampler.location[0])
 
     def move_projection_tail(self, after_x):
         nodes = self.node_group.nodes
         tail_positions = {
-            "Show Slice Projection Switch": (after_x + 300, 0),
-            "Store Show Slice Projection": (after_x + 520, 0),
-            "Group Output": (after_x + 720, 0),
+            "Show Slice Projection Switch": (after_x + 320, 0),
+            "Store Show Slice Projection": (after_x + 540, 0),
+            "Set Projection Material": (after_x + 720, 0),
+            "Group Output": (after_x + 940, 0),
         }
         for name, location in tail_positions.items():
             node = nodes.get(name)
@@ -263,11 +312,18 @@ class SliceCubeObject(MiNObject):
                 self.object.data.materials.append(mat)
             else:
                 self.object.data.materials[0] = mat
+            self.set_projection_material(mat)
             return
 
         mat = self.object.data.materials[0]
         if not mat.use_nodes or mat.node_tree.nodes.get("Add Shaders") is None:
             self.init_shader(mat)
+        self.set_projection_material(mat)
+
+    def set_projection_material(self, mat):
+        set_material = self.node_group.nodes.get("Set Projection Material")
+        if set_material is not None:
+            set_material.inputs["Material"].default_value = mat
 
     def next_channel_location(self):
         min_y_loc = 300
@@ -276,7 +332,8 @@ class SliceCubeObject(MiNObject):
             "Group Output",
             "Show Slice Projection Switch",
             "Store Show Slice Projection",
-            "Subdivide Slice Cube",
+            "Set Projection Material",
+            "Slice Projection Grid",
         }
         for node in self.node_group.nodes:
             if node.name not in skip_names:
@@ -318,6 +375,7 @@ class SliceCubeObject(MiNObject):
         mat.node_tree.links.new(transparent.outputs[0], show_data_mix.inputs[1])
         mat.node_tree.links.new(add_shaders.outputs[0], show_data_mix.inputs[2])
         mat.node_tree.links.new(show_data_mix.outputs[0], output.inputs["Surface"])
+        self.frame_projection_nodes(nodes)
 
     def ensure_shader_capacity(self):
         for mat in self.object.data.materials:
@@ -390,6 +448,9 @@ class SliceCubeObject(MiNObject):
         frame = nodes.new("NodeFrame")
         frame.name = f"[frame_{ch.identifier}]"
         frame.label = ch.name
+        master_frame = nodes.get(self.projection_frame_name)
+        if master_frame is not None:
+            frame.parent = master_frame
         frame.use_custom_color = True
         frame.color = (0.0, 0.0, 0.0)
         frame.label_size = 50
@@ -488,4 +549,78 @@ def binned_statistic_sum(x, values, bins):
     sums = np.zeros(bins.size - 1, dtype=values.dtype)
     np.add.at(sums, bin_indices, values)
     return sums
+
+
+SLICE_PROJECTION_BOX_GROUP_NAME = "Slice Projection Box"
+
+
+def slice_projection_box_node_group():
+    node_group = bpy.data.node_groups.get(SLICE_PROJECTION_BOX_GROUP_NAME)
+    if node_group is not None:
+        return node_group
+
+    node_group = bpy.data.node_groups.new(
+        type='GeometryNodeTree',
+        name=SLICE_PROJECTION_BOX_GROUP_NAME,
+    )
+    nodes = node_group.nodes
+    links = node_group.links
+    interface = node_group.interface
+
+    spacing_socket = interface.new_socket(
+        name="Sampling Pixel Spacing",
+        in_out="INPUT",
+        socket_type="NodeSocketFloat",
+    )
+    spacing_socket.default_value = 0.1
+    spacing_socket.min_value = 1e-6
+    if hasattr(spacing_socket, "subtype"):
+        spacing_socket.subtype = 'DISTANCE'
+    interface.new_socket(name="Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
+
+    group_input = nodes.new("NodeGroupInput")
+    group_input.location = (-1000, 0)
+
+    group_output = nodes.new("NodeGroupOutput")
+    group_output.location = (500, 0)
+    group_output.is_active_output = True
+
+    self_object = nodes.new("GeometryNodeSelfObject")
+    self_object.location = (-800, 260)
+
+    self_info = nodes.new("GeometryNodeObjectInfo")
+    self_info.location = (-600, 260)
+    self_info.transform_space = 'RELATIVE'
+    links.new(self_object.outputs["Self Object"], self_info.inputs["Object"])
+
+    extent_unit = nodes.new("ShaderNodeVectorMath")
+    extent_unit.name = "Extent in Unit Space"
+    extent_unit.operation = 'MULTIPLY'
+    extent_unit.location = (-400, 220)
+    extent_unit.inputs[1].default_value = (2.0, 2.0, 2.0)
+    links.new(self_info.outputs["Scale"], extent_unit.inputs[0])
+
+    world_per_unit = nodes.new("ShaderNodeVectorMath")
+    world_per_unit.name = "World Per Unit"
+    world_per_unit.location = (-400, -40)
+    world_per_unit.inputs[0].default_value = (1.0, 1.0, 1.0)
+
+    axis_bundle = nodes.new("NodeCombineBundle")
+    axis_bundle.name = "Axis Bundle"
+    axis_bundle.location = (-400, -300)
+    for name in AXIS_ITEM_NAMES:
+        axis_bundle.bundle_items.new('BOOLEAN', name)
+        axis_bundle.inputs[name].default_value = name != "frontface culling"
+
+    scale_box = nodes.new("GeometryNodeGroup")
+    scale_box.node_tree = scalebox_node_group()
+    scale_box.name = "Scale Box"
+    scale_box.location = (-80, 0)
+    links.new(extent_unit.outputs[0], scale_box.inputs["Extent (unit)"])
+    links.new(world_per_unit.outputs[0], scale_box.inputs["World per Unit"])
+    links.new(group_input.outputs["Sampling Pixel Spacing"], scale_box.inputs["Tick Step (unit)"])
+    links.new(axis_bundle.outputs["Bundle"], scale_box.inputs["Axis Bundle"])
+    links.new(scale_box.outputs["Geometry"], group_output.inputs["Geometry"])
+
+    return node_group
     
