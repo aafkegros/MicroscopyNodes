@@ -1,10 +1,24 @@
 import bpy
-from ..handle_blender_structs.min_keys import min_keys
 import numpy as np
+
 from .base import MiNObject
+from ..handle_blender_structs.min_keys import min_keys
+from ..handle_blender_structs.node_handling import (
+    expand_node_ui,
+)
+from ..min_nodes.geo_nodes.measure.nodeSampleGridOnMesh import sample_grid_on_mesh_node_group
+from ..min_nodes.geo_nodes.utilities.import_microscopy_volume import import_microscopy_volume_node_group
+from ..min_nodes.shader_nodes import (
+    add_shaders_node,
+    colormap_to_lut,
+    set_color_ramp_from_ch,
+)
+from ..min_nodes.shader_nodes.handle_cmap import set_color_ramp
 
 class SliceCubeObject(MiNObject):
     min_type = min_keys.SLICECUBE
+    shader_count = 10
+    shader_y_step = 700
     
     def init_obj(self): 
         super().init_obj()
@@ -12,30 +26,466 @@ class SliceCubeObject(MiNObject):
         slicecube.name = "slice cube"
 
         bpy.ops.object.modifier_add(type='NODES')
-        # slicecube.modifiers[-1].name = f"Slice cube empty modifier (for reloading)"
         slicecube.modifiers[-1].name = f"[Microscopy Nodes slicecube]"
+        slicecube.modifiers[-1].node_group = bpy.data.node_groups.new("slice cube", 'GeometryNodeTree')
+        self.init_gn()
 
         mat = bpy.data.materials.new(f'Slice Cube')
         mat.blend_method = "HASHED"
-        mat.use_nodes = True
-        if mat.node_tree.nodes.get("Principled BSDF") is None:
-            mat.node_tree.nodes.new('ShaderNodeBsdfPrincipled')
-        if mat.node_tree.nodes.get("Material Output") is None:
-            out = mat.node_tree.nodes.new(type="ShaderNodeOutputMaterial")
-            out.location = (400,0)
-            mat.node_tree.links.new(
-                mat.node_tree.nodes['Principled BSDF'].outputs['BSDF'],
-                mat.node_tree.nodes['Material Output'].inputs['Surface']
-            )
-        mat.node_tree.nodes['Principled BSDF'].inputs.get("Alpha").default_value = 0
+        self.init_shader(mat)
         slicecube.data.materials.append(mat)
         return slicecube
 
+    def ensure_gn(self):
+        mod = self.gn_mod
+        if mod is None:
+            bpy.context.view_layer.objects.active = self.object
+            self.object.select_set(True)
+            bpy.ops.object.modifier_add(type='NODES')
+            mod = self.object.modifiers[-1]
+            mod.name = f"[Microscopy Nodes slicecube]"
+        if mod.node_group is None:
+            mod.node_group = bpy.data.node_groups.new("slice cube", 'GeometryNodeTree')
+            self.init_gn()
+            return
+        if mod.node_group.nodes.get("Show Slice Projection Switch") is None:
+            self.init_gn()
+
+    def init_gn(self):
+        node_group = self.node_group
+        nodes = node_group.nodes
+        links = node_group.links
+        nodes.clear()
+        self.clear_interface(node_group)
+        node_group.interface.new_socket(name='Geometry', in_out="INPUT", socket_type='NodeSocketGeometry')
+        show_data_socket = node_group.interface.new_socket(
+            name='Show Slice Projection',
+            in_out="INPUT",
+            socket_type='NodeSocketBool',
+        )
+        show_data_socket.default_value = False
+        subdivisions_socket = node_group.interface.new_socket(
+            name='Sampling Resolution Level',
+            in_out="INPUT",
+            socket_type='NodeSocketInt',
+        )
+        subdivisions_socket.default_value = 7
+        subdivisions_socket.min_value = 0
+        subdivisions_socket.max_value = 11
+        node_group.interface.new_socket(name='Geometry', in_out="OUTPUT", socket_type='NodeSocketGeometry')
+
+        inputnode = nodes.new('NodeGroupInput')
+        inputnode.location = (-900, 0)
+
+        outputnode = nodes.new('NodeGroupOutput')
+        outputnode.location = (700, 0)
+        outputnode.is_active_output = True
+
+        subdivide_mesh = nodes.new("GeometryNodeSubdivideMesh")
+        subdivide_mesh.name = "Subdivide Slice Cube"
+        subdivide_mesh.location = (-220, 0)
+        links.new(inputnode.outputs["Geometry"], subdivide_mesh.inputs["Mesh"])
+        links.new(inputnode.outputs["Sampling Resolution Level"], subdivide_mesh.inputs["Level"])
+
+        projection_switch = nodes.new("GeometryNodeSwitch")
+        projection_switch.name = "Show Slice Projection Switch"
+        projection_switch.input_type = 'GEOMETRY'
+        projection_switch.location = (350, 0)
+
+        capture_show_data = nodes.new("GeometryNodeStoreNamedAttribute")
+        capture_show_data.name = "Store Show Slice Projection"
+        capture_show_data.data_type = 'BOOLEAN'
+        capture_show_data.domain = 'POINT'
+        capture_show_data.location = (520, 0)
+        capture_show_data.inputs["Name"].default_value = "Show Slice Projection"
+
+        links.new(inputnode.outputs["Geometry"], projection_switch.inputs["False"])
+        links.new(subdivide_mesh.outputs["Mesh"], projection_switch.inputs["True"])
+        links.new(inputnode.outputs["Show Slice Projection"], projection_switch.inputs["Switch"])
+        links.new(projection_switch.outputs["Output"], capture_show_data.inputs["Geometry"])
+        links.new(inputnode.outputs["Show Slice Projection"], capture_show_data.inputs["Value"])
+        links.new(capture_show_data.outputs["Geometry"], outputnode.inputs["Geometry"])
+
+    def clear_interface(self, node_group):
+        try:
+            node_group.interface.clear()
+            return
+        except AttributeError:
+            pass
+        for item in reversed(node_group.interface.items_tree):
+            node_group.interface.remove(item=item)
+
+    def set_data(self, dataset_model):
+        self.ensure_gn()
+        self.ensure_material()
+        self.dataset_name = dataset_model.name
+        self.shader_count = max(len(dataset_model.channels) + 2, 1)
+        self.ensure_shader_capacity()
+        for ch in dataset_model.channels:
+            if not self._channel_source_type(ch):
+                continue
+            self.update_ch_data(ch)
+
+    def update_ch_data(self, ch):
+        source_type = self._channel_source_type(ch)
+        file_constructors = ch.file_constructors.get(source_type, [])
+        if not file_constructors:
+            return
+        if not self.ch_present(ch):
+            self.add_ch_to_gn(ch, source_type)
+            self.init_channel_shader(self.object.data.materials[0], ch, source_type)
+        self.update_import_node(self.node_group.nodes[f"IMPORT_{ch.identifier}"], file_constructors, ch, source_type)
+
+    def _channel_source_type(self, ch):
+        for source_type in (min_keys.VOLUME, min_keys.SURFACE):
+            if getattr(ch.viz, source_type.name.lower(), False):
+                return source_type
+        return None
+
+    def ch_present(self, ch):
+        return f"IMPORT_{ch.identifier}" in [node.name for node in self.node_group.nodes]
+
+    def add_ch_to_gn(self, ch, source_type):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
+        inputnode = nodes.get('Group Input')
+        projection_switch = nodes.get("Show Slice Projection Switch")
+        x, y = self.next_channel_location()
+
+        import_node = nodes.new("GeometryNodeGroup")
+        import_node.node_tree = import_microscopy_volume_node_group()
+        import_node.location = (x, y + 100)
+        import_node.name = f"IMPORT_{ch.identifier}"
+        import_node.label = ch.name
+        for input_field in import_node.inputs:
+            if input_field.name not in ("Include", "Normalized"):
+                input_field.hide = True
+
+        affine_node = nodes.new("FunctionNodeCombineMatrix")
+        affine_node.name = f"channel_affine_{ch.identifier}"
+        affine_node.label = f"{ch.name} affine"
+        affine_node.location = (x - 180, y - 90)
+        for affine_socket in affine_node.inputs:
+            if not affine_socket.is_linked:
+                affine_socket.hide = True
+        links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
+        links.new(inputnode.outputs["Show Slice Projection"], import_node.inputs.get("Include"))
+
+        sampler = nodes.new("GeometryNodeGroup")
+        sampler.node_tree = sample_grid_on_mesh_node_group()
+        sampler["channel_identifier"] = ch.identifier
+        true_input = projection_switch.inputs["True"]
+        previous_geometry = true_input.links[0].from_socket
+        previous_node = previous_geometry.node
+        sampler.location = (
+            previous_node.location[0] + 200,
+            nodes["Subdivide Slice Cube"].location[1],
+        )
+        sampler.inputs["Name"].default_value = ch.name.replace("-", "_")
+        sampler.inputs["Mesh parented by holder"].default_value = False
+
+        links.remove(true_input.links[0])
+        links.new(import_node.outputs["Grid"], sampler.inputs["Grid"])
+        links.new(previous_geometry, sampler.inputs["Mesh"])
+        links.new(sampler.outputs["Mesh"], true_input)
+        self.move_projection_tail(sampler.location[0])
+
+    def move_projection_tail(self, after_x):
+        nodes = self.node_group.nodes
+        tail_positions = {
+            "Show Slice Projection Switch": (after_x + 300, 0),
+            "Store Show Slice Projection": (after_x + 520, 0),
+            "Group Output": (after_x + 720, 0),
+        }
+        for name, location in tail_positions.items():
+            node = nodes.get(name)
+            if node is not None:
+                node.location = location
+
+    def update_import_node(self, import_node, file_constructors, ch, source_type):
+        for key, val in file_constructors[0].items():
+            if key == 't':
+                key = 'Frame'
+            if import_node.inputs.get(key) is None:
+                continue
+            if import_node.inputs.get(key).type == "STRING":
+                import_node.inputs.get(key).default_value = str(val)
+                continue
+            try:
+                import_node.inputs.get(key).default_value = int(val)
+            except Exception:
+                import_node.inputs.get(key).default_value = str(val)
+        ch_to_node = {"VDB Maximum": "vdb_max", "VDB Minimum": "vdb_min", "Original Maximum": "data_max"}
+        for key, val in ch_to_node.items():
+            import_node.inputs.get(key).default_value = ch.metadata[source_type][val]
+        import_node.inputs.get('Grid Name').default_value = 'data'
+        import_node.label = ch.name
+        self.update_import_affine(ch)
+
+    def update_import_affine(self, ch):
+        affine = np.array(ch.data.affine, dtype=float)
+        affine_node = self.node_group.nodes.get(f"channel_affine_{ch.identifier}")
+        if affine_node is None:
+            return
+        for row in range(4):
+            for column in range(4):
+                affine_node.inputs[column * 4 + row].default_value = float(affine[row, column])
+
+    def set_holder(self, holder):
+        for node in self.node_group.nodes:
+            if node.inputs.get("Holder") is not None:
+                node.inputs["Holder"].default_value = holder
+                node.inputs["Holder"].hide = True
+
     def set_settings(self, dataset_model):
+        self.ensure_gn()
+        self.ensure_material()
         initialize = self.object.parent is None
         _, _, dataset_extents = dataset_model.intermediate_bbox
         if initialize:
             self.object.location = dataset_extents / 2.0
             self.object.scale = np.maximum(dataset_extents / 2.0 + 1e-5, 1e-5)
-        self.object.display_type = 'BOUNDS'
+        self.object.display_type = 'TEXTURED'
+        for ch in dataset_model.channels:
+            if not self.ch_present(ch):
+                continue
+            self.update_channel_names(ch)
+            source_type = self._channel_source_type(ch)
+            mat = self.object.data.materials[0]
+            self.update_material(mat, ch, source_type)
+        self.ensure_shader_capacity()
+
+    def ensure_material(self):
+        if len(self.object.data.materials) == 0 or self.object.data.materials[0] is None:
+            mat = bpy.data.materials.new(f'Slice Cube')
+            self.init_shader(mat)
+            if len(self.object.data.materials) == 0:
+                self.object.data.materials.append(mat)
+            else:
+                self.object.data.materials[0] = mat
+            return
+
+        mat = self.object.data.materials[0]
+        if not mat.use_nodes or mat.node_tree.nodes.get("Add Shaders") is None:
+            self.init_shader(mat)
+
+    def next_channel_location(self):
+        min_y_loc = 300
+        skip_names = {
+            "Group Input",
+            "Group Output",
+            "Show Slice Projection Switch",
+            "Store Show Slice Projection",
+            "Subdivide Slice Cube",
+        }
+        for node in self.node_group.nodes:
+            if node.name not in skip_names:
+                min_y_loc = min(min_y_loc, node.location[1])
+        return -500, min_y_loc - 300
+
+    def init_shader(self, mat):
+        mat.use_nodes = True
+        mat.blend_method = "HASHED"
+        nodes = mat.node_tree.nodes
+        nodes.clear()
+
+        output = nodes.new("ShaderNodeOutputMaterial")
+        output.name = "Material Output"
+        output.location = (1300, 0)
+        output.is_active_output = True
+
+        show_data_attr = nodes.new(type='ShaderNodeAttribute')
+        show_data_attr.location = (620, -180)
+        show_data_attr.name = "[show_slice_projection]"
+        show_data_attr.attribute_name = "Show Slice Projection"
+        show_data_attr.label = "Show Slice Projection"
+
+        transparent = nodes.new("ShaderNodeBsdfTransparent")
+        transparent.name = "[transparent_when_not_using_show_slice_projection]"
+        transparent.location = (860, -220)
+
+        show_data_mix = nodes.new("ShaderNodeMixShader")
+        show_data_mix.name = "[mix_show_slice_projection]"
+        show_data_mix.location = (1080, 0)
+
+        add_shaders = nodes.new("ShaderNodeGroup")
+        add_shaders.node_tree = add_shaders_node(self.shader_count)
+        add_shaders.name = "Add Shaders"
+        add_shaders.width = 100
+        add_shaders.location = (760, 80)
+        expand_node_ui(add_shaders)
+        mat.node_tree.links.new(show_data_attr.outputs["Fac"], show_data_mix.inputs[0])
+        mat.node_tree.links.new(transparent.outputs[0], show_data_mix.inputs[1])
+        mat.node_tree.links.new(add_shaders.outputs[0], show_data_mix.inputs[2])
+        mat.node_tree.links.new(show_data_mix.outputs[0], output.inputs["Surface"])
+
+    def ensure_shader_capacity(self):
+        for mat in self.object.data.materials:
+            if mat is None or not mat.use_nodes:
+                continue
+            add_shaders = mat.node_tree.nodes.get("Add Shaders")
+            if add_shaders is not None:
+                add_shaders.node_tree = add_shaders_node(self.shader_count)
+
+    def init_channel_shader(self, mat, ch, source_type):
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        y_offset = -self.shader_y_step * ch.data.ix
+
+        node_attr = nodes.new(type='ShaderNodeAttribute')
+        node_attr.location = (-1600, y_offset)
+        node_attr.name = f"[channel_load_{ch.identifier}]"
+        node_attr.attribute_name = ch.name.replace("-", "_")
+        node_attr.label = ch.name.replace("-", "_")
+
+        histnode = self.draw_histogram(
+            nodes,
+            (-1200, y_offset + 300),
+            1000,
+            ch.metadata[source_type]['histogram'],
+        )
+        histnode.name = f'[Histogram_{ch.identifier}]'
+
+        contrast_limits = nodes.new(type="ShaderNodeValToRGB")
+        contrast_limits.location = (-1200, y_offset + 40)
+        contrast_limits.width = 1000
+        contrast_limits.name = f'[contrast_limits_{ch.identifier}]'
+        contrast_limits.label = "Color Contrast Limits"
+        contrast_limits.color_ramp.elements[0].position = ch.metadata[source_type]['threshold']
+        contrast_limits.color_ramp.elements[0].color = (1, 1, 1, 0)
+        contrast_limits.color_ramp.elements[1].position = 1
+        contrast_limits.color_ramp.elements[1].color = (1, 1, 1, 1)
+        contrast_limits.outputs[0].hide = True
+
+        color_lut = nodes.new(type="ShaderNodeValToRGB")
+        color_lut.location = (-120, y_offset + 40)
+        color_lut.width = 300
+        color_lut.name = f"[color_lut_{ch.identifier}]"
+        color_lut.show_options = True
+        color_lut.outputs[1].hide = True
+
+        principled = nodes.new("ShaderNodeBsdfPrincipled")
+        principled.name = f"[{ch.identifier}] principled"
+        principled.location = (320, y_offset + 190)
+        principled.inputs.get('Alpha').default_value = 1.0
+        if ch.viz.emission:
+            principled.inputs[29].default_value = 0.5
+
+        frame, add_shaders = self.add_ch_to_shader(mat, ch, principled.outputs["BSDF"])
+        for node in (node_attr, histnode, contrast_limits, color_lut, principled):
+            node.parent = frame
+
+        links.new(node_attr.outputs.get('Fac'), contrast_limits.inputs.get("Fac"))
+        links.new(contrast_limits.outputs[1], color_lut.inputs[0])
+        links.new(color_lut.outputs[0], principled.inputs.get('Base Color'))
+        links.new(color_lut.outputs[0], principled.inputs[28])
+        self.set_slice_color_ramp(ch, color_lut)
+        return frame, add_shaders
+
+    def add_ch_to_shader(self, mat, ch, shader_socket):
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        add_shaders = nodes["Add Shaders"]
+
+        frame = nodes.new("NodeFrame")
+        frame.name = f"[frame_{ch.identifier}]"
+        frame.label = ch.name
+        frame.use_custom_color = True
+        frame.color = (0.0, 0.0, 0.0)
+        frame.label_size = 50
+        frame.shrink = True
+
+        links.new(shader_socket, add_shaders.inputs[min(ch.data.ix, self.shader_count - 1)])
+        return frame, add_shaders
+
+    def update_material(self, mat, ch, source_type):
+        if source_type is None:
+            return
+        nodes = mat.node_tree.nodes
+        color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
+        if color_lut is not None:
+            self.set_slice_color_ramp(ch, color_lut)
+        histnode = nodes.get(f'[Histogram_{ch.identifier}]')
+        if ch.metadata.get(source_type) is not None and histnode is not None:
+            new_histnode = self.draw_histogram(
+                nodes,
+                histnode.location,
+                histnode.width,
+                ch.metadata[source_type]['histogram'],
+            )
+            new_histnode.name = histnode.name
+            new_histnode.label = histnode.label
+            new_histnode.parent = histnode.parent
+            nodes.remove(histnode)
+        contrast_limits = nodes.get(f'[contrast_limits_{ch.identifier}]')
+        if contrast_limits is not None and source_type in ch.metadata:
+            contrast_limits.color_ramp.elements[0].position = ch.metadata[source_type]['threshold']
+        principled = nodes.get(f"[{ch.identifier}] principled")
+        if principled is not None:
+            principled.inputs[29].default_value = 0.5 if ch.viz.emission else 0.0
+            principled.inputs.get('Alpha').default_value = 1.0
+
+    def update_channel_names(self, ch):
+        name = ch.name.replace("-", "_")
+        attr = self.object.data.materials[0].node_tree.nodes.get(f"[channel_load_{ch.identifier}]")
+        if attr is not None:
+            attr.attribute_name = name
+            attr.label = name
+        sampler = self.sample_node(ch)
+        if sampler is not None:
+            sampler.inputs["Name"].default_value = name
+
+    def sample_node(self, ch):
+        for node in self.node_group.nodes:
+            if node.get("channel_identifier") == ch.identifier:
+                return node
+        return None
+
+    def set_slice_color_ramp(self, ch, color_lut):
+        lut, linear = colormap_to_lut(ch.viz.cmap)
+        if len(lut) == 1:
+            set_color_ramp(color_lut, [(0, 0, 0, 1), lut[0]], True, "Colormap")
+            return
+        set_color_ramp_from_ch(ch, color_lut)
+
+    def draw_histogram(self, nodes, loc, width, hist):
+        histnode = nodes.new(type="ShaderNodeFloatCurve")
+        histnode.location = loc
+        histmap = histnode.mapping
+        histnode.width = width
+        histnode.label = 'Histogram (non-interactive)'
+        histnode.inputs.get('Factor').hide = True
+        histnode.inputs.get('Value').hide = True
+        histnode.outputs.get('Value').hide = True
+
+        histmax = np.max(hist)
+        if histmax == 0:
+            histmax = 1
+        histnorm = hist / histmax
+        if len(histnorm) > 150:
+            histnorm = binned_statistic_sum(np.arange(len(histnorm)), histnorm, bins=150)
+            histnorm /= np.max(histnorm)
+        for ix, val in enumerate(histnorm):
+            if ix == 0:
+                histmap.curves[0].points[-1].location = ix/len(histnorm), val
+                histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
+            if ix == len(histnorm) - 1:
+                histmap.curves[0].points[-1].location = ix/len(histnorm), val
+            else:
+                histmap.curves[0].points.new(ix/len(histnorm), val)
+                histmap.curves[0].points.new((ix + 0.9)/len(histnorm), val)
+            histmap.curves[0].points[ix].handle_type = 'VECTOR'
+        return histnode
+
+
+def binned_statistic_sum(x, values, bins):
+    x = np.asarray(x)
+    values = np.asarray(values)
+    bins = np.linspace(x.min(), x.max(), bins + 1)
+    bin_indices = np.searchsorted(bins, x, side='right') - 1
+    bin_indices = np.clip(bin_indices, 0, bins.size - 2)
+
+    sums = np.zeros(bins.size - 1, dtype=values.dtype)
+    np.add.at(sums, bin_indices, values)
+    return sums
     

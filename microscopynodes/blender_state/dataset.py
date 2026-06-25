@@ -83,7 +83,7 @@ class Dataset():
                 min_obj.object.parent = self.holder.object
                 min_obj.object.matrix_parent_inverse.identity()
 
-        for min_obj in (self.axes, self.volume, self.surface, self.labelmask):
+        for min_obj in (self.axes, self.slicecube, self.volume, self.surface, self.labelmask):
             if min_obj is not None:
                 min_obj.set_holder(self.holder.object)
 
