@@ -43,6 +43,62 @@ class MiNObject(BlenderObject):
 
 class ChannelObject(MiNObject):
     shader_count = 10
+    gn_frame_label = None
+    frame_color = (0.663, 0.506, 0.506)
+
+    @property
+    def gn_frame_name(self):
+        label = self.gn_frame_label or self.min_type.name.title()
+        return f"[{label} Frame]"
+
+    def gn_frame(self):
+        nodes = self.node_group.nodes
+        frame = nodes.get(self.gn_frame_name)
+        if frame is None:
+            frame = nodes.new("NodeFrame")
+            frame.name = self.gn_frame_name
+        frame.label = self.gn_frame_label or self.min_type.name.title()
+        frame.label_size = 50
+        frame.shrink = True
+        frame.use_custom_color = True
+        frame.color = self.frame_color
+        return frame
+
+    def frame_gn_nodes(self, node_list=None):
+        frame = self.gn_frame()
+        nodes = node_list or list(self.node_group.nodes)
+        for node in nodes:
+            if node is None or node is frame:
+                continue
+            node.parent = frame
+        return frame
+
+    @property
+    def shader_frame_name(self):
+        label = self.gn_frame_label or self.min_type.name.title()
+        return f"[{label} Shader Frame]"
+
+    def shader_frame(self, mat):
+        nodes = mat.node_tree.nodes
+        frame = nodes.get(self.shader_frame_name)
+        if frame is None:
+            frame = nodes.new("NodeFrame")
+            frame.name = self.shader_frame_name
+        frame.label = self.gn_frame_label or self.min_type.name.title()
+        frame.label_size = 50
+        frame.shrink = True
+        frame.use_custom_color = True
+        frame.color = self.frame_color
+        return frame
+
+    def frame_shader_nodes(self, mat, node_list=None):
+        frame = self.shader_frame(mat)
+        nodes = node_list or list(mat.node_tree.nodes)
+        for node in nodes:
+            if node is None or node is frame:
+                continue
+            node.parent = frame
+        return frame
 
     def set_holder(self, holder):
         for node in self.node_group.nodes:
@@ -213,6 +269,7 @@ class ChannelObject(MiNObject):
         add_shaders.width = 100
         add_shaders.location = (620, 0)
         expand_node_ui(add_shaders)
+        self.frame_shader_nodes(mat, [output, add_shaders])
         return
 
     def material_name(self):
@@ -258,6 +315,7 @@ class ChannelObject(MiNObject):
         links.new(channel_bundle.outputs["Bundle"], join_node.inputs["Channel Bundle"])
         links.new(join_node.outputs["Geometry"], set_material.inputs["Geometry"])
         links.new(set_material.outputs["Geometry"], outputnode.inputs["Geometry"])
+        self.frame_gn_nodes([inputnode, outputnode, channel_bundle, join_node, set_material])
         return
 
     def add_ch_to_gn(self, ch):
@@ -271,6 +329,7 @@ class ChannelObject(MiNObject):
             "Channel Bundle",
             join_node.name,
             "Set Material",
+            self.gn_frame_name,
         }
         for node in self.node_group.nodes:
             if node.name not in skip_names:
@@ -328,6 +387,9 @@ class ChannelObject(MiNObject):
         frame.color = (0.0, 0.0, 0.0)
         frame.label_size = 50
         frame.shrink = True
+        master_frame = nodes.get(self.shader_frame_name)
+        if master_frame is not None:
+            frame.parent = master_frame
 
         links.new(shader_socket, add_shaders.inputs[min(ch.data.ix, self.shader_count - 1)])
         return frame, add_shaders

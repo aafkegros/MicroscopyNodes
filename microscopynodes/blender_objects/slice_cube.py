@@ -22,6 +22,7 @@ class SliceCubeObject(MiNObject):
     shader_y_step = 700
     projection_frame_name = "[Slice Cube Projection Frame]"
     projection_frame_label = "Slice Cube Projection: Only Used If Show Slice Projection Is On"
+    projection_frame_color = (0.663, 0.506, 0.506)
     
     def init_obj(self): 
         super().init_obj()
@@ -132,7 +133,7 @@ class SliceCubeObject(MiNObject):
         frame.label_size = 50
         frame.shrink = True
         frame.use_custom_color = True
-        frame.color = (0.0, 0.0, 0.0)
+        frame.color = self.projection_frame_color
         return frame
 
     def frame_projection_nodes(self, nodes, extra_nodes=()):
@@ -334,6 +335,7 @@ class SliceCubeObject(MiNObject):
             "Store Show Slice Projection",
             "Set Projection Material",
             "Slice Projection Grid",
+            self.projection_frame_name,
         }
         for node in self.node_group.nodes:
             if node.name not in skip_names:

@@ -15,6 +15,8 @@ NR_HIST_BINS = 2**16
 class VolumeObject(ChannelObject):
     min_type = min_keys.VOLUME
     shader_y_step = 750
+    gn_frame_label = "Volume"
+    frame_color = (0.506, 0.537, 0.663)
 
     def init_shader(self, mat):
         super().init_shader(mat)
@@ -50,8 +52,10 @@ class VolumeObject(ChannelObject):
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
         masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
+        mask_grid = self.node_group.nodes.get(f"SLICE_CUBE_{ch.identifier}")
 
         self.add_channel_to_bundle(ch, masked_grid, "FLOAT")
+        self.frame_gn_nodes([import_node, affine_node, mask_grid])
         return
 
     def update_import_node(self, import_node, file_constructors, ch):

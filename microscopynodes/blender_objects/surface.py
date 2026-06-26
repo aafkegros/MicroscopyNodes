@@ -9,6 +9,8 @@ from ..min_nodes.shader_nodes import set_color_ramp_from_ch
 
 class SurfaceObject(MeshChannelObject):
     min_type = min_keys.SURFACE
+    gn_frame_label = "Surface"
+    frame_color = (0.506, 0.663, 0.506)
 
     # identical to VolumeObject but annoyign to import
     def update_import_node(self, import_node, file_constructors, ch):
@@ -53,6 +55,7 @@ class SurfaceObject(MeshChannelObject):
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
         masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
+        mask_grid = nodes.get(f"SLICE_CUBE_{ch.identifier}")
 
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
@@ -70,6 +73,7 @@ class SurfaceObject(MeshChannelObject):
         links.new(threshold, grid_to_mesh.inputs.get("Threshold"))
 
         self.add_channel_to_bundle(ch, grid_to_mesh.outputs.get("Mesh"), "GEOMETRY")
+        self.frame_gn_nodes([import_node, affine_node, mask_grid, grid_to_mesh])
         return
 
     def update_gn(self, ch):

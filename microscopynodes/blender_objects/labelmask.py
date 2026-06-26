@@ -7,6 +7,8 @@ from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 
 class LabelmaskObject(MeshChannelObject):
     min_type = min_keys.LABELMASK
+    gn_frame_label = "Labelmask"
+    frame_color = (0.663, 0.506, 0.663)
 
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
@@ -54,6 +56,7 @@ class LabelmaskObject(MeshChannelObject):
 
         links.new(import_node.outputs["Geometry"], mask_mesh.inputs["Mesh"])
         self.add_channel_to_bundle(ch, mask_mesh.outputs["Inside Mask"], "GEOMETRY")
+        self.frame_gn_nodes([import_node, affine_node, mask_mesh])
         return
 
     def init_channel_shader(self, mat, ch):
