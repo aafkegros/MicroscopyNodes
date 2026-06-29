@@ -37,7 +37,7 @@ class SliceCubeObject(MiNObject):
         mat = bpy.data.materials.new(f'Slice Cube')
         mat.blend_method = "HASHED"
         self.init_shader(mat)
-        slicecube.data.materials.append(mat)
+        self.ensure_material_slot(mat)
         return slicecube
 
     def ensure_gn(self):
@@ -309,10 +309,7 @@ class SliceCubeObject(MiNObject):
         if len(self.object.data.materials) == 0 or self.object.data.materials[0] is None:
             mat = bpy.data.materials.new(f'Slice Cube')
             self.init_shader(mat)
-            if len(self.object.data.materials) == 0:
-                self.object.data.materials.append(mat)
-            else:
-                self.object.data.materials[0] = mat
+            self.ensure_material_slot(mat)
             self.set_projection_material(mat)
             return
 

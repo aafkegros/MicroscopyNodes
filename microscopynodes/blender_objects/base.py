@@ -22,6 +22,16 @@ class MiNObject(BlenderObject):
         self.object = bpy.context.view_layer.objects.active
         self.object.name = self.min_type.name.lower()
 
+    def ensure_material_slot(self, mat, slot_index=0):
+        materials = self.object.data.materials
+        if any(slot == mat for slot in materials if slot is not None):
+            return mat
+        if len(materials) > slot_index and materials[slot_index] is None:
+            materials[slot_index] = mat
+            return mat
+        materials.append(mat)
+        return mat
+
     def set_data(self, dataset_model):
         return
     
@@ -150,10 +160,7 @@ class ChannelObject(MiNObject):
                 mat.name = material_name
         else:
             mat = bpy.data.materials.new(material_name)
-            if len(self.object.data.materials) == 0:
-                self.object.data.materials.append(mat)
-            else:
-                self.object.data.materials[0] = mat
+            self.ensure_material_slot(mat)
             self.init_shader(mat)
         set_material = self.node_group.nodes.get("Set Material")
         if set_material is not None and set_material.inputs.get("Material").default_value is None:

@@ -156,6 +156,7 @@ class Axes(MiNObject):
         links.new(combine_axes.outputs["Bundle"], scale_node.inputs["Axis Bundle"])
 
         axes_mat = self.init_material_axes()
+        self.ensure_material_slot(axes_mat)
         scale_node.inputs["Material"].default_value = axes_mat
 
         links.new(scale_node.outputs["Geometry"], outputnode.inputs["Geometry"])
