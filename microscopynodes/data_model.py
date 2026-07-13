@@ -1,5 +1,5 @@
 from typing import Annotated, Optional, Tuple, List, Dict, Any
-from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator, ConfigDict
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 import numpy as np
 from cmap import Color, Colormap
 from .handle_blender_structs.min_keys import min_keys
@@ -186,8 +186,6 @@ class ChannelDataModel(BaseModel):
 
 
 class ChannelVizModel(BaseModel):
-    model_config = ConfigDict(json_encoders={Colormap: Colormap.as_dict})
-
     ix: int = 0 
     name: str | None = None
     volume: bool = True
@@ -212,15 +210,6 @@ class ChannelVizModel(BaseModel):
         if data.get("cmap") is None:
             data["cmap"] = Colormap([INIT_COLORS[ix % len(INIT_COLORS)]])
         return data
-
-    @field_validator("cmap", mode="before")
-    def validate_cmap(cls, v):
-        if isinstance(v, Colormap):
-            return v
-        if isinstance(v, dict) and "value" in v:
-            return Colormap(v["value"])
-        return Colormap(v)
-
 
 class ChannelModel(BaseModel):
     data: ChannelDataModel

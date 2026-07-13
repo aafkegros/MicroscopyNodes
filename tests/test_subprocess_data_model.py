@@ -48,6 +48,8 @@ def test_dataset_model_round_trips_generated_files_and_file_backed_mask(tmp_path
         "histogram": [0, 2, 1],
         "threshold": 0.25,
     }
+    assert restored.channels[0].viz.cmap.name == channel.viz.cmap.name
+    assert restored.channels[0].viz.cmap.color_stops == channel.viz.cmap.color_stops
     assert np.array_equal(restored.channels[0].data.mask, mask)
 
 
