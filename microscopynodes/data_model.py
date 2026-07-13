@@ -1,4 +1,4 @@
-from typing import Annotated, Optional, Tuple, List, Dict, Any
+from typing import Annotated, Tuple, List, Dict, Any
 from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 import numpy as np
 from cmap import Color, Colormap
@@ -29,17 +29,29 @@ INIT_COLORS = [
 ]
 
 
+def _validate_axis_order(value, allowed, field_name):
+    if not value:
+        raise ValueError(f"{field_name} must not be empty")
+    invalid = sorted(set(value) - set(allowed))
+    if invalid:
+        raise ValueError(f"{field_name} contains unsupported axes: {''.join(invalid)}")
+    duplicates = sorted(axis for axis in set(value) if value.count(axis) > 1)
+    if duplicates:
+        raise ValueError(f"{field_name} contains duplicate axes: {''.join(duplicates)}")
+    return value
+
+
 class ChannelDataModel(BaseModel):
     dataset_resolution: int # currently static resolution identifier 
 
     ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
-    axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
+    axes_order: str # removes channel axis - optional later: make xarray?
     source_axes_order: str | None = None
     mask_path: str | None = None
-    affine: List[List[float]] | None = None #transforms into unit space
+    affine: List[List[float]] = Field(default_factory=lambda: np.eye(4).tolist()) #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
-    frame_start: int = None
-    frame_end: int = None
+    frame_start: int | None = None
+    frame_end: int | None = None
 
     source: str  # URI of the data
     internal_path: str | None = None # path inside container sources such as zarr
@@ -61,6 +73,16 @@ class ChannelDataModel(BaseModel):
         if any(value < 1 for value in v):
             raise ValueError("min_rescale_xyz values must be greater than or equal to 1.")
         return tuple(float(value) for value in v)
+
+    @field_validator("axes_order")
+    def validate_axes_order(cls, value):
+        return _validate_axis_order(value, "txyz", "axes_order")
+
+    @field_validator("source_axes_order")
+    def validate_source_axes_order(cls, value):
+        if value is None:
+            return None
+        return _validate_axis_order(value, "tcxyz", "source_axes_order")
 
     @property
     def data(self):
@@ -120,12 +142,6 @@ class ChannelDataModel(BaseModel):
     def data_dtype(self):
         return self._source_array.dtype
 
-    @field_validator('affine', mode='before')
-    def default_affine(cls, v):
-        if v is None:
-            return np.eye(4).tolist()
-        return v
-
     @field_validator('affine')
     def validate_affine(cls, v):
         a = np.asarray(v, dtype=float)
@@ -137,14 +153,14 @@ class ChannelDataModel(BaseModel):
     def parse_unit_scale(cls, v):
         return unit_value(v)
 
-    @field_validator("frame_start", "frame_end")
-    def validate_frame_bounds(cls, v, info):
-        return v
-
     @model_validator(mode="after")
     def validate_frame_order(self):
         if self.source_axes_order is None:
             self.source_axes_order = self.axes_order
+        if self.source_axes_order.replace("c", "") != self.axes_order:
+            raise ValueError(
+                "source_axes_order without its channel axis must match axes_order"
+            )
         if "t" not in self.axes_order:
             self.frame_start = 0
             self.frame_end = 0
@@ -237,7 +253,7 @@ class ChannelModel(BaseModel):
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
-    name : Optional[str] 
+    name: str | None = None
 
     @property
     def local_files_exist(self):
@@ -292,21 +308,6 @@ class DatasetModel(BaseModel):
         if not self.name:
             self.name = 'Microscopy Dataset'
         return self
-
-    def make_local_files(self):
-        from .io.factories import DataIOFactory
-
-        for ch in self.channels:
-            for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
-                load = getattr(ch.viz, min_type.name.lower(), False)
-                if not load:
-                    continue
-                data_io = DataIOFactory(min_type)
-                generated = ch.files_for(min_type)
-                generated.constructors = data_io.make_local_files(ch)
-                generated.metadata = data_io.get_metadata(generated.constructors)
-        return self
-
 
 class SceneModel(BaseModel):
     output_scale: float # conversion factor for blender scales

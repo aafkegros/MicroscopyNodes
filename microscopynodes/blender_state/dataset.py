@@ -3,6 +3,7 @@ import bpy
 from ..blender_objects.factories import MinObjectFactory
 from ..handle_blender_structs.min_keys import min_keys
 from ..handle_blender_structs.node_handling import get_min_gn
+from ..io.generate import generate_local_files
 from .scene import Scene
 
 
@@ -39,7 +40,7 @@ class Dataset():
 
     def set_state(self, dataset_model, update_data=True, update_settings=True):
         if not dataset_model.local_files_exist and update_data:
-            dataset_model.make_local_files()
+            generate_local_files(dataset_model)
         self.scene.resolve_auto_import_scale(dataset_model)
 
         required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}

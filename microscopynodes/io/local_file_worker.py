@@ -25,6 +25,7 @@ def main():
     arguments = worker_arguments()
     job_dir = Path(arguments.job_dir)
     data_model = importlib.import_module(f"{arguments.package}.data_model")
+    generator = importlib.import_module(f"{arguments.package}.io.generate")
     progress = importlib.import_module(
         f"{arguments.package}.handle_blender_structs.progress_handling"
     )
@@ -33,7 +34,7 @@ def main():
     dataset = data_model.DatasetModel.model_validate_json(
         (job_dir / "request.json").read_text(encoding="utf-8")
     )
-    dataset.make_local_files()
+    generator.generate_local_files(dataset)
     write_atomic(job_dir / "result.json", dataset.model_dump_json())
 
 

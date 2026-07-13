@@ -32,7 +32,7 @@ def _next_channel_index(material):
 
 def _channel_model(channel_index, object_type):
     name = f"Channel {channel_index}"
-    return ChannelModel(
+    channel = ChannelModel(
         cache_path="",
         data=ChannelDataModel(
             dataset_resolution=0,
@@ -46,14 +46,13 @@ def _channel_model(channel_index, object_type):
             name=name,
             emission=True,
         ),
-        metadata={
-            object_type: {
-                "histogram": np.ones(2, dtype=float),
-                "threshold": 0.0,
-                "max": 1,
-            }
-        },
     )
+    channel.files_for(object_type).metadata = {
+        "histogram": np.ones(2, dtype=float),
+        "threshold": 0.0,
+        "max": 1,
+    }
+    return channel
 
 
 class MIN_OT_Add_Empty_Channel(Operator):

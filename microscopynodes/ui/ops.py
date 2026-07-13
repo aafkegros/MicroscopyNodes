@@ -2,6 +2,7 @@ import bpy
 from bpy.types import Operator
 from ..data_model import DatasetModel
 from ..io.local_file_process import LocalFileProcess
+from ..io.generate import generate_local_files
 from ..blender_state import Scene, Dataset
 from .gui_to_data_model import parse_blender_ui
 from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
@@ -159,7 +160,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
 
     def execute(self, context):
         dataset_model = parse_blender_ui()
-        dataset_model.make_local_files()
+        generate_local_files(dataset_model)
         Scene.from_blender_ui(context)
         ensure_valid_reload_object(context.scene)
         dataset = Dataset(holder=context.scene.MiN_reload)

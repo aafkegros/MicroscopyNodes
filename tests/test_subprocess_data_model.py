@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from microscopynodes.data_model import (
     ChannelDataModel,
@@ -13,6 +14,41 @@ from microscopynodes.handle_blender_structs.min_keys import min_keys
 from microscopynodes.handle_blender_structs.progress_handling import set_progress_path
 from microscopynodes.io.local_file_process import LocalFileProcess
 from microscopynodes.io.local_file_worker import main as run_local_file_worker
+
+
+@pytest.mark.parametrize(
+    ("axes_order", "source_axes_order"),
+    [
+        ("", None),
+        ("xxz", None),
+        ("xyq", None),
+        ("xyz", "zyx"),
+        ("xyz", "ccxyz"),
+    ],
+)
+def test_channel_data_rejects_invalid_axis_orders(axes_order, source_axes_order):
+    with pytest.raises(ValueError):
+        ChannelDataModel(
+            dataset_resolution=0,
+            ix=0,
+            axes_order=axes_order,
+            source_axes_order=source_axes_order,
+            source="unused.tif",
+            unit="MICROMETER",
+        )
+
+
+def test_source_axis_channel_is_removed_from_data_axes():
+    channel_data = ChannelDataModel(
+        dataset_resolution=0,
+        ix=0,
+        axes_order="zyx",
+        source_axes_order="czyx",
+        source="unused.tif",
+        unit="MICROMETER",
+    )
+
+    assert channel_data.source_axes_order.replace("c", "") == channel_data.axes_order
 
 
 def test_dataset_model_round_trips_generated_files_and_file_backed_mask(tmp_path):
