@@ -1,5 +1,4 @@
 import bpy
-import dask.array as da
 import numpy as np
 from bpy.types import Operator
 
@@ -39,7 +38,6 @@ def _channel_model(channel_index, object_type):
             dataset_resolution=0,
             ix=channel_index,
             axes_order="xyz",
-            data=da.zeros((1, 1, 1), chunks=(1, 1, 1)),
             unit=1.0,
             source="empty channel",
         ),

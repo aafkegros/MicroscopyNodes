@@ -1,9 +1,8 @@
 from pathlib import Path
 
-import dask.array as da
 import numpy as np
 import tifffile
-import tifffile.zarr
+import zarr
 
 from ..data_model import ChannelDataModel, ChannelModel, ChannelVizModel, DatasetModel
 from ..handle_blender_structs.units import unit_value
@@ -25,7 +24,7 @@ class TifLoader:
         axes_order = axes_order or metadata["axes_order"]
         unit = unit_value(unit if unit is not None else metadata["unit"])
 
-        imgdata = da.from_zarr(tifffile.imread(input_file, aszarr=True))
+        imgdata = zarr.open(tifffile.imread(input_file, aszarr=True), mode="r")
         channel_count = imgdata.shape[axes_order.find('c')] if 'c' in axes_order else 1
         data_axes_order = axes_order.replace('c', '')
         data_scale = [metadata["xy_size"], metadata["xy_size"], metadata["z_size"]]
@@ -38,7 +37,6 @@ class TifLoader:
                 data=ChannelDataModel(
                     dataset_resolution=0,
                     ix=ch_ix,
-                    data=imgdata,
                     axes_order=data_axes_order,
                     source_axes_order=axes_order,
                     affine=affine,

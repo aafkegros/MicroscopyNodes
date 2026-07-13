@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 from urllib.parse import unquote_to_bytes, urljoin
 
-import dask.array as da
 import numpy as np
 import zarr
 
@@ -34,8 +33,7 @@ class ZarrLoader:
         datasets = []
         for option in metadata["options"]:
             array = self.load_array(option)
-            imgdata = da.from_zarr(array)
-            channel_count = imgdata.shape[axes_order.find('c')] if 'c' in axes_order else 1
+            channel_count = array.shape[axes_order.find('c')] if 'c' in axes_order else 1
             data_axes_order = axes_order.replace('c', '')
             data_scale = self._data_scale(option)
             affine = np.diag([*data_scale, 1]).tolist()
@@ -47,9 +45,9 @@ class ZarrLoader:
                     data=ChannelDataModel(
                         dataset_resolution=option["identifier"],
                         ix=ch_ix,
-                        data=imgdata,
                         axes_order=data_axes_order,
                         source_axes_order=axes_order,
+                        internal_path=option["path"],
                         affine=affine,
                         unit=unit,
                         source=str(input_file),

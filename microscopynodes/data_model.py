@@ -4,7 +4,6 @@ import numpy as np
 from cmap import Color, Colormap
 from .handle_blender_structs.min_keys import min_keys
 from .handle_blender_structs.units import output_scale_for_import_scale, unit_label_from_value, unit_value
-import dask.array as da
 
 #######
 #
@@ -30,24 +29,22 @@ INIT_COLORS = [
 
 
 class ChannelDataModel(BaseModel):
-    # allow arbitrary types to parse dask arrays - might remove
-    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
-
     dataset_resolution: int # currently static resolution identifier 
 
     ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
     source_axes_order: str | None = None
-    source_data: da.Array = Field(alias="data") # lazy link to source data
-    mask: np.ndarray | da.Array | None = None # scalable 
+    mask: Any = None # scalable 
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
     frame_end: int = None
 
     source: str  # URI of the data
+    internal_path: str | None = None # path inside container sources such as zarr
     min_rescale_xyz: Tuple[float, float, float] = (1.0, 1.0, 1.0)
-    _data_cache: da.Array | None = PrivateAttr(default=None) # check if necessary?
+    _source_array_cache: Any = PrivateAttr(default=None)
+    _data_cache: Any = PrivateAttr(default=None) # check if necessary?
 
     @field_validator("min_rescale_xyz")
     def validate_min_rescale_xyz(cls, v):
@@ -59,20 +56,37 @@ class ChannelDataModel(BaseModel):
     def data(self):
         channel_axis = self.channel_axis
         if channel_axis is None:
-            return self.source_data
+            return self._source_array
         if self._data_cache is None:
+            import dask.array as da
+
             self._data_cache = da.take(
-                self.source_data,
+                self._source_array,
                 indices=self.ix,
                 axis=channel_axis,
             )
         return self._data_cache
 
-    @data.setter
-    def data(self, value):
-        self.source_data = value
-        self.source_axes_order = self.axes_order
-        self._data_cache = None
+    @property
+    def _source_array(self):
+        if self._source_array_cache is None:
+            from .file_to_array.source_array import open_source_array
+
+            data = open_source_array(self.source, self.internal_path)
+            data = self._stride_rescale(data)
+            self._source_array_cache = data
+        return self._source_array_cache
+
+    def _stride_rescale(self, data):
+        slices = []
+        axes_order = self.source_axes_order or self.axes_order
+        for axis in axes_order:
+            if axis in "xyz":
+                step = int(self.min_rescale_xyz["xyz".find(axis)])
+                slices.append(slice(None, None, max(step, 1)))
+            else:
+                slices.append(slice(None))
+        return data[tuple(slices)]
 
     @property
     def channel_axis(self):
@@ -82,7 +96,7 @@ class ChannelDataModel(BaseModel):
 
     @property
     def data_shape(self):
-        shape = tuple(self.source_data.shape)
+        shape = tuple(self._source_array.shape)
         channel_axis = self.channel_axis
         if channel_axis is None:
             return shape
@@ -94,17 +108,7 @@ class ChannelDataModel(BaseModel):
 
     @property
     def data_dtype(self):
-        return self.source_data.dtype
-
-    @field_validator("source_data")
-    def validate_data_shape(cls, v, info):
-        if v is not None:
-            axes_order = info.data.get("axes_order")
-            source_axes_order = info.data.get("source_axes_order")
-            expected_axes = source_axes_order or axes_order
-            if expected_axes is not None and v.ndim != len(expected_axes):
-                raise ValueError(f"data.ndim ({v.ndim}) does not match axes_order length ({len(expected_axes)})")
-        return v
+        return self._source_array.dtype
 
     @field_validator('affine', mode='before')
     def default_affine(cls, v):

@@ -56,14 +56,13 @@ def normalize_rescale_xyz(rescale_xyz):
 
 def _rescale_channel(channel_model, rescale_xyz, dataset_resolution):
     data = channel_model.data.model_copy(deep=False)
-    data.source_data = _stride_rescale(
-        data.source_data,
-        data.source_axes_order or data.axes_order,
-        rescale_xyz,
+    data.min_rescale_xyz = tuple(
+        float(existing) * float(new)
+        for existing, new in zip(data.min_rescale_xyz, rescale_xyz)
     )
+    data._source_array_cache = None
     data._data_cache = None
     data.affine = _rescale_affine(data.affine, rescale_xyz)
-    data.min_rescale_xyz = tuple(float(value) for value in rescale_xyz)
     if dataset_resolution is not None:
         data.dataset_resolution = dataset_resolution
 
@@ -75,17 +74,6 @@ def _rescale_channel(channel_model, rescale_xyz, dataset_resolution):
         metadata=copy(channel_model.metadata),
         file_constructors=copy(channel_model.file_constructors),
     )
-
-
-def _stride_rescale(data, axes_order, rescale_xyz):
-    slices = []
-    for axis in axes_order:
-        if axis in "xyz":
-            step = int(rescale_xyz["xyz".find(axis)])
-            slices.append(slice(None, None, max(step, 1)))
-        else:
-            slices.append(slice(None))
-    return data[tuple(slices)]
 
 
 def _rescale_affine(affine, rescale_xyz):
