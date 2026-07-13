@@ -37,7 +37,7 @@ def register_scene_props():
     )
 
     bpy.types.Scene.MiN_load_start_frame = bpy.props.IntProperty(
-    name = "", 
+    name = "",
     description = "First timeframe to be loaded",
     default = 0,
     min=0,
@@ -102,9 +102,16 @@ def register_scene_props():
         default = False,
     )
 
-    bpy.types.Scene.MiN_load_finished = BoolProperty(
-        name = "", 
-        default = False,
+    bpy.types.WindowManager.MiN_load_running = BoolProperty(
+        name="",
+        default=False,
+        options={'HIDDEN', 'SKIP_SAVE'},
+    )
+
+    bpy.types.WindowManager.MiN_cancel_load_requested = BoolProperty(
+        name="",
+        default=False,
+        options={'HIDDEN', 'SKIP_SAVE'},
     )
 
     bpy.types.Scene.MiN_update_data = BoolProperty(
@@ -148,7 +155,6 @@ def unregister_scene_props():
         "MiN_ch_names",
         "MiN_ch_index",
         "MiN_enable_ui",
-        "MiN_load_finished",
         "MiN_update_data",
         "MiN_update_settings",
         "MiN_load_with_mask",
@@ -156,5 +162,10 @@ def unregister_scene_props():
     ):
         try:
             delattr(bpy.types.Scene, prop)
+        except AttributeError:
+            pass
+    for prop in ("MiN_load_running", "MiN_cancel_load_requested"):
+        try:
+            delattr(bpy.types.WindowManager, prop)
         except AttributeError:
             pass

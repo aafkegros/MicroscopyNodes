@@ -40,6 +40,10 @@ class TifLoadOperator(bpy.types.Operator):
     local_file_process = None
     dataset_model: DatasetModel = None
 
+    @classmethod
+    def poll(cls, context):
+        return not context.window_manager.MiN_load_running
+
     def _remove_timer(self, context):
         if self._timer is None:
             return
@@ -54,6 +58,8 @@ class TifLoadOperator(bpy.types.Operator):
         if self.local_file_process is not None:
             self.local_file_process.close()
             self.local_file_process = None
+        context.window_manager.MiN_load_running = False
+        context.window_manager.MiN_cancel_load_requested = False
         clear_progress()
 
     def _read_progress(self, context):
@@ -77,6 +83,9 @@ class TifLoadOperator(bpy.types.Operator):
         return {'FINISHED'}
 
     def modal(self, context, event):
+        if context.window_manager.MiN_cancel_load_requested:
+            self._cleanup(context)
+            return {'CANCELLED'}
         if event.type == 'TIMER':
             if context.area is not None:
                 for region in context.area.regions:
@@ -100,7 +109,7 @@ class TifLoadOperator(bpy.types.Operator):
             self._cleanup(context)
             return {'CANCELLED'}
 
-        return {"RUNNING_MODAL"}
+        return {"PASS_THROUGH"}
 
 
     def execute(self, context):
@@ -118,12 +127,29 @@ class TifLoadOperator(bpy.types.Operator):
             self._cleanup(context)
             self.report({'ERROR'}, str(error))
             return {'CANCELLED'}
+        context.window_manager.MiN_cancel_load_requested = False
+        context.window_manager.MiN_load_running = True
         self._timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
     def cancel(self, context):
         self._cleanup(context)
+
+
+class TifLoadCancelOperator(bpy.types.Operator):
+    """Cancel resaving the microscopy dataset to local cache files [Esc]"""
+
+    bl_idname = "microscopynodes.cancel_load"
+    bl_label = "Cancel"
+
+    @classmethod
+    def poll(cls, context):
+        return context.window_manager.MiN_load_running
+
+    def execute(self, context):
+        context.window_manager.MiN_cancel_load_requested = True
+        return {'FINISHED'}
 
 
 class TifLoadBackgroundOperator(bpy.types.Operator):
@@ -199,4 +225,4 @@ class SelectPathOperator(Operator):
         return {'RUNNING_MODAL'}
 
 
-CLASSES = [TifLoadOperator, TifLoadBackgroundOperator, ArrayOptionSelectOperator, ArrayOptionMenu, SelectPathOperator]
+CLASSES = [TifLoadOperator, TifLoadCancelOperator, TifLoadBackgroundOperator, ArrayOptionSelectOperator, ArrayOptionMenu, SelectPathOperator]

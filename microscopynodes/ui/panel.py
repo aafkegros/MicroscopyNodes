@@ -13,6 +13,7 @@ class TIFLoadPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scn = context.scene
+        wm = context.window_manager
         try:
             reload_object = scn.MiN_reload
         except ReferenceError:
@@ -102,14 +103,16 @@ class TIFLoadPanel(bpy.types.Panel):
         col.separator()
         # col = layout.column(align=False)  
         # row = col.row(align=False)
-        if not reload_object_is_valid:
-            col.operator("microscopynodes.load", text="Load")
+        action = layout.column(align=False)
+        if wm.MiN_load_running:
+            action.operator("microscopynodes.cancel_load", text="Cancel", icon="CANCEL")
+        elif not reload_object_is_valid:
+            action.operator("microscopynodes.load", text="Load")
         else:
-            col.operator("microscopynodes.load", text="Reload")
-        if not bpy.context.scene.MiN_enable_ui:
-            col.enabled=False
+            action.operator("microscopynodes.load", text="Reload")
+        action.enabled = wm.MiN_load_running or scn.MiN_enable_ui
         
-        col.prop(context.scene, 'MiN_progress_str', emboss=False)
+        action.prop(context.scene, 'MiN_progress_str', emboss=False)
 
         
         box = layout.box()
