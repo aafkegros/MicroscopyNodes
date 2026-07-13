@@ -39,9 +39,7 @@ class Dataset():
 
     def set_state(self, dataset_model, update_data=True, update_settings=True):
         if not dataset_model.local_files_exist and update_data:
-            result = dataset_model.make_local_files()
-            if not result["ok"]:
-                raise RuntimeError(result["error"])
+            dataset_model.make_local_files()
         self.scene.resolve_auto_import_scale(dataset_model)
 
         required_objects = {min_keys.HOLDER, min_keys.AXES, min_keys.SLICECUBE}

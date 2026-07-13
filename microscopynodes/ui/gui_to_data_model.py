@@ -40,7 +40,7 @@ def infer_visibility_to_channel_data(dataset, dataset_model):
         return
     mask = dataset.volume.infer_visibility()
     for channel in dataset_model.channels:
-        channel.data.mask = mask
+        channel.store_mask(mask)
         channel.force_remaking_files = True
 
 # ----------------------------------------------------------------

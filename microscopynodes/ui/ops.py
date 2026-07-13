@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import Operator
-import threading
 from ..data_model import DatasetModel
+from ..io.local_file_process import LocalFileProcess
 from ..blender_state import Scene, Dataset
 from .gui_to_data_model import parse_blender_ui
 from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
@@ -37,42 +37,67 @@ class TifLoadOperator(bpy.types.Operator):
     bl_label = "Load"
 
     _timer = None
-    value = 0 
-    thread = None
-    params = None
+    local_file_process = None
     dataset_model: DatasetModel = None
-    local_files_result = None
 
-    def _make_local_files(self):
-        self.local_files_result = self.dataset_model.make_local_files()
-        return
+    def _remove_timer(self, context):
+        if self._timer is None:
+            return
+        try:
+            context.window_manager.event_timer_remove(self._timer)
+        except Exception:
+            pass
+        self._timer = None
+
+    def _cleanup(self, context):
+        self._remove_timer(context)
+        if self.local_file_process is not None:
+            self.local_file_process.close()
+            self.local_file_process = None
+        clear_progress()
+
+    def _read_progress(self, context):
+        progress = self.local_file_process.progress()
+        if progress is not None:
+            context.scene.MiN_progress_str = progress
+
+    def _finish(self, context):
+        self.dataset_model = self.local_file_process.result()
+        self._cleanup(context)
+        Scene.from_blender_ui(context)
+        ensure_valid_reload_object(context.scene)
+        dataset = Dataset(holder=context.scene.MiN_reload)
+        dataset.set_state(
+            self.dataset_model,
+            update_data=context.scene.MiN_update_data,
+            update_settings=context.scene.MiN_update_settings,
+        )
+        select_post_load_object(context, dataset, self.prev_active_obj)
+        clear_progress()
+        return {'FINISHED'}
 
     def modal(self, context, event):
         if event.type == 'TIMER':
-            [region.tag_redraw() for region in context.area.regions]
-            if self.thread is None:
-                if self.local_files_result is not None and not self.local_files_result["ok"]:
-                    clear_progress()
-                    raise(Exception(self.local_files_result["error"]))
-                    return {"CANCELLED"}
-                context.window_manager.event_timer_remove(self._timer)
-                Scene.from_blender_ui(context)
-                ensure_valid_reload_object(context.scene)
-                dataset = Dataset(holder=context.scene.MiN_reload)
-                dataset.set_state(
-                    self.dataset_model,
-                    update_data=context.scene.MiN_update_data,
-                    update_settings=context.scene.MiN_update_settings,
-                )
-                select_post_load_object(context, dataset, self.prev_active_obj)
-                clear_progress()
-                return {'FINISHED'}
-            if not self.thread.is_alive():
-                self.thread = None # update UI for one timer-round
-            return {"RUNNING_MODAL"}
+            if context.area is not None:
+                for region in context.area.regions:
+                    region.tag_redraw()
+            self._read_progress(context)
+            returncode = self.local_file_process.poll()
+            if returncode is None:
+                return {"RUNNING_MODAL"}
+            if returncode != 0:
+                error = self.local_file_process.error()
+                self._cleanup(context)
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            try:
+                return self._finish(context)
+            except Exception as error:
+                self._cleanup(context)
+                self.report({'ERROR'}, str(error))
+                return {'CANCELLED'}
         if event.type in {'RIGHTMOUSE', 'ESC'}:  # Cancel
-            # Revert all changes that have been made
-            clear_progress()
+            self._cleanup(context)
             return {'CANCELLED'}
 
         return {"RUNNING_MODAL"}
@@ -80,24 +105,25 @@ class TifLoadOperator(bpy.types.Operator):
 
     def execute(self, context):
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.1, window=context.window)
-
         self.dataset_model = parse_blender_ui()
-        self.local_files_result = None
-        # self.min_scene = Scene()
-        self.thread = threading.Thread(name='loading thread', target=self._make_local_files)
-        self.prev_active_obj = bpy.context.active_object
-        # self.thread = threading.Thread(name='loading thread', target=self.dataset_model.make_local_files, args=(self.dataset_model,))
-        
+        self.prev_active_obj = context.active_object
+        package_name = __package__.rsplit(".ui", 1)[0]
+        try:
+            self.local_file_process = LocalFileProcess(
+                self.dataset_model,
+                blender_binary=bpy.app.binary_path,
+                package_name=package_name,
+            )
+        except Exception as error:
+            self._cleanup(context)
+            self.report({'ERROR'}, str(error))
+            return {'CANCELLED'}
+        self._timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
-        self.thread.start()
         return {'RUNNING_MODAL'}
 
     def cancel(self, context):
-        wm = context.window_manager
-        wm.event_timer_remove(self._timer)
-        clear_progress()
-        return
+        self._cleanup(context)
 
 
 class TifLoadBackgroundOperator(bpy.types.Operator):
@@ -107,9 +133,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
 
     def execute(self, context):
         dataset_model = parse_blender_ui()
-        result = dataset_model.make_local_files()
-        if not result["ok"]:
-            raise RuntimeError(result["error"])
+        dataset_model.make_local_files()
         Scene.from_blender_ui(context)
         ensure_valid_reload_object(context.scene)
         dataset = Dataset(holder=context.scene.MiN_reload)

@@ -15,9 +15,10 @@ class SurfaceObject(MeshChannelObject):
     # identical to VolumeObject but annoyign to import
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
+        metadata = ch.files_for(self.min_type).metadata
         ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
         for key, val in ch_to_node.items():
-            import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
+            import_node.inputs.get(key).default_value = metadata[val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return 
 
@@ -63,7 +64,7 @@ class SurfaceObject(MeshChannelObject):
         threshold_socket.max_value = 1.001
         threshold_socket.attribute_domain = 'POINT'
 
-        set_modifier_input_socket(self.gn_mod, threshold_socket, ch.metadata[self.min_type]['threshold'])
+        set_modifier_input_socket(self.gn_mod, threshold_socket, ch.files_for(self.min_type).metadata['threshold'])
         threshold = group_input_output_for_socket(nodes.get('Group Input'), threshold_socket)
 
         grid_to_mesh = nodes.new('GeometryNodeGridToMesh')

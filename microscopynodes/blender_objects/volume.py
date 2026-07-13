@@ -60,9 +60,10 @@ class VolumeObject(ChannelObject):
 
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
+        metadata = ch.files_for(self.min_type).metadata
         ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
         for key, val in ch_to_node.items():
-            import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
+            import_node.inputs.get(key).default_value = metadata[val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
 
@@ -117,6 +118,7 @@ class VolumeObject(ChannelObject):
         return values
 
     def draw_histogram(self, nodes, loc, width, hist):
+        hist = np.asarray(hist)
         histnode =nodes.new(type="ShaderNodeFloatCurve")
         histnode.location = loc
         histmap = histnode.mapping
@@ -145,15 +147,16 @@ class VolumeObject(ChannelObject):
 
     def update_material(self, mat, ch):
         nodes = mat.node_tree.nodes
+        metadata = ch.files_for(self.min_type).metadata
 
         color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
         if color_lut is not None:
             set_color_ramp_from_ch(ch, color_lut)
 
-        if self.min_type in ch.metadata:
+        if metadata:
             histnode = nodes.get(f'[Histogram_{ch.identifier}]')
-            if ch.metadata[self.min_type] is not None and histnode is not None:
-                new_histnode = self.draw_histogram(nodes, histnode.location, histnode.width, ch.metadata[self.min_type]['histogram'])
+            if histnode is not None:
+                new_histnode = self.draw_histogram(nodes, histnode.location, histnode.width, metadata['histogram'])
                 new_histnode.name = histnode.name
                 new_histnode.label = histnode.label
                 new_histnode.parent = histnode.parent
@@ -166,6 +169,7 @@ class VolumeObject(ChannelObject):
 
     def init_channel_shader(self, mat, ch):
         mat.use_nodes = True
+        metadata = ch.files_for(self.min_type).metadata
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
@@ -179,15 +183,15 @@ class VolumeObject(ChannelObject):
         contrast_limits = nodes.new(type="ShaderNodeValToRGB")
         contrast_limits.location = (-1200, y_offset + 40)
         contrast_limits.width = 1000
-        contrast_limits.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
+        contrast_limits.color_ramp.elements[0].position = metadata['threshold']
         contrast_limits.color_ramp.elements[0].color = (1,1,1,0)
         contrast_limits.color_ramp.elements[1].color = (1,1,1,1)
         contrast_limits.color_ramp.elements[1].position = 1
         contrast_limits.name = f'[contrast_limits_{ch.identifier}]'
         contrast_limits.label = "Color contrast Limits"
         contrast_limits.show_options = True
-        if 'threshold_upper' in ch.metadata[self.min_type]:
-            contrast_limits.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
+        if 'threshold_upper' in metadata:
+            contrast_limits.color_ramp.elements[1].position = metadata['threshold_upper']
         contrast_limits.outputs[0].hide = True
         expand_node_ui(contrast_limits)
         links.new(node_attr.outputs.get('Fac'), contrast_limits.inputs.get("Fac"))
@@ -195,7 +199,7 @@ class VolumeObject(ChannelObject):
         alpha_limits = nodes.new(type="ShaderNodeValToRGB")
         alpha_limits.location = (-1200, y_offset - 150)
         alpha_limits.width = 1000
-        alpha_limits.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
+        alpha_limits.color_ramp.elements[0].position = metadata['threshold']
         alpha_limits.color_ramp.elements[0].color = (0,0,0,0)
         alpha_limits.color_ramp.elements[1].color = (0,0,0,1)
         alpha_limits.color_ramp.elements[1].position = 1
@@ -205,7 +209,7 @@ class VolumeObject(ChannelObject):
         alpha_limits.outputs[0].hide = True
         links.new(node_attr.outputs.get('Fac'), alpha_limits.inputs.get("Fac"))
 
-        histnode = self.draw_histogram(nodes, (-1200, y_offset + 300), 1000, ch.metadata[self.min_type]['histogram'])
+        histnode = self.draw_histogram(nodes, (-1200, y_offset + 300), 1000, metadata['histogram'])
         histnode.name = f'[Histogram_{ch.identifier}]'
 
         alphanode =  nodes.new('ShaderNodeGroup')

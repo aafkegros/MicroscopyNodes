@@ -174,7 +174,7 @@ class SliceCubeObject(MiNObject):
 
     def update_ch_data(self, ch):
         source_type = self._channel_source_type(ch)
-        file_constructors = ch.file_constructors.get(source_type, [])
+        file_constructors = ch.files_for(source_type).constructors
         if not file_constructors:
             return
         if not self.ch_present(ch):
@@ -253,6 +253,7 @@ class SliceCubeObject(MiNObject):
                 node.location = location
 
     def update_import_node(self, import_node, file_constructors, ch, source_type):
+        metadata = ch.files_for(source_type).metadata
         for key, val in file_constructors[0].items():
             if key == 't':
                 key = 'Frame'
@@ -267,7 +268,7 @@ class SliceCubeObject(MiNObject):
                 import_node.inputs.get(key).default_value = str(val)
         ch_to_node = {"VDB Maximum": "vdb_max", "VDB Minimum": "vdb_min", "Original Maximum": "data_max"}
         for key, val in ch_to_node.items():
-            import_node.inputs.get(key).default_value = ch.metadata[source_type][val]
+            import_node.inputs.get(key).default_value = metadata[val]
         import_node.inputs.get('Grid Name').default_value = 'data'
         import_node.label = ch.name
         self.update_import_affine(ch)
@@ -385,6 +386,7 @@ class SliceCubeObject(MiNObject):
                 add_shaders.node_tree = add_shaders_node(self.shader_count)
 
     def init_channel_shader(self, mat, ch, source_type):
+        metadata = ch.files_for(source_type).metadata
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
@@ -399,7 +401,7 @@ class SliceCubeObject(MiNObject):
             nodes,
             (-1200, y_offset + 300),
             1000,
-            ch.metadata[source_type]['histogram'],
+            metadata['histogram'],
         )
         histnode.name = f'[Histogram_{ch.identifier}]'
 
@@ -408,7 +410,7 @@ class SliceCubeObject(MiNObject):
         contrast_limits.width = 1000
         contrast_limits.name = f'[contrast_limits_{ch.identifier}]'
         contrast_limits.label = "Color Contrast Limits"
-        contrast_limits.color_ramp.elements[0].position = ch.metadata[source_type]['threshold']
+        contrast_limits.color_ramp.elements[0].position = metadata['threshold']
         contrast_limits.color_ramp.elements[0].color = (1, 1, 1, 0)
         contrast_limits.color_ramp.elements[1].position = 1
         contrast_limits.color_ramp.elements[1].color = (1, 1, 1, 1)
@@ -461,25 +463,26 @@ class SliceCubeObject(MiNObject):
     def update_material(self, mat, ch, source_type):
         if source_type is None:
             return
+        metadata = ch.files_for(source_type).metadata
         nodes = mat.node_tree.nodes
         color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
         if color_lut is not None:
             self.set_slice_color_ramp(ch, color_lut)
         histnode = nodes.get(f'[Histogram_{ch.identifier}]')
-        if ch.metadata.get(source_type) is not None and histnode is not None:
+        if metadata and histnode is not None:
             new_histnode = self.draw_histogram(
                 nodes,
                 histnode.location,
                 histnode.width,
-                ch.metadata[source_type]['histogram'],
+                metadata['histogram'],
             )
             new_histnode.name = histnode.name
             new_histnode.label = histnode.label
             new_histnode.parent = histnode.parent
             nodes.remove(histnode)
         contrast_limits = nodes.get(f'[contrast_limits_{ch.identifier}]')
-        if contrast_limits is not None and source_type in ch.metadata:
-            contrast_limits.color_ramp.elements[0].position = ch.metadata[source_type]['threshold']
+        if contrast_limits is not None and metadata:
+            contrast_limits.color_ramp.elements[0].position = metadata['threshold']
         principled = nodes.get(f"[{ch.identifier}] principled")
         if principled is not None:
             principled.inputs[29].default_value = 0.5 if ch.viz.emission else 0.0
@@ -509,6 +512,7 @@ class SliceCubeObject(MiNObject):
         set_color_ramp_from_ch(ch, color_lut)
 
     def draw_histogram(self, nodes, loc, width, hist):
+        hist = np.asarray(hist)
         histnode = nodes.new(type="ShaderNodeFloatCurve")
         histnode.location = loc
         histmap = histnode.mapping

@@ -4,6 +4,7 @@ import numpy as np
 from cmap import Color, Colormap
 from .handle_blender_structs.min_keys import min_keys
 from .handle_blender_structs.units import output_scale_for_import_scale, unit_label_from_value, unit_value
+from .io.artifacts import GeneratedChannelFilesModel, write_mask
 
 #######
 #
@@ -34,7 +35,7 @@ class ChannelDataModel(BaseModel):
     ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
     axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
     source_axes_order: str | None = None
-    mask: Any = None # scalable 
+    mask_path: str | None = None
     affine: List[List[float]] | None = None #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
     frame_start: int = None
@@ -45,6 +46,15 @@ class ChannelDataModel(BaseModel):
     min_rescale_xyz: Tuple[float, float, float] = (1.0, 1.0, 1.0)
     _source_array_cache: Any = PrivateAttr(default=None)
     _data_cache: Any = PrivateAttr(default=None) # check if necessary?
+    _mask_cache: Any = PrivateAttr(default=None)
+
+    @property
+    def mask(self):
+        if self.mask_path is None:
+            return None
+        if self._mask_cache is None:
+            self._mask_cache = np.load(self.mask_path, allow_pickle=False)
+        return self._mask_cache
 
     @field_validator("min_rescale_xyz")
     def validate_min_rescale_xyz(cls, v):
@@ -150,9 +160,6 @@ class ChannelDataModel(BaseModel):
                 raise ValueError(f"frame_end {self.frame_end} out of bounds for t axis length {tdim}")
         if "t" in self.axes_order and self.frame_start > self.frame_end:
             raise ValueError("frame_start must not exceed frame_end")
-        if self.mask is not None:
-            if self.mask.ndim != 3 or self.mask.dtype != bool:
-                raise ValueError("mask must be a three-dimensional boolean array")
         return self
 
     # should implement transforms for Zarr RFC-5, will then turn to floats
@@ -210,6 +217,8 @@ class ChannelVizModel(BaseModel):
     def validate_cmap(cls, v):
         if isinstance(v, Colormap):
             return v
+        if isinstance(v, dict) and "value" in v:
+            return Colormap(v["value"])
         return Colormap(v)
 
 
@@ -218,8 +227,7 @@ class ChannelModel(BaseModel):
     viz: ChannelVizModel
     cache_path: str
     force_remaking_files: bool = False
-    metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
-    file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
+    generated: GeneratedChannelFilesModel = Field(default_factory=GeneratedChannelFilesModel)
 
     @property
     def identifier(self):
@@ -229,12 +237,27 @@ class ChannelModel(BaseModel):
     def name(self):
         return self.viz.name
 
+    def files_for(self, min_type):
+        return self.generated.for_type(min_type)
+
+    def store_mask(self, mask):
+        mask_path, mask = write_mask(self.cache_path, mask)
+        self.data.mask_path = mask_path
+        self.data._mask_cache = mask
+
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
     name : Optional[str] 
 
-    local_files_exist: bool = False
+    @property
+    def local_files_exist(self):
+        for channel in self.channels:
+            for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
+                if getattr(channel.viz, min_type.name.lower(), False):
+                    if not channel.files_for(min_type).constructors:
+                        return False
+        return True
 
     @property
     def unit_label(self):
@@ -284,20 +307,16 @@ class DatasetModel(BaseModel):
     def make_local_files(self):
         from .io.factories import DataIOFactory
 
-        try:
-            for ch in self.channels:
-                for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
-                    load = getattr(ch.viz, min_type.name.lower(), False)
-                    if not load:
-                        continue
-                    data_io = DataIOFactory(min_type)
-                    file_constructors = data_io.make_local_files(ch)
-                    ch.file_constructors[min_type] = file_constructors
-                    ch.metadata[min_type] = data_io.get_metadata(file_constructors)
-            self.local_files_exist = True
-            return {"ok": True, "error": ""}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
+        for ch in self.channels:
+            for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
+                load = getattr(ch.viz, min_type.name.lower(), False)
+                if not load:
+                    continue
+                data_io = DataIOFactory(min_type)
+                generated = ch.files_for(min_type)
+                generated.constructors = data_io.make_local_files(ch)
+                generated.metadata = data_io.get_metadata(generated.constructors)
+        return self
 
 
 class SceneModel(BaseModel):

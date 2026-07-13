@@ -61,6 +61,7 @@ class LabelmaskObject(MeshChannelObject):
 
     def init_channel_shader(self, mat, ch):
         super().init_channel_shader(mat, ch)
+        metadata = ch.files_for(self.min_type).metadata
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
@@ -79,7 +80,7 @@ class LabelmaskObject(MeshChannelObject):
         remap.name = f"[remap_oid_{ch.identifier}]"
         remap.location = (-420, y_offset - 35)
         remap.show_options = False
-        remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
+        remap.inputs.get('# Objects').default_value = metadata['max']
         remap.parent = frame
 
         links.new(idnode.outputs.get('Fac'), remap.inputs.get('Value'))
@@ -89,12 +90,13 @@ class LabelmaskObject(MeshChannelObject):
 
     def update_material(self, mat, ch):
         try:
+            metadata = ch.files_for(self.min_type).metadata
             nodes =  mat.node_tree.nodes
             color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
             remap = nodes.get(f'[remap_oid_{ch.identifier}]')
             set_color_ramp_from_ch(ch, color_lut)
             if remap is not None and color_lut is not None:
-                remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
+                remap.inputs.get('# Objects').default_value = metadata['max']
                 remap.inputs.get('Revolving Colormap').default_value = (color_lut.color_ramp.interpolation == 'CONSTANT')
                 remap.inputs.get('# Colors').default_value = max(len(color_lut.color_ramp.elements), 5)
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")

@@ -177,7 +177,7 @@ class ChannelObject(MiNObject):
             self.update_ch_data(ch)
 
     def update_ch_data(self, ch):
-        file_constructors = ch.file_constructors.get(self.min_type, [])
+        file_constructors = ch.files_for(self.min_type).constructors
         if not file_constructors:
             return
         if not self.ch_present(ch):
@@ -407,11 +407,6 @@ class ChannelObject(MiNObject):
         slicer = self.node_group.nodes.get(f"SLICE_CUBE_{ch.identifier}")
         if slicer is not None and slicer.inputs.get("Object") is not None:
             slicer.inputs["Object"].default_value = slice_cube
-        for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
-            obj.parent = parent
-            obj.matrix_parent_inverse.identity()
-
-
 class MeshChannelObject(ChannelObject):
     shader_y_step = 500
 

@@ -1,5 +1,3 @@
-from copy import copy
-
 import numpy as np
 
 from ..data_model import ChannelModel, DatasetModel
@@ -38,7 +36,6 @@ def rescale_dataset(dataset_model, rescale_xyz, dataset_resolution=None):
     return DatasetModel(
         name=_rescaled_name(dataset_model.name, rescale_xyz),
         channels=channels,
-        local_files_exist=dataset_model.local_files_exist,
     )
 
 
@@ -71,8 +68,7 @@ def _rescale_channel(channel_model, rescale_xyz, dataset_resolution):
         viz=channel_model.viz.model_copy(deep=True),
         cache_path=channel_model.cache_path,
         force_remaking_files=channel_model.force_remaking_files,
-        metadata=copy(channel_model.metadata),
-        file_constructors=copy(channel_model.file_constructors),
+        generated=channel_model.generated.model_copy(deep=True),
     )
 
 
