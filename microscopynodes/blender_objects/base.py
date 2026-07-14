@@ -1,8 +1,16 @@
 import bpy
-from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_modifier_input_socket, set_name_socket
+from ..handle_blender_structs.node_handling import (
+    expand_node_ui,
+    get_socket,
+    insert_slicing,
+    remove_slicing,
+    set_modifier_input_socket,
+    set_name_socket,
+)
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.combine_channels import join_microscopy_grids_and_meshes_node_group
 from ..min_nodes.geo_nodes.masking.nodeMaskGrid import mask_grid_node_group
+from ..min_nodes.geo_nodes.masking.nodeMaskMesh import mask_mesh_node_group
 from ..min_nodes.shader_nodes import add_shaders_node, filter_geometry_by_attribute_node
 from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
@@ -170,6 +178,7 @@ class ChannelObject(MiNObject):
 
     def set_data(self, dataset_model):
         self.dataset_name = dataset_model.name
+        self.slice_cube_mode = dataset_model.slice_cube_mode
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
             if not getattr(ch.viz, self.min_type.name.lower(), False):
@@ -189,6 +198,7 @@ class ChannelObject(MiNObject):
 
     def set_settings(self, dataset_model):
         self.dataset_name = dataset_model.name
+        self.slice_cube_mode = dataset_model.slice_cube_mode
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
             self.update_ch_settings(ch)
@@ -365,21 +375,48 @@ class ChannelObject(MiNObject):
             channel_attribute.attribute_name = ch.name.replace("-", "_")
             channel_attribute.label = ch.name.replace("-", "_")
 
-    def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
+    def new_slice_cube_mask(self, ch, import_node):
         nodes = self.node_group.nodes
         links = self.node_group.links
 
-        mask_grid = nodes.new("GeometryNodeGroup")
-        mask_grid.node_tree = mask_grid_node_group()
-        mask_grid.name = f"SLICE_CUBE_{ch.identifier}"
-        mask_grid.location = (x + 360, y + 80)
-        mask_grid.width = 280
-        mask_grid.show_options = False
-        if mask_grid.inputs.get("With") is not None:
-            mask_grid.inputs["With"].default_value = 'Box'
+        slicer = nodes.new("GeometryNodeGroup")
+        slicer.name = f"SLICE_CUBE_{ch.identifier}"
+        slicer.show_options = False
+        if self.min_type == min_keys.LABELMASK:
+            slicer.node_tree = mask_mesh_node_group()
+            slicer.location = (
+                import_node.location[0] + 170,
+                import_node.location[1] - 100,
+            )
+            source_input = "Mesh"
+        else:
+            slicer.node_tree = mask_grid_node_group()
+            slicer.location = (
+                import_node.location[0] + 360,
+                import_node.location[1] - 20,
+            )
+            slicer.width = 280
+            source_input = "Grid"
+        if slicer.inputs.get("With") is not None:
+            slicer.inputs["With"].default_value = 'Box'
+        links.new(self.slice_cube_source(import_node), slicer.inputs[source_input])
+        return slicer
 
-        links.new(grid_socket, mask_grid.inputs["Grid"])
-        return mask_grid.outputs["Inside Mask"]
+    def slice_cube_source(self, import_node):
+        output_name = "Geometry" if self.min_type == min_keys.LABELMASK else "Grid"
+        return import_node.outputs[output_name]
+
+    def slice_cube_target(self, ch):
+        if self.min_type == min_keys.SURFACE:
+            return self.node_group.nodes[f"GRID_TO_MESH_{ch.identifier}"].inputs["Grid"]
+        return self.channel_bundle_input(ch)
+
+    def slice_cube_channel_output(self, ch, import_node):
+        source = self.slice_cube_source(import_node)
+        if getattr(self, "slice_cube_mode", "GEOMETRY") != "GEOMETRY":
+            return source, None
+        slicer = self.new_slice_cube_mask(ch, import_node)
+        return slicer.outputs["Inside Mask"], slicer
 
     def add_ch_to_shader(self, mat, ch, shader_socket):
         nodes = mat.node_tree.nodes
@@ -404,9 +441,46 @@ class ChannelObject(MiNObject):
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
         self.object.matrix_parent_inverse.identity()
-        slicer = self.node_group.nodes.get(f"SLICE_CUBE_{ch.identifier}")
-        if slicer is not None and slicer.inputs.get("Object") is not None:
-            slicer.inputs["Object"].default_value = slice_cube
+        geometry_mode = getattr(self, "slice_cube_mode", "GEOMETRY") == "GEOMETRY"
+        self.configure_geometry_slicing(ch, slice_cube, geometry_mode)
+
+        for mat in self.object.data.materials:
+            if mat is None or not mat.use_nodes:
+                continue
+            if geometry_mode:
+                remove_slicing(mat.node_tree)
+            else:
+                insert_slicing(mat.node_tree, slice_cube)
+
+    def configure_geometry_slicing(self, ch, slice_cube, enabled):
+        nodes = self.node_group.nodes
+        import_node = nodes.get(f"IMPORT_{ch.identifier}")
+        if import_node is None:
+            return
+        target = self.slice_cube_target(ch)
+        slicer = nodes.get(f"SLICE_CUBE_{ch.identifier}")
+
+        if not enabled:
+            self.replace_input_link(target, self.slice_cube_source(import_node))
+            if slicer is not None:
+                nodes.remove(slicer)
+            return
+
+        if slicer is None:
+            slicer = self.new_slice_cube_mask(ch, import_node)
+            slicer.parent = self.gn_frame()
+        slicer.inputs["Object"].default_value = slice_cube
+        self.replace_input_link(target, slicer.outputs["Inside Mask"])
+
+    def channel_bundle_input(self, ch):
+        channel_bundle = self.node_group.nodes["Channel Bundle"]
+        item_name = channel_bundle.get(f"channel_{ch.identifier}")
+        return channel_bundle.inputs[item_name]
+
+    def replace_input_link(self, input_socket, output_socket):
+        for link in list(input_socket.links):
+            self.node_group.links.remove(link)
+        self.node_group.links.new(output_socket, input_socket)
 class MeshChannelObject(ChannelObject):
     shader_y_step = 500
 

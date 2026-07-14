@@ -55,8 +55,7 @@ class SurfaceObject(MeshChannelObject):
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
-        masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
-        mask_grid = nodes.get(f"SLICE_CUBE_{ch.identifier}")
+        masked_grid, mask_grid = self.slice_cube_channel_output(ch, import_node)
 
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)

@@ -183,30 +183,111 @@ def get_socket_by_name(node_group, name, return_ix=False):
                 return node_group.interface.items_tree[ix], ix
             return node_group.interface.items_tree[ix]
 
+SLICE_CUBE_SHADER_NODE = "[Microscopy Nodes Slice Cube]"
+SLICE_CUBE_TEXCOORD_NODE = "[Microscopy Nodes Slice Cube Coordinates]"
+
+
+def layout_slicing_nodes(slicecube, texcoord, source_node, output_node):
+    common_parent = source_node.parent
+    if output_node.parent != common_parent:
+        common_parent = None
+    slicecube.parent = common_parent
+    texcoord.parent = common_parent
+
+    previous_shift = float(slicecube.get("output_shift_x", 0.0))
+    if previous_shift:
+        output_node.location = (
+            output_node.location[0] - previous_shift,
+            output_node.location[1],
+        )
+        del slicecube["output_shift_x"]
+
+    source_right = source_node.location[0] + source_node.width
+    output_left = output_node.location[0]
+    gap = output_left - source_right
+    center_y = (source_node.location[1] + output_node.location[1]) / 2
+    slicecube.location = (
+        source_right + (gap - slicecube.width) / 2,
+        center_y,
+    )
+    texcoord.location = (
+        source_right + (gap - texcoord.width) / 2,
+        center_y + 220,
+    )
+
+
 def insert_slicing(group, slice_obj):
     from ..min_nodes.shader_nodes import slice_cube_node_group
 
     nodes = group.nodes
     links = group.links
+    existing = nodes.get(SLICE_CUBE_SHADER_NODE)
+    if existing is not None:
+        texcoord = nodes.get(SLICE_CUBE_TEXCOORD_NODE)
+        if texcoord is not None:
+            texcoord.object = slice_obj
+            shader_input = existing.inputs.get("Shader")
+            shader_output = existing.outputs.get("Shader")
+            if shader_input.links and shader_output.links:
+                layout_slicing_nodes(
+                    existing,
+                    texcoord,
+                    shader_input.links[0].from_node,
+                    shader_output.links[0].to_node,
+                )
+        return existing
+
     lastnode, outnode, output_input = get_nodes_last_output(group)
+    source_socket = output_input.links[0].from_socket
 
     texcoord = nodes.new('ShaderNodeTexCoord')
+    texcoord.name = SLICE_CUBE_TEXCOORD_NODE
+    texcoord.label = "Slice Cube Coordinates"
     texcoord.object = slice_obj
     texcoord.width = 200
-    texcoord.location = (outnode.location[0] + 120, outnode.location[1] + 140)
+    for output in texcoord.outputs:
+        output.hide = output.name != 'Object'
 
     slicecube = nodes.new('ShaderNodeGroup')
     slicecube.node_tree = slice_cube_node_group()
-    slicecube.name = "Slice Cube"
+    slicecube.name = SLICE_CUBE_SHADER_NODE
+    slicecube.label = "Slice Cube"
     slicecube.width = 250
-    slicecube.location = (outnode.location[0] + 420, outnode.location[1])
     links.new(texcoord.outputs.get('Object'),slicecube.inputs.get('Slicing Object'))
     
     slicecube.inputs[0].show_expanded = True
     if len(lastnode.inputs) > 0: 
         lastnode.inputs[0].show_expanded = True
 
-    links.new(lastnode.outputs[0], slicecube.inputs.get("Shader"))
+    links.remove(output_input.links[0])
+    links.new(source_socket, slicecube.inputs.get("Shader"))
     links.new(slicecube.outputs.get("Shader"), output_input)
-    outnode.location = (outnode.location[0] + 850, outnode.location[1])
-    return
+    layout_slicing_nodes(slicecube, texcoord, lastnode, outnode)
+    return slicecube
+
+
+def remove_slicing(group):
+    nodes = group.nodes
+    links = group.links
+    slicecube = nodes.get(SLICE_CUBE_SHADER_NODE)
+    if slicecube is None:
+        return
+
+    shader_input = slicecube.inputs.get("Shader")
+    shader_output = slicecube.outputs.get("Shader")
+    source_socket = shader_input.links[0].from_socket if shader_input.links else None
+    target_sockets = [link.to_socket for link in shader_output.links]
+    output_shift_x = float(slicecube.get("output_shift_x", 0.0))
+    if source_socket is not None:
+        for target_socket in target_sockets:
+            links.new(source_socket, target_socket)
+            target_node = target_socket.node
+            target_node.location = (
+                target_node.location[0] - output_shift_x,
+                target_node.location[1],
+            )
+
+    nodes.remove(slicecube)
+    texcoord = nodes.get(SLICE_CUBE_TEXCOORD_NODE)
+    if texcoord is not None:
+        nodes.remove(texcoord)

@@ -1,4 +1,4 @@
-from typing import Annotated, Tuple, List, Dict, Any
+from typing import Annotated, Tuple, List, Dict, Any, Literal
 from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 import numpy as np
 from cmap import Color, Colormap
@@ -254,6 +254,7 @@ class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
     name: str | None = None
+    slice_cube_mode: Literal["GEOMETRY", "SHADER"] = "GEOMETRY"
 
     @property
     def local_files_exist(self):

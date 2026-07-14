@@ -2,7 +2,6 @@ from .base import MeshChannelObject
 from ..handle_blender_structs.node_handling import group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
 from ..min_nodes.geo_nodes.utilities.import_microscopy_meshes import import_microscopy_meshes_node_group
-from ..min_nodes.geo_nodes.masking.nodeMaskMesh import mask_mesh_node_group
 from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 
 class LabelmaskObject(MeshChannelObject):
@@ -46,16 +45,8 @@ class LabelmaskObject(MeshChannelObject):
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
-        mask_mesh = nodes.new("GeometryNodeGroup")
-        mask_mesh.node_tree = mask_mesh_node_group()
-        mask_mesh.name = f"SLICE_CUBE_{ch.identifier}"
-        mask_mesh.location = (x + 170, y)
-        mask_mesh.show_options = False
-        if mask_mesh.inputs.get("With") is not None:
-            mask_mesh.inputs["With"].default_value = 'Box'
-
-        links.new(import_node.outputs["Geometry"], mask_mesh.inputs["Mesh"])
-        self.add_channel_to_bundle(ch, mask_mesh.outputs["Inside Mask"], "GEOMETRY")
+        channel_geometry, mask_mesh = self.slice_cube_channel_output(ch, import_node)
+        self.add_channel_to_bundle(ch, channel_geometry, "GEOMETRY")
         self.frame_gn_nodes([import_node, affine_node, mask_mesh])
         return
 

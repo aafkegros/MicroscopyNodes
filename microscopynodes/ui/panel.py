@@ -87,8 +87,6 @@ class TIFLoadPanel(bpy.types.Panel):
         if not bpy.context.scene.MiN_enable_ui:
             col.enabled=False
 
-        col.separator()
-
         row = col.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
         row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_MESH")
@@ -126,6 +124,23 @@ class TIFLoadPanel(bpy.types.Panel):
         if addon_preferences().cache_option == 'WITH_PROJECT' and bpy.path.abspath('//') == '':
             row = box.row()
             row.label(text = "Don't forget to save your blend file :)")
+
+        row = box.row(align=True)
+        row.label(text="Slice cube mode:")
+        row.prop_enum(
+            addon_preferences(context),
+            "slice_cube_mode",
+            "GEOMETRY",
+            text="",
+            icon="GEOMETRY_NODES",
+        )
+        row.prop_enum(
+            addon_preferences(context),
+            "slice_cube_mode",
+            "SHADER",
+            text="",
+            icon="MATERIAL",
+        )
 
         row = box.row(align=True)
         

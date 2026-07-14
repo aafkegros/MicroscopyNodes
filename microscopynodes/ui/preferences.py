@@ -41,6 +41,26 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         max=20,
         default=2,
     )
+    slice_cube_mode: EnumProperty(
+        name="Slice cube mode",
+        items=[
+            (
+                "GEOMETRY",
+                "Geometry",
+                "Slice cube masks data in Geometry Nodes. This is more flexible and allows for easy reloading of visible data. May cause jagged edges in dense renders.",
+                "GEOMETRY_NODES",
+                0,
+            ),
+            (
+                "SHADER",
+                "Shader",
+                "Clip rendered materials with the Slice Cube shader node. More accurate box slicing, but strictly only on bounding boxes.",
+                "MATERIAL",
+                1,
+            ),
+        ],
+        default="GEOMETRY",
+    )
 
     
     cache_path: StringProperty(
@@ -90,6 +110,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         col.label(text="Default channel settings to set for new files.")
         col.prop(self, "n_default_channels")
         col.prop(self, "extra_channel_slots")
+        col.prop(self, "slice_cube_mode")
         col.template_list("SCENE_UL_Channels", "", self, "channels", bpy.context.scene, "MiN_ch_index", rows=6,sort_lock=True)
         col = layout.column()
         # col.label(text="Transformations upon import:")
@@ -113,6 +134,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
                 invert_color=False,
                 n_default_channels=8,
                 extra_channel_slots=2,
+                slice_cube_mode="GEOMETRY",
                 cache_option="TEMPORARY",
                 cache_path=str(Path("~", "microscopynodes_cache").expanduser()),
                 channels=[default_channel(ix) for ix in range(8)],

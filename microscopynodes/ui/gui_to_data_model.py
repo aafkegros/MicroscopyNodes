@@ -24,6 +24,7 @@ def parse_blender_ui():
     scene_model = DatasetModel(
         name=name,
         channels=channels,
+        slice_cube_mode=addon_preferences().slice_cube_mode,
     )
     if scn.MiN_load_with_mask and scn.MiN_reload is not None:
         from ..blender_state import Dataset
