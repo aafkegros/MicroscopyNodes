@@ -19,17 +19,19 @@ class TIFLoadPanel(bpy.types.Panel):
         except ReferenceError:
             reload_object = None
         reload_object_is_valid = valid_reload_object(reload_object, scene=scn)
+        data_inputs_enabled = not reload_object_is_valid or scn.MiN_update_data
+        settings_inputs_enabled = not reload_object_is_valid or scn.MiN_update_settings
 
-        col = layout.column(align=True)
-        col.label(text=".tif or .zarr:")
-        row = col.row(align=True)
+        source_col = layout.column(align=True)
+        source_col.label(text=".tif or .zarr:")
+        row = source_col.row(align=True)
         row.prop(bpy.context.scene, 'MiN_input_file', text= '')
         row.operator("microscopynodes.select_path", text="", icon='FILEBROWSER')
 
         
         
         if bpy.context.scene.MiN_selected_array_option != "" and len(bpy.context.scene.MiN_array_options) != 0:
-            row =col.row(align=True)
+            row = source_col.row(align=True)
             row.prop(bpy.context.scene, 'MiN_selected_array_option')
             row.enabled = True
             if len(bpy.context.scene.MiN_array_options) == 0:
@@ -37,6 +39,7 @@ class TIFLoadPanel(bpy.types.Panel):
             if selected_array_option().is_rescaled:
                 row.prop(bpy.context.scene, 'MiN_pixel_sizes_are_rescaled', icon="FIXED_SIZE", icon_only=True)
             # col.menu(menu='SCENE_MT_ArrayOptionMenu', text=selected_array_option().ui_text)
+        source_col.enabled = data_inputs_enabled
         
         
         # # Create two columns, by using a split layout.
@@ -75,17 +78,17 @@ class TIFLoadPanel(bpy.types.Panel):
             rowt.prop(scn,'MiN_load_start_frame')
             rowt.prop(scn,'MiN_load_end_frame')
 
-        if not bpy.context.scene.MiN_enable_ui:
-            col1.enabled=False
-            col2.enabled=False
+        col1.enabled = scn.MiN_enable_ui and data_inputs_enabled
+        col2.enabled = scn.MiN_enable_ui and data_inputs_enabled
 
         
         col = layout.column(align=False)  
 
         col.template_list("SCENE_UL_Channels", "", bpy.context.scene, "MiN_channelList", bpy.context.scene, "MiN_ch_index", rows=max(len(bpy.context.scene.MiN_channelList),1),sort_lock=True)
 
-        if not bpy.context.scene.MiN_enable_ui:
-            col.enabled=False
+        col.enabled = scn.MiN_enable_ui and (
+            data_inputs_enabled or settings_inputs_enabled
+        )
 
         row = col.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
@@ -102,12 +105,31 @@ class TIFLoadPanel(bpy.types.Panel):
         # col = layout.column(align=False)  
         # row = col.row(align=False)
         action = layout.column(align=False)
+        row = action.row(align=True)
         if wm.MiN_load_running:
-            action.operator("microscopynodes.cancel_load", text="Cancel", icon="CANCEL")
+            row.operator("microscopynodes.cancel_load", text="Cancel", icon="CANCEL")
         elif not reload_object_is_valid:
-            action.operator("microscopynodes.load", text="Load")
+            row.operator("microscopynodes.load", text="Load")
         else:
-            action.operator("microscopynodes.load", text="Reload")
+            row.operator("microscopynodes.load", text="Reload")
+        settings_controls = row.row(align=True)
+        settings_controls.prop(
+            scn,
+            'MiN_overwrite_background_color',
+            text='',
+            icon="WORLD",
+            icon_only=True,
+            emboss=True,
+        )
+        settings_controls.prop(
+            scn,
+            'MiN_overwrite_render_settings',
+            text='',
+            icon="SCENE",
+            icon_only=True,
+            emboss=True,
+        )
+        settings_controls.enabled = settings_inputs_enabled
         action.enabled = wm.MiN_load_running or scn.MiN_enable_ui
         
         action.prop(context.scene, 'MiN_progress_str', emboss=False)
@@ -117,10 +139,12 @@ class TIFLoadPanel(bpy.types.Panel):
         row = box.row(align=True)
         row.label(text="Data Storage:", icon="FILE_FOLDER")
         row.prop(addon_preferences(context), 'cache_option', text="", icon="NONE", emboss=True)
+        row.enabled = data_inputs_enabled
         
         if addon_preferences().cache_option == 'PATH':
             row = box.row()
             row.prop(addon_preferences(context), 'cache_path', text="")
+            row.enabled = data_inputs_enabled
         if addon_preferences().cache_option == 'WITH_PROJECT' and bpy.path.abspath('//') == '':
             row = box.row()
             row.label(text = "Don't forget to save your blend file :)")
@@ -141,18 +165,14 @@ class TIFLoadPanel(bpy.types.Panel):
             text="",
             icon="MATERIAL",
         )
+        row.enabled = settings_inputs_enabled
 
         row = box.row(align=True)
-        
-        row.prop(bpy.context.scene, 'MiN_overwrite_background_color', 
-                        text = '', icon="WORLD",icon_only=True,emboss=True)
-        row.prop(bpy.context.scene, 'MiN_overwrite_render_settings', 
-                        text = '', icon="SCENE",icon_only=True,emboss=True)
-        row.separator()
         row.label(text="", icon='CON_SIZELIKE')
         row.prop(bpy.context.scene, 'MiN_import_scale', emboss=True,text="")
         row.label(text="", icon='ORIENTATION_PARENT')
         row.prop(bpy.context.scene, 'MiN_import_loc', emboss=True,text="")
+        row.enabled = settings_inputs_enabled
 
        
 CLASSES = [TIFLoadPanel]

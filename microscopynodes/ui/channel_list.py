@@ -123,11 +123,21 @@ class SCENE_UL_Channels(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         self.use_filter_show =False #filtering is currently unsupported
         channel = item
+        scene = context.scene
+        try:
+            reload_object = scene.MiN_reload
+        except ReferenceError:
+            reload_object = None
+        from ..handle_blender_structs.dependent_props import valid_reload_object
+        is_reload = valid_reload_object(reload_object, scene=scene)
+        settings_enabled = not is_reload or scene.MiN_update_settings
 
         row1 = layout.row( align=True)
         split = row1.split(factor=0.9, align=True) # splitting to reduce the size of the color picker
         row = split.row(align=True)
-        row.prop(channel, "name", text="", emboss=True)
+        control = row.row(align=True)
+        control.enabled = settings_enabled
+        control.prop(channel, "name", text="", emboss=True)
         
         volumecheckbox = "OUTLINER_OB_VOLUME" if channel.volume else "VOLUME_DATA"
         row.prop(channel, "volume", text="", emboss=True, icon=volumecheckbox)
@@ -141,11 +151,16 @@ class SCENE_UL_Channels(UIList):
         row.separator()
 
         emitcheckbox = "OUTLINER_OB_LIGHT" if channel.emission else "LIGHT_DATA"
-        row.prop(channel, "emission", text="", emboss=False, icon=emitcheckbox)
+        control = row.row(align=True)
+        control.enabled = settings_enabled
+        control.prop(channel, "emission", text="", emboss=False, icon=emitcheckbox)
 
-        row.prop(channel, "cmap", text="", emboss=False, icon_only=True)
+        control = row.row(align=True)
+        control.enabled = settings_enabled
+        control.prop(channel, "cmap", text="", emboss=False, icon_only=True)
 
         row = split.column(align=True)
+        row.enabled = settings_enabled
         if channel.cmap == 'SINGLE_COLOR':
             row.prop(channel, "single_color", text="")
         else:
