@@ -80,6 +80,7 @@ class TifLoadOperator(bpy.types.Operator):
             update_settings=context.scene.MiN_update_settings,
         )
         select_post_load_object(context, dataset, self.prev_active_obj)
+        context.scene.MiN_overwrite_render_settings = False
         clear_progress()
         return {'FINISHED'}
 
@@ -170,6 +171,7 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
             update_settings=context.scene.MiN_update_settings,
         )
         select_post_load_object(context, dataset, context.active_object)
+        context.scene.MiN_overwrite_render_settings = False
         clear_progress()
         return {'FINISHED'}
 
