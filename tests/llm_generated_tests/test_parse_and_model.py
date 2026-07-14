@@ -21,12 +21,11 @@ def _set_import_scale(scale_name):
 def _make_channel(name="Channel 0", affine=None):
     if affine is None:
         affine = np.eye(4).tolist()
-    return ChannelModel(
+    channel = ChannelModel(
         cache_path="/tmp/example",
         data={
             "dataset_resolution": 0,
             "ix": 0,
-            "data": da.zeros((4, 6, 8), dtype=np.uint16),
             "axes_order": "xyz",
             "affine": affine,
             "unit": 1e-6,
@@ -42,6 +41,8 @@ def _make_channel(name="Channel 0", affine=None):
             "name": name,
         },
     )
+    channel.data._source_array_cache = da.zeros((4, 6, 8), dtype=np.uint16)
+    return channel
 
 
 def test_parse_physical_scale_mode_uses_physical_pixel_sizes():
