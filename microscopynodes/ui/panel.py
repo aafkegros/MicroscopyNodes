@@ -117,7 +117,7 @@ class TIFLoadPanel(bpy.types.Panel):
         action.prop(context.scene, 'MiN_progress_str', emboss=False)
 
         box = layout.box()
-        on_load_split = box.split(factor=0.25, align=True)
+        on_load_split = box.split(factor=0.17, align=True)
         title_column = on_load_split.column(align=True)
         title_column.alignment = 'CENTER'
         title_column.label(text="On load")
