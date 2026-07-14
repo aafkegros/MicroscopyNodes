@@ -55,6 +55,8 @@ def selected_dataset_model():
 
 
 def change_path(self, context):
+    from ..ui.preferences import addon_preferences
+
     scn = context.scene
     scn.MiN_channel_nr = 0
     scn.MiN_enable_ui = False
@@ -78,6 +80,7 @@ def change_path(self, context):
     if not options:
         return
 
+    apply_import_defaults(options, addon_preferences(context))
     _fill_array_options(options, scn)
     scn.MiN_selected_array_option = str(len(options) - 1)
     _set_active_options(scn.MiN_input_file, _source_axes_order(options[-1]), options)
@@ -116,6 +119,8 @@ def load_array(ch_dicts):
 
 
 def change_channel_ax(self, context):
+    from ..ui.preferences import addon_preferences
+
     scn = context.scene
     channel_axis = _channel_axis_ix(scn.MiN_axes_order)
     if scn.get("_MiN_channel_axis_ix", channel_axis) == channel_axis:
@@ -135,6 +140,7 @@ def change_channel_ax(self, context):
     if not options:
         return
 
+    apply_import_defaults(options, addon_preferences(context))
     selected_ix = _selected_option_ix(scn, len(options))
     _set_active_options(scn.MiN_input_file, scn.MiN_axes_order, options)
     _fill_array_options(options, scn, axes_order_override=scn.MiN_axes_order)
@@ -157,6 +163,12 @@ def _fill_array_options(options, scene, axes_order_override=None):
         option = scene.MiN_array_options.add()
         axes_order = axes_order_override or _source_axes_order(dataset_model)
         option.from_dataset(dataset_model, identifier=ix, axes_order=axes_order)
+
+
+def apply_import_defaults(dataset_models, preferences):
+    defaults = [channel.to_channelviz() for channel in preferences.channels]
+    for dataset_model in dataset_models:
+        dataset_model.apply_viz_defaults(defaults)
 
 
 def _apply_dataset_to_scene(dataset_model, scene, axes_order_override=None):

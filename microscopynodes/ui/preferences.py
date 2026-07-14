@@ -123,11 +123,10 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
 
 def addon_preferences(context: bpy.types.Context | None = None):
     global DEFAULT_PREFERENCES
-    if context is None:
-        context = bpy.context
     try:
+        context = context or bpy.context
         return context.preferences.addons[ADDON_PACKAGE].preferences
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, RuntimeError, TypeError):
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
                 surf_resolution="0",

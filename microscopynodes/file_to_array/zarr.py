@@ -42,6 +42,7 @@ class ZarrLoader:
             for ch_ix in range(channel_count):
                 channels.append(ChannelModel(
                     cache_path="",
+                    source_name=self._channel_name(metadata["ch_names"], ch_ix),
                     data=ChannelDataModel(
                         dataset_resolution=option["identifier"],
                         ix=ch_ix,
@@ -53,10 +54,7 @@ class ZarrLoader:
                         source=str(input_file),
                         **data_kwargs,
                     ),
-                    viz=ChannelVizModel(
-                        ix=ch_ix,
-                        name=self._channel_name(metadata["ch_names"], ch_ix),
-                    ),
+                    viz=ChannelVizModel(ix=ch_ix),
                 ))
 
             datasets.append(DatasetModel(

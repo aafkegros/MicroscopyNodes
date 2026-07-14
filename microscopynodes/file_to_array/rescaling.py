@@ -66,6 +66,7 @@ def _rescale_channel(channel_model, rescale_xyz, dataset_resolution):
     return ChannelModel(
         data=data,
         viz=channel_model.viz.model_copy(deep=True),
+        source_name=channel_model.source_name,
         cache_path=channel_model.cache_path,
         force_remaking_files=channel_model.force_remaking_files,
         generated=channel_model.generated.model_copy(deep=True),

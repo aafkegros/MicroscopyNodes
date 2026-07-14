@@ -230,6 +230,7 @@ class ChannelVizModel(BaseModel):
 class ChannelModel(BaseModel):
     data: ChannelDataModel
     viz: ChannelVizModel
+    source_name: str | None = None
     cache_path: str
     force_remaking_files: bool = False
     generated: GeneratedChannelFilesModel = Field(default_factory=GeneratedChannelFilesModel)
@@ -250,11 +251,33 @@ class ChannelModel(BaseModel):
         self.data.mask_path = mask_path
         self.data._mask_cache = mask
 
+    def apply_viz_defaults(self, defaults: List[ChannelVizModel]):
+        if not defaults:
+            return
+
+        ix = self.data.ix
+        template = defaults[ix % len(defaults)]
+        if self.source_name:
+            name = self.source_name
+        elif ix < len(defaults):
+            name = template.name
+        else:
+            name = f"Channel {ix}"
+
+        self.viz = template.model_copy(
+            update={"ix": ix, "name": name},
+            deep=True,
+        )
+
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
     name: str | None = None
     slice_cube_mode: Literal["GEOMETRY", "SHADER"] = "SHADER"
+
+    def apply_viz_defaults(self, defaults: List[ChannelVizModel]):
+        for channel in self.channels:
+            channel.apply_viz_defaults(defaults)
 
     @property
     def local_files_exist(self):
