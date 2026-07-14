@@ -90,30 +90,42 @@ class TIFLoadPanel(bpy.types.Panel):
             data_inputs_enabled or settings_inputs_enabled
         )
 
-        row = col.row(align=True)
+        row = layout.row(align=True)
         row.label(text="", icon='FILE_REFRESH')
         row.prop(bpy.context.scene, 'MiN_reload', icon="OUTLINER_OB_MESH")
         if reload_object_is_valid:
             row.prop(bpy.context.scene, 'MiN_load_with_mask', icon="HIDE_OFF")
             row.prop(bpy.context.scene, 'MiN_update_data', icon="FILE")
             row.prop(bpy.context.scene, 'MiN_update_settings', icon="MATERIAL_DATA")
+        row.enabled = scn.MiN_enable_ui
 
         
         
         # layout.separator()
-        col.separator()
+        layout.separator()
         # col = layout.column(align=False)  
         # row = col.row(align=False)
         action = layout.column(align=False)
-        row = action.row(align=True)
         if wm.MiN_load_running:
-            row.operator("microscopynodes.cancel_load", text="Cancel", icon="CANCEL")
+            action.operator("microscopynodes.cancel_load", text="Cancel", icon="CANCEL")
         elif not reload_object_is_valid:
-            row.operator("microscopynodes.load", text="Load")
+            action.operator("microscopynodes.load", text="Load")
         else:
-            row.operator("microscopynodes.load", text="Reload")
-        settings_controls = row.row(align=True)
-        settings_controls.prop(
+            action.operator("microscopynodes.load", text="Reload")
+        action.enabled = wm.MiN_load_running or scn.MiN_enable_ui
+
+        action.prop(context.scene, 'MiN_progress_str', emboss=False)
+
+        box = layout.box()
+        on_load_split = box.split(factor=0.25, align=True)
+        title_column = on_load_split.column(align=True)
+        title_column.alignment = 'CENTER'
+        title_column.label(text="On load")
+        settings_split = on_load_split.split(factor=0.5, align=True)
+        scene_controls = settings_split.row(align=True)
+        scene_controls.alignment = 'RIGHT'
+        scene_controls.label(text="Scene", icon="SCENE_DATA")
+        scene_controls.prop(
             scn,
             'MiN_overwrite_background_color',
             text='',
@@ -121,7 +133,7 @@ class TIFLoadPanel(bpy.types.Panel):
             icon_only=True,
             emboss=True,
         )
-        settings_controls.prop(
+        scene_controls.prop(
             scn,
             'MiN_overwrite_render_settings',
             text='',
@@ -129,18 +141,30 @@ class TIFLoadPanel(bpy.types.Panel):
             icon_only=True,
             emboss=True,
         )
-        settings_controls.enabled = settings_inputs_enabled
-        action.enabled = wm.MiN_load_running or scn.MiN_enable_ui
-        
-        action.prop(context.scene, 'MiN_progress_str', emboss=False)
+        slice_controls = settings_split.row(align=True)
+        slice_controls.alignment = 'RIGHT'
+        slice_controls.label(text="Slicing", icon="SURFACE_NCURVE")
+        slice_controls.prop_enum(
+            addon_preferences(context),
+            "slice_cube_mode",
+            "GEOMETRY",
+            text="",
+            icon="GEOMETRY_NODES",
+        )
+        slice_controls.prop_enum(
+            addon_preferences(context),
+            "slice_cube_mode",
+            "SHADER",
+            text="",
+            icon="MATERIAL",
+        )
+        on_load_split.enabled = settings_inputs_enabled
 
-        
-        box = layout.box()
         row = box.row(align=True)
         row.label(text="Data Storage:", icon="FILE_FOLDER")
         row.prop(addon_preferences(context), 'cache_option', text="", icon="NONE", emboss=True)
         row.enabled = data_inputs_enabled
-        
+
         if addon_preferences().cache_option == 'PATH':
             row = box.row()
             row.prop(addon_preferences(context), 'cache_path', text="")
@@ -149,25 +173,7 @@ class TIFLoadPanel(bpy.types.Panel):
             row = box.row()
             row.label(text = "Don't forget to save your blend file :)")
 
-        row = box.row(align=True)
-        row.label(text="Slice cube mode:")
-        row.prop_enum(
-            addon_preferences(context),
-            "slice_cube_mode",
-            "GEOMETRY",
-            text="",
-            icon="GEOMETRY_NODES",
-        )
-        row.prop_enum(
-            addon_preferences(context),
-            "slice_cube_mode",
-            "SHADER",
-            text="",
-            icon="MATERIAL",
-        )
-        row.enabled = settings_inputs_enabled
-
-        row = box.row(align=True)
+        row = layout.row(align=True)
         row.label(text="", icon='CON_SIZELIKE')
         row.prop(bpy.context.scene, 'MiN_import_scale', emboss=True,text="")
         row.label(text="", icon='ORIENTATION_PARENT')

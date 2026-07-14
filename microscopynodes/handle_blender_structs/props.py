@@ -53,13 +53,13 @@ def register_scene_props():
     )
 
     bpy.types.Scene.MiN_overwrite_background_color = bpy.props.BoolProperty(
-    name = "Overwrite background color", 
+    name = "On load: overwrite background color",
     description = "Sets background to white if any non-emissive channels are loaded - sets to black if only emissive channels are loaded",
     default = True
 )
 
     bpy.types.Scene.MiN_overwrite_render_settings = bpy.props.BoolProperty(
-    name = "Overwrite render settings", 
+    name = "On load: overwrite render settings",
     description = "Sets render settings to Microscopy Nodes defaults, to ensure relatively responsive large volume rendering.",
     default = True
 )

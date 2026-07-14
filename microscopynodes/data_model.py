@@ -254,7 +254,7 @@ class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
     name: str | None = None
-    slice_cube_mode: Literal["GEOMETRY", "SHADER"] = "GEOMETRY"
+    slice_cube_mode: Literal["GEOMETRY", "SHADER"] = "SHADER"
 
     @property
     def local_files_exist(self):

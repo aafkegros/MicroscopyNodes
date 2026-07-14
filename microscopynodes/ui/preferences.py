@@ -42,7 +42,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         default=2,
     )
     slice_cube_mode: EnumProperty(
-        name="Slice cube mode",
+        name="On load slice cube mode",
         items=[
             (
                 "GEOMETRY",
@@ -59,7 +59,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
                 1,
             ),
         ],
-        default="GEOMETRY",
+        default="SHADER",
     )
 
     
@@ -134,7 +134,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
                 invert_color=False,
                 n_default_channels=8,
                 extra_channel_slots=2,
-                slice_cube_mode="GEOMETRY",
+                slice_cube_mode="SHADER",
                 cache_option="TEMPORARY",
                 cache_path=str(Path("~", "microscopynodes_cache").expanduser()),
                 channels=[default_channel(ix) for ix in range(8)],

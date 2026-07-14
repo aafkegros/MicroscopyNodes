@@ -413,7 +413,7 @@ class ChannelObject(MiNObject):
 
     def slice_cube_channel_output(self, ch, import_node):
         source = self.slice_cube_source(import_node)
-        if getattr(self, "slice_cube_mode", "GEOMETRY") != "GEOMETRY":
+        if getattr(self, "slice_cube_mode", "SHADER") != "GEOMETRY":
             return source, None
         slicer = self.new_slice_cube_mask(ch, import_node)
         return slicer.outputs["Inside Mask"], slicer
@@ -441,7 +441,7 @@ class ChannelObject(MiNObject):
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
         self.object.matrix_parent_inverse.identity()
-        geometry_mode = getattr(self, "slice_cube_mode", "GEOMETRY") == "GEOMETRY"
+        geometry_mode = getattr(self, "slice_cube_mode", "SHADER") == "GEOMETRY"
         self.configure_geometry_slicing(ch, slice_cube, geometry_mode)
 
         for mat in self.object.data.materials:
