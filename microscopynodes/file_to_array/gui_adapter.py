@@ -85,12 +85,14 @@ def change_path(self, context):
         if not options:
             return
 
-    apply_import_defaults(options, addon_preferences(context))
-    _fill_array_options(options, scn)
-    scn.MiN_selected_array_option = str(len(options) - 1)
-    _set_active_options(scn.MiN_input_file, _source_axes_order(options[-1]), options)
-    _apply_dataset_to_scene(options[-1], scn)
-    scn.MiN_enable_ui = True
+        apply_import_defaults(options, addon_preferences(context))
+        _fill_array_options(options, scn)
+        scn.MiN_selected_array_option = str(len(options) - 1)
+        _set_active_options(scn.MiN_input_file, _source_axes_order(options[-1]), options)
+        _apply_dataset_to_scene(options[-1], scn)
+        scn.MiN_enable_ui = True
+    finally:
+        scn["_MiN_syncing_input_file"] = False
 
 
 def change_array_option(self, context):
