@@ -61,18 +61,27 @@ More detail in the [full docs](https://aafkegros.github.io/MicroscopyNodes/).
 If you create something cool using `Microscopy Nodes`, share it!  
 Tag me [@aafkegros on Bluesky](https://bsky.app/profile/aafkegros.bsky.social) or use the hashtag `#microscopynodes`.
 
-If you publish with this add-on, please cite [the preprint](https://www.biorxiv.org/content/10.1101/2025.01.09.632153v1):
+If you publish with this add-on, please cite [the paper](https://link.springer.com/article/10.1038/s44319-025-00654-8):
 ```
-@article {Gros2025.01.09.632153,
-	author = {Gros, Oane and Bhickta, Chandni and Lokaj, Granita and Schwab, Yannick and K{\"o}hler, Simone and Banterle, Niccol{\`o}},
-	title = {Microscopy Nodes: versatile 3D microscopy visualization with Blender},
-	elocation-id = {2025.01.09.632153},
-	year = {2025},
-	doi = {10.1101/2025.01.09.632153},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2025/01/14/2025.01.09.632153},
-	eprint = {https://www.biorxiv.org/content/early/2025/01/14/2025.01.09.632153.full.pdf},
-	journal = {bioRxiv}
+
+@article{gros_microscopy_2026,
+	title = {Microscopy {Nodes}: versatile {3D} microscopy visualization with {Blender}},
+	volume = {27},
+	issn = {1469-3178},
+	shorttitle = {Microscopy {Nodes}},
+	url = {https://doi.org/10.1038/s44319-025-00654-8},
+	doi = {10.1038/s44319-025-00654-8},
+	language = {en},
+	number = {3},
+	urldate = {2026-02-17},
+	journal = {EMBO Reports},
+	author = {Gros, Aafke and Bhickta, Chandni and Lokaj, Granita and Johnston, Brady and Schwab, Yannick and Köhler, Simone and Banterle, Niccolò},
+	month = feb,
+	year = {2026},
+	keywords = {3D Data, Blender, Data Visualization, Electron Microscopy, Fluorescence Microscopy},
+	pages = {581--597},
+	file = {Full Text PDF:/Users/oanegros/Zotero/storage/SF7NNTUC/Gros et al. - 2026 - Microscopy Nodes versatile 3D microscopy visualiz.pdf:application/pdf},
+}
 } 
 ```
 
