@@ -1,8 +1,17 @@
 import bpy
-from ..handle_blender_structs.node_handling import expand_node_ui, get_socket, set_name_socket
+from ..handle_blender_structs.node_handling import (
+    expand_node_ui,
+    get_socket,
+    insert_slicing,
+    remove_slicing,
+    set_modifier_input_socket,
+    set_name_socket,
+)
 from ..handle_blender_structs.min_keys import min_keys
-from ..min_nodes.geo_nodes.nodeMaskGrid import mask_grid_node_group
-from ..min_nodes.shader_nodes import add_shaders_node, channel_index_node
+from ..min_nodes.geo_nodes.combine_channels import join_microscopy_grids_and_meshes_node_group
+from ..min_nodes.geo_nodes.masking.nodeMaskGrid import mask_grid_node_group
+from ..min_nodes.geo_nodes.masking.nodeMaskMesh import mask_mesh_node_group
+from ..min_nodes.shader_nodes import add_shaders_node, filter_geometry_by_attribute_node
 from ..ui.preferences import addon_preferences
 from databpy import BlenderObject
 import numpy as np
@@ -21,13 +30,17 @@ class MiNObject(BlenderObject):
         self.object = bpy.context.view_layer.objects.active
         self.object.name = self.min_type.name.lower()
 
+    def ensure_material_slot(self, mat, slot_index=0):
+        materials = self.object.data.materials
+        if any(slot == mat for slot in materials if slot is not None):
+            return mat
+        if len(materials) > slot_index and materials[slot_index] is None:
+            materials[slot_index] = mat
+            return mat
+        materials.append(mat)
+        return mat
+
     def set_data(self, dataset_model):
-        return
-
-    def set_settings(self, dataset_model):
-        return
-
-    def set_scene(self, scene_model, **kwargs):
         return
     
     @property
@@ -48,6 +61,68 @@ class MiNObject(BlenderObject):
 
 class ChannelObject(MiNObject):
     shader_count = 10
+    gn_frame_label = None
+    frame_color = (0.663, 0.506, 0.506)
+
+    @property
+    def gn_frame_name(self):
+        label = self.gn_frame_label or self.min_type.name.title()
+        return f"[{label} Frame]"
+
+    def gn_frame(self):
+        nodes = self.node_group.nodes
+        frame = nodes.get(self.gn_frame_name)
+        if frame is None:
+            frame = nodes.new("NodeFrame")
+            frame.name = self.gn_frame_name
+        frame.label = self.gn_frame_label or self.min_type.name.title()
+        frame.label_size = 50
+        frame.shrink = True
+        frame.use_custom_color = True
+        frame.color = self.frame_color
+        return frame
+
+    def frame_gn_nodes(self, node_list=None):
+        frame = self.gn_frame()
+        nodes = node_list or list(self.node_group.nodes)
+        for node in nodes:
+            if node is None or node is frame:
+                continue
+            node.parent = frame
+        return frame
+
+    @property
+    def shader_frame_name(self):
+        label = self.gn_frame_label or self.min_type.name.title()
+        return f"[{label} Shader Frame]"
+
+    def shader_frame(self, mat):
+        nodes = mat.node_tree.nodes
+        frame = nodes.get(self.shader_frame_name)
+        if frame is None:
+            frame = nodes.new("NodeFrame")
+            frame.name = self.shader_frame_name
+        frame.label = self.gn_frame_label or self.min_type.name.title()
+        frame.label_size = 50
+        frame.shrink = True
+        frame.use_custom_color = True
+        frame.color = self.frame_color
+        return frame
+
+    def frame_shader_nodes(self, mat, node_list=None):
+        frame = self.shader_frame(mat)
+        nodes = node_list or list(mat.node_tree.nodes)
+        for node in nodes:
+            if node is None or node is frame:
+                continue
+            node.parent = frame
+        return frame
+
+    def set_holder(self, holder):
+        for node in self.node_group.nodes:
+            if node.inputs.get("Holder") is not None:
+                node.inputs["Holder"].default_value = holder
+                node.inputs["Holder"].hide = True
 
     def set_channel_capacity(self, dataset_model):
         pref_buffer = int(getattr(addon_preferences(bpy.context), "extra_channel_slots", 2))
@@ -77,9 +152,7 @@ class ChannelObject(MiNObject):
         bpy.ops.object.modifier_add(type='NODES')
         obj.modifiers[-1].node_group = node_group
         obj.modifiers[-1].name = f"[Microscopy Nodes {name}]"
-        node_group.interface.new_socket(name="Frame", in_out="INPUT",socket_type='NodeSocketInt')
         node_group.interface.new_socket(name='Geometry', in_out="OUTPUT",socket_type='NodeSocketGeometry')
-        node_group.interface.items_tree[-1].default_attribute_name = "[frame]"
         self.init_gn()
         for dim in range(3):
             obj.lock_location[dim] = True
@@ -95,10 +168,7 @@ class ChannelObject(MiNObject):
                 mat.name = material_name
         else:
             mat = bpy.data.materials.new(material_name)
-            if len(self.object.data.materials) == 0:
-                self.object.data.materials.append(mat)
-            else:
-                self.object.data.materials[0] = mat
+            self.ensure_material_slot(mat)
             self.init_shader(mat)
         set_material = self.node_group.nodes.get("Set Material")
         if set_material is not None and set_material.inputs.get("Material").default_value is None:
@@ -108,6 +178,7 @@ class ChannelObject(MiNObject):
 
     def set_data(self, dataset_model):
         self.dataset_name = dataset_model.name
+        self.slice_cube_mode = dataset_model.slice_cube_mode
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
             if not getattr(ch.viz, self.min_type.name.lower(), False):
@@ -115,7 +186,7 @@ class ChannelObject(MiNObject):
             self.update_ch_data(ch)
 
     def update_ch_data(self, ch):
-        file_constructors = ch.file_constructors.get(self.min_type, [])
+        file_constructors = ch.files_for(self.min_type).constructors
         if not file_constructors:
             return
         if not self.ch_present(ch):
@@ -127,12 +198,13 @@ class ChannelObject(MiNObject):
 
     def set_settings(self, dataset_model):
         self.dataset_name = dataset_model.name
+        self.slice_cube_mode = dataset_model.slice_cube_mode
         self.set_channel_capacity(dataset_model)
         for ch in dataset_model.channels:
             self.update_ch_settings(ch)
         ch = next((ch for ch in dataset_model.channels if getattr(ch.viz, self.min_type.name.lower(), False)), None)
         if ch is not None:
-            self.object.location = dataset_model.dataset_origin_world
+            # self.object.location = dataset_model.dataset_origin_world
             self.object.rotation_euler = (0.0, 0.0, 0.0)
             self.object.scale = (1.0, 1.0, 1.0)
 
@@ -141,17 +213,23 @@ class ChannelObject(MiNObject):
         if not self.ch_present(ch): 
             return
 
+        self.update_channel_bundle_name(ch)
         for ix, socket in enumerate(self.node_group.interface.items_tree):
             if isinstance(socket, bpy.types.NodeTreeInterfaceSocket) and ch.identifier in socket.default_attribute_name:
-                set_name_socket(socket, ch.name)
+                set_name_socket(socket, ch.name.replace("-", "_"))
         
         self.update_gn(ch)
         mat = self.add_material(ch)
+        self.update_channel_shader_attribute(mat, ch)
         self.update_material(mat, ch)
 
         socket = get_socket(self.node_group, ch, min_type="SWITCH")
         if socket is not None:
-            self.gn_mod[socket.identifier] = bool(getattr(ch.viz, self.min_type.name.lower(), False))
+            set_modifier_input_socket(
+                self.gn_mod,
+                socket,
+                getattr(ch.viz, self.min_type.name.lower(), False)
+            )
         return
     
 
@@ -160,6 +238,9 @@ class ChannelObject(MiNObject):
             if key == 't':
                 key = 'Frame'
             if import_node.inputs.get(key) is None:
+                continue
+            if import_node.inputs.get(key).type == "STRING":
+                import_node.inputs.get(key).default_value = str(val)
                 continue
             try:
                 import_node.inputs.get(key).default_value = int(val)
@@ -205,6 +286,7 @@ class ChannelObject(MiNObject):
         add_shaders.width = 100
         add_shaders.location = (620, 0)
         expand_node_ui(add_shaders)
+        self.frame_shader_nodes(mat, [output, add_shaders])
         return
 
     def material_name(self):
@@ -221,6 +303,7 @@ class ChannelObject(MiNObject):
     def init_gn(self):
         node_group = self.node_group
         nodes = node_group.nodes
+        links = node_group.links
 
         nodes.clear()
 
@@ -230,6 +313,26 @@ class ChannelObject(MiNObject):
         outputnode = nodes.new('NodeGroupOutput')
         outputnode.location = (1400, -100)
         outputnode.is_active_output = True
+
+        channel_bundle = nodes.new("NodeCombineBundle")
+        channel_bundle.name = "Channel Bundle"
+        channel_bundle.location = (650, -100)
+
+        join_node = nodes.new("GeometryNodeGroup")
+        join_node.node_tree = join_microscopy_grids_and_meshes_node_group()
+        join_node.name = "Join"
+        join_node.location = (850, -100)
+        if join_node.inputs.get("Holder") is not None:
+            join_node.inputs["Holder"].hide_value = True
+
+        set_material = nodes.new("GeometryNodeSetMaterial")
+        set_material.name = "Set Material"
+        set_material.location = (1100, -100)
+
+        links.new(channel_bundle.outputs["Bundle"], join_node.inputs["Channel Bundle"])
+        links.new(join_node.outputs["Geometry"], set_material.inputs["Geometry"])
+        links.new(set_material.outputs["Geometry"], outputnode.inputs["Geometry"])
+        self.frame_gn_nodes([inputnode, outputnode, channel_bundle, join_node, set_material])
         return
 
     def add_ch_to_gn(self, ch):
@@ -237,27 +340,83 @@ class ChannelObject(MiNObject):
 
     def next_channel_location(self, in_node, join_node):
         min_y_loc = in_node.location[1] + 300
-        skip_names = {in_node.name, "Group Output", join_node.name, "Set Material"}
+        skip_names = {
+            in_node.name,
+            "Group Output",
+            "Channel Bundle",
+            join_node.name,
+            "Set Material",
+            self.gn_frame_name,
+        }
         for node in self.node_group.nodes:
             if node.name not in skip_names:
                 min_y_loc = min(min_y_loc, node.location[1])
         return in_node.location[0] + 400, min_y_loc - 300
 
-    def mask_grid_for_slice_cube(self, x, y, ch, grid_socket):
+    def add_channel_to_bundle(self, ch, socket, data_type):
+        combine = self.node_group.nodes["Channel Bundle"]
+        item = combine.bundle_items.new(data_type, ch.name)
+        combine[f"channel_{ch.identifier}"] = item.name
+        bundle_input = combine.inputs[item.name]
+        self.node_group.links.new(socket, bundle_input)
+
+    def update_channel_bundle_name(self, ch):
+        combine = self.node_group.nodes["Channel Bundle"]
+        item_name = combine.get(f"channel_{ch.identifier}")
+        if item_name is None:
+            return
+        item = next(item for item in combine.bundle_items if item.name == item_name)
+        item.name = ch.name.replace("-", "_")
+        combine[f"channel_{ch.identifier}"] = item.name
+
+    def update_channel_shader_attribute(self, mat, ch):
+        channel_attribute = mat.node_tree.nodes.get(f"[channel_load_{ch.identifier}]")
+        if channel_attribute is not None:
+            channel_attribute.attribute_name = ch.name.replace("-", "_")
+            channel_attribute.label = ch.name.replace("-", "_")
+
+    def new_slice_cube_mask(self, ch, import_node):
         nodes = self.node_group.nodes
         links = self.node_group.links
 
-        mask_grid = nodes.new("GeometryNodeGroup")
-        mask_grid.node_tree = mask_grid_node_group()
-        mask_grid.name = f"SLICE_CUBE_{ch.identifier}"
-        mask_grid.location = (x + 360, y + 80)
-        mask_grid.width = 280
-        mask_grid.show_options = False
-        if mask_grid.inputs.get("With") is not None:
-            mask_grid.inputs["With"].default_value = 'Box'
+        slicer = nodes.new("GeometryNodeGroup")
+        slicer.name = f"SLICE_CUBE_{ch.identifier}"
+        slicer.show_options = False
+        if self.min_type == min_keys.LABELMASK:
+            slicer.node_tree = mask_mesh_node_group()
+            slicer.location = (
+                import_node.location[0] + 170,
+                import_node.location[1] - 100,
+            )
+            source_input = "Mesh"
+        else:
+            slicer.node_tree = mask_grid_node_group()
+            slicer.location = (
+                import_node.location[0] + 360,
+                import_node.location[1] - 20,
+            )
+            slicer.width = 280
+            source_input = "Grid"
+        if slicer.inputs.get("With") is not None:
+            slicer.inputs["With"].default_value = 'Box'
+        links.new(self.slice_cube_source(import_node), slicer.inputs[source_input])
+        return slicer
 
-        links.new(grid_socket, mask_grid.inputs["Grid"])
-        return mask_grid.outputs["Masked Grid"]
+    def slice_cube_source(self, import_node):
+        output_name = "Geometry" if self.min_type == min_keys.LABELMASK else "Grid"
+        return import_node.outputs[output_name]
+
+    def slice_cube_target(self, ch):
+        if self.min_type == min_keys.SURFACE:
+            return self.node_group.nodes[f"GRID_TO_MESH_{ch.identifier}"].inputs["Grid"]
+        return self.channel_bundle_input(ch)
+
+    def slice_cube_channel_output(self, ch, import_node):
+        source = self.slice_cube_source(import_node)
+        if getattr(self, "slice_cube_mode", "SHADER") != "GEOMETRY":
+            return source, None
+        slicer = self.new_slice_cube_mask(ch, import_node)
+        return slicer.outputs["Inside Mask"], slicer
 
     def add_ch_to_shader(self, mat, ch, shader_socket):
         nodes = mat.node_tree.nodes
@@ -272,6 +431,9 @@ class ChannelObject(MiNObject):
         frame.color = (0.0, 0.0, 0.0)
         frame.label_size = 50
         frame.shrink = True
+        master_frame = nodes.get(self.shader_frame_name)
+        if master_frame is not None:
+            frame.parent = master_frame
 
         links.new(shader_socket, add_shaders.inputs[min(ch.data.ix, self.shader_count - 1)])
         return frame, add_shaders
@@ -279,45 +441,48 @@ class ChannelObject(MiNObject):
     def set_parent_and_slicer(self, parent, slice_cube, ch):
         self.object.parent = parent
         self.object.matrix_parent_inverse.identity()
-        slicer = self.node_group.nodes.get(f"SLICE_CUBE_{ch.identifier}")
-        if slicer is not None and slicer.inputs.get("Object") is not None:
-            slicer.inputs["Object"].default_value = slice_cube
-        for obj in ch.metadata.get("collections", {}).get(self.min_type, []):
-            obj.parent = parent
-            obj.matrix_parent_inverse.identity()
+        geometry_mode = getattr(self, "slice_cube_mode", "SHADER") == "GEOMETRY"
+        self.configure_geometry_slicing(ch, slice_cube, geometry_mode)
 
+        for mat in self.object.data.materials:
+            if mat is None or not mat.use_nodes:
+                continue
+            if geometry_mode:
+                remove_slicing(mat.node_tree)
+            else:
+                insert_slicing(mat.node_tree, slice_cube)
 
+    def configure_geometry_slicing(self, ch, slice_cube, enabled):
+        nodes = self.node_group.nodes
+        import_node = nodes.get(f"IMPORT_{ch.identifier}")
+        if import_node is None:
+            return
+        target = self.slice_cube_target(ch)
+        slicer = nodes.get(f"SLICE_CUBE_{ch.identifier}")
+
+        if not enabled:
+            self.replace_input_link(target, self.slice_cube_source(import_node))
+            if slicer is not None:
+                nodes.remove(slicer)
+            return
+
+        if slicer is None:
+            slicer = self.new_slice_cube_mask(ch, import_node)
+            slicer.parent = self.gn_frame()
+        slicer.inputs["Object"].default_value = slice_cube
+        self.replace_input_link(target, slicer.outputs["Inside Mask"])
+
+    def channel_bundle_input(self, ch):
+        channel_bundle = self.node_group.nodes["Channel Bundle"]
+        item_name = channel_bundle.get(f"channel_{ch.identifier}")
+        return channel_bundle.inputs[item_name]
+
+    def replace_input_link(self, input_socket, output_socket):
+        for link in list(input_socket.links):
+            self.node_group.links.remove(link)
+        self.node_group.links.new(output_socket, input_socket)
 class MeshChannelObject(ChannelObject):
     shader_y_step = 500
-
-    def store_channel_attribute(self, x, y, ch, geometry_socket):
-        store_channel = self.node_group.nodes.new("GeometryNodeStoreNamedAttribute")
-        store_channel.name = f"STORE_CHANNEL_{ch.identifier}"
-        store_channel.location = (x, y)
-        store_channel.data_type = 'INT'
-        store_channel.domain = 'FACE'
-        store_channel.inputs["Selection"].default_value = True
-        store_channel.inputs["Name"].default_value = "channel ix"
-        store_channel.inputs["Value"].default_value = ch.data.ix
-        self.node_group.links.new(geometry_socket, store_channel.inputs["Geometry"])
-        return store_channel.outputs["Geometry"]
-
-    def init_gn(self):
-        super().init_gn()
-        outputnode = self.node_group.nodes.get('Group Output')
-        links = self.node_group.links
-
-        join_node = self.node_group.nodes.new('GeometryNodeJoinGeometry')
-        join_node.name = "Join"
-        join_node.location = (800, -100)
-
-        set_material = self.node_group.nodes.new('GeometryNodeSetMaterial')
-        set_material.name = "Set Material"
-        set_material.location = (1100, -100)
-
-        links.new(join_node.outputs[0], set_material.inputs['Geometry'])
-        links.new(set_material.outputs[0], outputnode.inputs['Geometry'])
-        return
 
     def init_shader(self, mat):
         super().init_shader(mat)
@@ -333,33 +498,40 @@ class MeshChannelObject(ChannelObject):
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
 
+        node_attr = nodes.new(type='ShaderNodeAttribute')
+        node_attr.location = (-600, y_offset)
+        node_attr.name = f"[channel_load_{ch.identifier}]"
+        node_attr.attribute_name = ch.name
+        node_attr.label = ch.name
+
+        filter_attribute = nodes.new("ShaderNodeGroup")
+        filter_attribute.name = f"[filter_geometry_by_attribute_{ch.identifier}]"
+        filter_attribute.node_tree = filter_geometry_by_attribute_node()
+        filter_attribute.label = "Filter Geometry by Attribute"
+        filter_attribute.location = (680, y_offset - 65)
+
         color_lut = nodes.new("ShaderNodeValToRGB")
         color_lut.name = f"[color_lut_{ch.identifier}]"
-        color_lut.location = (-20, y_offset - 35)
+        color_lut.location = (-200, y_offset)
         color_lut.width = 300
         color_lut.outputs[1].hide = True
 
         princ = nodes.new("ShaderNodeBsdfPrincipled")
         princ.name = f"[{ch.identifier}] principled"
-        princ.location = (390, y_offset - 35)
+        princ.location = (240, y_offset)
         princ.inputs.get('Alpha').default_value = 0.8
 
-        channel_index = nodes.new("ShaderNodeGroup")
-        channel_index.name = f"[channel_index_{ch.identifier}]"
-        channel_index.node_tree = channel_index_node()
-        channel_index.label = "Channel index"
-        channel_index.location = (710, y_offset - 65)
-        channel_index.inputs["Index"].default_value = ch.data.ix
-        expand_node_ui(channel_index)
 
-        frame, _ = self.add_ch_to_shader(mat, ch, channel_index.outputs["Shader"])
+        frame, _ = self.add_ch_to_shader(mat, ch, filter_attribute.outputs["Shader"])
 
+        node_attr.parent = frame
         color_lut.parent = frame
         princ.parent = frame
-        channel_index.parent = frame
+        filter_attribute.parent = frame
 
+        links.new(node_attr.outputs.get('Fac'), filter_attribute.inputs["Attribute"])
         links.new(color_lut.outputs[0], princ.inputs.get('Base Color'))
-        links.new(color_lut.outputs[0], princ.inputs[27])
-        links.new(princ.outputs[0], channel_index.inputs["Shader"])
+        links.new(color_lut.outputs[0], princ.inputs[28])
+        links.new(princ.outputs[0], filter_attribute.inputs["Shader"])
         color_lut.inputs[0].default_value = 1.0
         return

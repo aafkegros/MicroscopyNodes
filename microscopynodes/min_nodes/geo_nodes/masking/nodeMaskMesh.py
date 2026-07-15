@@ -2,7 +2,6 @@ import bpy
 from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
 from nodebpy.types import (
-    InputBoolean,
     InputCollection,
     InputGeometry,
     InputMenu,
@@ -25,7 +24,6 @@ class MaskMesh(CustomGeometryGroup):
         object: InputObject = None,
         collection: InputCollection = None,
         mask: InputGeometry = None,
-        invert: InputBoolean = False,
     ):
         super().__init__(
             **{
@@ -34,7 +32,6 @@ class MaskMesh(CustomGeometryGroup):
                 "Object": object,
                 "Collection": collection,
                 "Mask": mask,
-                "Invert": invert,
             }
         )
 
@@ -43,6 +40,8 @@ class MaskMesh(CustomGeometryGroup):
 
 
 def _build_mask_mesh(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     mesh = tree.inputs.geometry("Mesh")
@@ -50,8 +49,8 @@ def _build_mask_mesh(tree):
     object = tree.inputs.object("Object")
     collection = tree.inputs.collection("Collection", optional_label=True)
     mask = tree.inputs.geometry("Mask")
-    invert = tree.inputs.boolean("Invert")
-    masked_mesh = tree.outputs.geometry("Masked Mesh")
+    inside_mask = tree.outputs.geometry("Inside Mask")
+    outside_mask = tree.outputs.geometry("Outside Mask")
 
     object_geometry = g.ObjectInfo(
         object=object,
@@ -74,32 +73,34 @@ def _build_mask_mesh(tree):
 
     realized_mesh = g.RealizeInstances(mesh).o.geometry
     realized_mask = g.RealizeInstances(mask_source.o.output).o.geometry
-    masked_with_mesh = g.Switch.geometry(
-        switch=invert,
-        true=g.MeshBoolean.difference(
-            mesh_1=realized_mesh,
-            items=[realized_mask],
-        ).node.outputs["Mesh"],
-        false=g.MeshBoolean.intersect(
-            items=[realized_mesh, realized_mask],
-        ).node.outputs["Mesh"],
-    ).o.output
+    masked_with_mesh = g.MeshBoolean.intersect(
+        items=[realized_mesh, realized_mask],
+    ).node.outputs["Mesh"]
+    unmasked_with_mesh = g.MeshBoolean.difference(
+        mesh_1=realized_mesh,
+        items=[realized_mask],
+    ).node.outputs["Mesh"]
 
     inside_box = ClipFieldToBox(box_object=object).o.clipped_field
     masked_with_box = g.DeleteGeometry(
         geometry=realized_mesh,
-        selection=g.Switch.boolean(
-            switch=invert,
-            false=g.BooleanMath.l_not(inside_box).o.boolean,
-            true=inside_box,
-        ).o.output,
+        selection=g.BooleanMath.l_not(inside_box).o.boolean,
+    ).o.geometry
+    unmasked_with_box = g.DeleteGeometry(
+        geometry=realized_mesh,
+        selection=inside_box,
     ).o.geometry
 
     g.Switch.geometry(
         switch=mask_source.node.outputs["Box"],
         false=masked_with_mesh,
         true=masked_with_box,
-    ).o.output >> masked_mesh
+    ).o.output >> inside_mask
+    g.Switch.geometry(
+        switch=mask_source.node.outputs["Box"],
+        false=unmasked_with_mesh,
+        true=unmasked_with_box,
+    ).o.output >> outside_mask
 
 
 def mask_mesh_node_group():
@@ -107,7 +108,7 @@ def mask_mesh_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_mask_mesh(tree)
 
     return tree.tree

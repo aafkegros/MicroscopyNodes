@@ -1,90 +1,61 @@
 import bpy
-from .nodeIgnoreExtremes import ignore_extremes_node_group
-import cmap
+from nodebpy import TreeBuilder, shader as s
+
+
+GROUP_NAME = "Volume Transparency"
+GROUP_BUILDER = "nodebpy"
+ALPHA_MODE_LINEAR = "Linear Alpha"
+ALPHA_MODE_CONSTANT = "Constant Alpha"
+
+
+def _build_volume_alpha(tree):
+    tree._arrange = "simple"
+    tree.tree.description = "Compute clipped volume alpha from the alpha limits ramp."
+
+    value = tree.inputs.float(
+        "Value",
+        description="Normalized voxel intensity used to compute transparency.",
+    )
+    alpha = tree.inputs.float(
+        "Alpha Multiplier",
+        default_value=1.0,
+        description="Overall transparency strength for the channel. This translates to brightness for emission and density for scattering.",
+        min_value=0.0,
+        max_value=1000.0,
+    )
+    alpha_mode = tree.inputs.menu(
+        "Alpha Mode",
+        default_value="Linear Alpha",
+        description="Choose whether alpha follows the alpha limits ramp or stays constant inside those limits.",
+        expanded=True,
+        optional_label = True,
+    )
+
+    alpha_output = tree.outputs.float("Alpha")
+    coupling_output = tree.outputs.float("Alpha-Intensity Coupling")
+
+    alpha_switch = s.MenuSwitch.float(
+        menu=alpha_mode,
+        items={
+            ALPHA_MODE_LINEAR: value,
+            ALPHA_MODE_CONSTANT: 1.0,
+        },
+    )
+
+    clip_mask = (value > 0.0) * (value < 1.0)
+    alpha_switch.o.output * alpha * clip_mask >> alpha_output
+    tree.link(alpha_switch.node.outputs[ALPHA_MODE_LINEAR], coupling_output)
 
 
 def volume_alpha_node():
-    node_group = bpy.data.node_groups.get("Volume Transparency")
-    if node_group and node_group.interface.items_tree.get("Alpha-Intensity Coupling"):
+    node_group = bpy.data.node_groups.get(GROUP_NAME)
+    if node_group and node_group.get("builder") == GROUP_BUILDER:
         return node_group
-    node_group= bpy.data.node_groups.new(type = 'ShaderNodeTree', name = "Volume Transparency")
-    links = node_group.links
-    interface = node_group.interface
+    if node_group:
+        bpy.data.node_groups.remove(node_group, do_unlink=True)
 
-    interface.new_socket("Value", in_out="INPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.items_tree[-1].description = "Normalized voxel intensity used to compute transparency."
-    interface.new_socket("Clip Min", in_out="INPUT",socket_type='NodeSocketBool')
-    interface.items_tree[-1].default_value = True
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.items_tree[-1].description = "Hide voxels below the minimum intensity value."
-    interface.new_socket("Clip Max", in_out="INPUT",socket_type='NodeSocketBool')
-    interface.items_tree[-1].default_value = False
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.items_tree[-1].description = "Hide voxels above the maximum intensity value."
-    interface.new_socket("Alpha", in_out="INPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 1.0
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.items_tree[-1].min_value = 0.0
-    interface.items_tree[-1].max_value = 100.0
-    interface.items_tree[-1].description = "Overall transparency strength for the channel. This translates to brightness for emission and density for scattering."
-    interface.new_socket("Alpha-Intensity Coupling", in_out="INPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 1.0
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.items_tree[-1].min_value = 0.0
-    interface.items_tree[-1].max_value = 1.0
-    interface.items_tree[-1].subtype = 'FACTOR'
-    interface.items_tree[-1].description = "Couples normalized pixel intensity to the alpha. If 0, all voxels shown have the same Alpha, if 1, the alpha is linear with pixel intensity."
+    with TreeBuilder.shader(GROUP_NAME, arrange="simple") as tree:
+        _build_volume_alpha(tree)
 
-    interface.new_socket("Alpha", in_out="OUTPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    interface.new_socket("Alpha-Intensity Coupling", in_out="OUTPUT",socket_type='NodeSocketFloat')
-    interface.items_tree[-1].attribute_domain = 'POINT'
-    
-    group_input = node_group.nodes.new("NodeGroupInput")
-    group_input.location = (0,0)
-
-    # -- ALPHA extremes/mult -- 
-    ignore_extremes = node_group.nodes.new('ShaderNodeGroup')
-    ignore_extremes.node_tree = ignore_extremes_node_group()
-    ignore_extremes.location = (200, -260)
-    ignore_extremes.show_options = False
-    links.new(group_input.outputs.get('Value'), ignore_extremes.inputs.get('Value'))
-    links.new(group_input.outputs.get('Clip Min'), ignore_extremes.inputs.get('Ignore 0'))
-    links.new(group_input.outputs.get('Clip Max'), ignore_extremes.inputs.get('Ignore 1'))
-
-    value_by_influence = node_group.nodes.new("ShaderNodeMath")
-    value_by_influence.location = (200, -20)
-    value_by_influence.operation = "MULTIPLY"
-    links.new(group_input.outputs.get("Value"), value_by_influence.inputs[0])
-    links.new(group_input.outputs.get("Alpha-Intensity Coupling"), value_by_influence.inputs[1])
-
-    inverse_influence = node_group.nodes.new("ShaderNodeMath")
-    inverse_influence.location = (200, 120)
-    inverse_influence.operation = "SUBTRACT"
-    inverse_influence.inputs[0].default_value = 1.0
-    links.new(group_input.outputs.get("Alpha-Intensity Coupling"), inverse_influence.inputs[1])
-
-    constant_to_linear = node_group.nodes.new("ShaderNodeMath")
-    constant_to_linear.location = (400, 20)
-    constant_to_linear.operation = "ADD"
-    links.new(inverse_influence.outputs[0], constant_to_linear.inputs[0])
-    links.new(value_by_influence.outputs[0], constant_to_linear.inputs[1])
-
-    alpha_mult = node_group.nodes.new("ShaderNodeMath")
-    alpha_mult.location = (600, -50)
-    alpha_mult.operation = "MULTIPLY"
-    links.new(constant_to_linear.outputs[0], alpha_mult.inputs[0])
-    links.new(group_input.outputs.get("Alpha"), alpha_mult.inputs[1])
-
-    clip_mult = node_group.nodes.new("ShaderNodeMath")
-    clip_mult.location = (800, -100)
-    clip_mult.operation = "MULTIPLY"
-    links.new(alpha_mult.outputs[0], clip_mult.inputs[0])
-    links.new(ignore_extremes.outputs[0], clip_mult.inputs[1])
-
-    group_output = node_group.nodes.new("NodeGroupOutput")
-    group_output.location = (1000, -100)
-    links.new(clip_mult.outputs[0], group_output.inputs.get("Alpha"))
-    links.new(group_input.outputs.get("Alpha-Intensity Coupling"), group_output.inputs.get("Alpha-Intensity Coupling"))
-    return node_group
+    tree.tree["builder"] = GROUP_BUILDER
+    return tree.tree

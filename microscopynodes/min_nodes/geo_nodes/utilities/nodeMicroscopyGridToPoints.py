@@ -18,6 +18,8 @@ class MicroscopyGridToPoints(CustomGeometryGroup):
 
 
 def _build_microscopy_grid_to_points(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     grid = tree.inputs.float("Grid", hide_value=True)
@@ -40,7 +42,7 @@ def microscopy_grid_to_points_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_microscopy_grid_to_points(tree)
 
     return tree.tree

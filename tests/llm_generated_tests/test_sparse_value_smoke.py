@@ -2,8 +2,9 @@ import bpy
 import pytest
 
 import microscopynodes
+from microscopynodes.blender_state import Dataset
 from microscopynodes.handle_blender_structs.min_keys import min_keys
-from microscopynodes.handle_blender_structs.node_handling import get_socket
+from microscopynodes.handle_blender_structs.node_handling import get_socket, set_modifier_input_socket
 
 from ..utils import (
     prep_load,
@@ -24,7 +25,7 @@ SPARSE_LOADABLE = [
 
 
 def _dataset_from_reload():
-    return microscopynodes.load.Dataset(holder=bpy.context.scene.MiN_reload)
+    return Dataset(holder=bpy.context.scene.MiN_reload)
 
 
 def _render_histogram_shift_for_channel(dataset, ch, min_type):
@@ -43,12 +44,12 @@ def _render_histogram_shift_for_channel(dataset, ch, min_type):
         if dataset.slicecube is not None:
             dataset.slicecube.object.hide_render = True
 
-        ch_obj.gn_mod[socket.identifier] = False
+        set_modifier_input_socket(ch_obj.gn_mod, socket, False)
         off_img = quick_render(f"{min_type.name.lower()}_off")
-        ch_obj.gn_mod[socket.identifier] = True
+        set_modifier_input_socket(ch_obj.gn_mod, socket, True)
         on_img = quick_render(f"{min_type.name.lower()}_on")
     finally:
-        ch_obj.gn_mod[socket.identifier] = True
+        set_modifier_input_socket(ch_obj.gn_mod, socket, True)
         if dataset.axes is not None:
             dataset.axes.object.hide_render = previous_axes_hide
         if dataset.slicecube is not None:

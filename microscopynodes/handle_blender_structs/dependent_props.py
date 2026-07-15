@@ -11,13 +11,13 @@ from ..file_to_array import (
 from ..ui.channel_list import set_channels
 
 
-def poll_empty(self, object):
+def poll_holder(self, object):
     from .node_handling import get_min_gn
 
     try:
         if object is None:
             return False
-        if object.type != 'EMPTY':
+        if "_MiN_dataset_input_scale" not in object:
             return False
         scene = self if isinstance(self, bpy.types.Scene) else bpy.context.scene
         if scene.objects.get(object.name) != object:
@@ -34,7 +34,7 @@ def valid_reload_object(object, scene=None):
             object is not None
             and bpy.data.objects.get(object.name) == object
             and scene.objects.get(object.name) == object
-            and poll_empty(scene, object)
+            and poll_holder(scene, object)
         )
     except (ReferenceError, AttributeError, TypeError):
         return False
@@ -97,7 +97,7 @@ def register_scene_props():
         name="",
         description="Reload data of Microscopy Nodes object.\nCan be used to replace deleted (temp) files, change resolution, or channel settings.\nUsage: Point to previously loaded microscopy data.",
         type=bpy.types.Object,
-        poll=poll_empty,
+        poll=poll_holder,
         update=update_reload,
     )
     bpy.types.Scene.MiN_pixel_sizes_are_rescaled = BoolProperty(

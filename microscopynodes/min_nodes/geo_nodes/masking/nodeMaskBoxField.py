@@ -19,6 +19,8 @@ class ClipFieldToBox(CustomGeometryGroup):
         )
 
     def _build_group(self, tree):
+        tree._arrange = "simple"
+
         box = tree.inputs.object("Box Object", optional_label=True)
         invert = tree.inputs.boolean("Invert")
         masked = tree.outputs.boolean("Clipped Field")

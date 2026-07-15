@@ -8,7 +8,12 @@ import platform
 import tempfile
 
 from .min_keys import min_keys
-from .units import register_import_scale_property
+from .units import register_import_scale_property, update_import_scale
+
+
+def update_load_with_mask(scene, context):
+    if scene.MiN_load_with_mask:
+        scene.MiN_update_settings = False
 
 
 def register_scene_props():
@@ -19,9 +24,20 @@ def register_scene_props():
     )
 
     register_import_scale_property(bpy.types.Scene)
+    bpy.types.Scene.MiN_import_loc = EnumProperty(
+        name="Import location",
+        items=[
+            ("XY_CENTER", "XY Center", "Center volume in XY", "", 0),
+            ("XYZ_CENTER", "XYZ Center", "Center volume in XYZ", "", 1),
+            ("ZERO", "Origin", "Volume origin at world origin", "", 2),
+        ],
+        description="Defines the coordinate translation after import",
+        default="XY_CENTER",
+        update=update_import_scale,
+    )
 
     bpy.types.Scene.MiN_load_start_frame = bpy.props.IntProperty(
-    name = "", 
+    name = "",
     description = "First timeframe to be loaded",
     default = 0,
     min=0,
@@ -37,13 +53,13 @@ def register_scene_props():
     )
 
     bpy.types.Scene.MiN_overwrite_background_color = bpy.props.BoolProperty(
-    name = "Overwrite background color", 
+    name = "On load: overwrite background color",
     description = "Sets background to white if any non-emissive channels are loaded - sets to black if only emissive channels are loaded",
     default = True
 )
 
     bpy.types.Scene.MiN_overwrite_render_settings = bpy.props.BoolProperty(
-    name = "Overwrite render settings", 
+    name = "On load: overwrite render settings",
     description = "Sets render settings to Microscopy Nodes defaults, to ensure relatively responsive large volume rendering.",
     default = True
 )
@@ -67,10 +83,9 @@ def register_scene_props():
             ("MICROMETER", "µm","Micrometer" ,"", 2),
             ("MILLIMETER", "mm","Millimeter" ,"", 3),
             ("METER", "m","Meter" ,"", 4),
-            ("AU", "a.u.","Arbitrary units, used to calculate an isotropic pixel size in Z." ,"", 5),
         ], 
         description= "Unit of pixel sizes",
-        default="AU",
+        default="MICROMETER",
     )
 
     bpy.types.Scene.MiN_ch_names = StringProperty( # | separated list of channel names from file
@@ -87,9 +102,16 @@ def register_scene_props():
         default = False,
     )
 
-    bpy.types.Scene.MiN_load_finished = BoolProperty(
-        name = "", 
-        default = False,
+    bpy.types.WindowManager.MiN_load_running = BoolProperty(
+        name="",
+        default=False,
+        options={'HIDDEN', 'SKIP_SAVE'},
+    )
+
+    bpy.types.WindowManager.MiN_cancel_load_requested = BoolProperty(
+        name="",
+        default=False,
+        options={'HIDDEN', 'SKIP_SAVE'},
     )
 
     bpy.types.Scene.MiN_update_data = BoolProperty(
@@ -104,12 +126,12 @@ def register_scene_props():
         default = True,
     )
 
-    bpy.types.Scene.MiN_chunk = BoolProperty(
-        name = "Chunking",
-        description = 'Loads volumes in chunks of axis < 2048 px if checked.\nUnchunked large volumes WILL crash MacOS-ARM Blender outside of Cycles.\nChunked volumes can cause Cycles rendering artefacts.\nChunking may be slightly more RAM/network-efficient.',
+    bpy.types.Scene.MiN_load_with_mask = BoolProperty(
+        name = "",
+        description = "Reload only volume voxels remaining after spatial masking, such as the slice cube. Useful for loading a selected region of datasets larger than RAM. Shader visibility is ignored; label masks and surfaces are not yet supported",
         default = False,
-        ) 
-
+        update = update_load_with_mask,
+    )
 
     bpy.types.Scene.MiN_progress_str = bpy.props.StringProperty(
     name = "",
@@ -122,6 +144,7 @@ def unregister_scene_props():
     for prop in (
         "MiN_remake",
         "MiN_import_scale",
+        "MiN_import_loc",
         "MiN_load_start_frame",
         "MiN_load_end_frame",
         "MiN_overwrite_background_color",
@@ -132,13 +155,17 @@ def unregister_scene_props():
         "MiN_ch_names",
         "MiN_ch_index",
         "MiN_enable_ui",
-        "MiN_load_finished",
         "MiN_update_data",
         "MiN_update_settings",
-        "MiN_chunk",
+        "MiN_load_with_mask",
         "MiN_progress_str",
     ):
         try:
             delattr(bpy.types.Scene, prop)
+        except AttributeError:
+            pass
+    for prop in ("MiN_load_running", "MiN_cancel_load_requested"):
+        try:
+            delattr(bpy.types.WindowManager, prop)
         except AttributeError:
             pass

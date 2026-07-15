@@ -1,7 +1,5 @@
 import bpy
 
-DATASET_FRAME_PROP = "MiN_frame"
-
 
 def action_fcurves(action):
     return getattr(action, "fcurves", ())
@@ -84,30 +82,39 @@ def dataset_frame_bounds(dataset_model):
     return min(frame_starts, default=0), max(frame_ends, default=0)
 
 
-def ensure_dataset_frame_property(holder_obj, dataset_model):
+def holder_frame_socket(holder_obj):
+    modifier = next(
+        mod
+        for mod in holder_obj.modifiers
+        if mod.type == "NODES" and mod.node_group is not None
+        and frame_socket_identifier(mod.node_group) is not None
+    )
+    socket_identifier = frame_socket_identifier(modifier.node_group)
+    return modifier, getattr(modifier.properties.inputs, socket_identifier)
+
+
+def holder_frame_data_path(holder_obj):
+    modifier, _ = holder_frame_socket(holder_obj)
+    socket_identifier = frame_socket_identifier(modifier.node_group)
+    return f"{modifier.path_from_id()}.properties.inputs.{socket_identifier}.value"
+
+
+def ensure_dataset_frame_animation(holder_obj, dataset_model):
     frame_start, frame_end = dataset_frame_bounds(dataset_model)
     frame_offset_end = max(frame_end - frame_start, 0)
+    _, frame_socket = holder_frame_socket(holder_obj)
+    data_path = holder_frame_data_path(holder_obj)
 
-    holder_obj[DATASET_FRAME_PROP] = min(holder_obj.get(DATASET_FRAME_PROP, 0), frame_offset_end)
-    holder_obj.id_properties_ui(DATASET_FRAME_PROP).update(
-        min=0,
-        max=max(frame_offset_end, 1),
-        soft_min=0,
-        soft_max=max(frame_offset_end, 1),
-        description="Microscopy Nodes dataset frame offset",
-    )
-
-    data_path = f'["{DATASET_FRAME_PROP}"]'
     clear_keyframes(holder_obj, data_path)
 
     if frame_offset_end <= 0:
-        holder_obj[DATASET_FRAME_PROP] = 0
+        frame_socket.value = 0
         return data_path
 
     timesequence_action(holder_obj)
-    holder_obj[DATASET_FRAME_PROP] = 0
+    frame_socket.value = 0
     holder_obj.keyframe_insert(data_path=data_path, frame=frame_start)
-    holder_obj[DATASET_FRAME_PROP] = frame_offset_end
+    frame_socket.value = frame_offset_end
     holder_obj.keyframe_insert(data_path=data_path, frame=frame_end)
 
     action = holder_obj.animation_data.action
@@ -130,7 +137,7 @@ def frame_socket_identifier(node_group):
 
 
 def drive_modifier_frame_from_holder(modifier, holder_obj, socket_identifier):
-    data_path = f'["{socket_identifier}"]'
+    data_path = f"properties.inputs.{socket_identifier}.value"
     try:
         modifier.driver_remove(data_path)
     except (TypeError, RuntimeError):
@@ -146,7 +153,7 @@ def drive_modifier_frame_from_holder(modifier, holder_obj, socket_identifier):
     var = driver.variables.new()
     var.name = "frame"
     var.targets[0].id = holder_obj
-    var.targets[0].data_path = f'["{DATASET_FRAME_PROP}"]'
+    var.targets[0].data_path = holder_frame_data_path(holder_obj)
     return fcurve
 
 

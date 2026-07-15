@@ -58,6 +58,24 @@ class MIN_OT_Add_LUT_Node_Group(Operator):
         return {"FINISHED"}
 
 
+class MIN_OT_Add_Pixel_Intensities_LUT(Operator):
+    """Add a transparent-to-white pixel intensity ramp"""
+
+    bl_idname = "microscopynodes.add_pixel_intensities_lut"
+    bl_label = "Add Pixel Intensities LUT"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        node = _add_color_ramp_node(context)
+        node.width = 1000
+        left, right = node.color_ramp.elements
+        left.color = (1.0, 1.0, 1.0, 0.0)
+        right.color = (1.0, 1.0, 1.0, 1.0)
+        node.label = "Pixel Intensities"
+        node.outputs["Color"].hide = True
+        return {"FINISHED"}
+
+
 class MIN_OT_Reverse_LUT_Node_Group(Operator):
     """Reverse positions of LUT (duplicate of the arrow menu next to the ramp)"""
     bl_idname = "microscopynodes.reverse_lut"
@@ -100,14 +118,24 @@ def _add_cmap(cmap_name, context, show_options=False, material="default"):
     # actually invoke the operator to add a node to the current node tree
     # use_transform=True ensures it appears where the user's mouse is and is currently
     # being moved so the user can place it where they wish
+    node = _add_color_ramp_node(context)
+    node.outputs[1].hide = True
+    lut, linear = colormap_to_lut(get_colormap(cmap_name, (1,1,1)))
+    set_color_ramp(node, lut, linear, cmap_name)
+
+
+def _add_color_ramp_node(context):
     bpy.ops.node.add_node(
         "INVOKE_DEFAULT", type="ShaderNodeValToRGB", use_transform=True
     )
     node = context.active_node
-    node.outputs[1].hide = True
-    lut, linear = colormap_to_lut(get_colormap(cmap_name, (1,1,1)))
-    set_color_ramp(node, lut, linear, cmap_name)
     node.width = 300
+    return node
 
 
-CLASSES = [MIN_OT_Add_LUT_Node_Group, MIN_OT_Replace_LUT_Node_Group, MIN_OT_Reverse_LUT_Node_Group]
+CLASSES = [
+    MIN_OT_Add_LUT_Node_Group,
+    MIN_OT_Add_Pixel_Intensities_LUT,
+    MIN_OT_Replace_LUT_Node_Group,
+    MIN_OT_Reverse_LUT_Node_Group,
+]

@@ -41,6 +41,26 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         max=20,
         default=2,
     )
+    slice_cube_mode: EnumProperty(
+        name="On load slice cube mode",
+        items=[
+            (
+                "GEOMETRY",
+                "Geometry",
+                "Slice cube masks data in Geometry Nodes. This is more flexible and allows for easy reloading of visible data. May cause jagged edges in dense renders.",
+                "GEOMETRY_NODES",
+                0,
+            ),
+            (
+                "SHADER",
+                "Shader",
+                "Clip rendered materials with the Slice Cube shader node. More accurate box slicing, but strictly only on bounding boxes.",
+                "MATERIAL",
+                1,
+            ),
+        ],
+        default="SHADER",
+    )
 
     
     cache_path: StringProperty(
@@ -62,16 +82,6 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
 
     channels : bpy.props.CollectionProperty(type=ChannelDescriptor)
     
-    import_loc : EnumProperty(
-        name = 'Import location',
-        items=[
-            ("XY_CENTER", "XY Center","Center volume in XY" ,"", 0),
-            ("XYZ_CENTER", "XYZ Center","Center volume in XYZ" ,"", 1),
-            ("ZERO", "Origin"," Volume origin at world origin" ,"", 2),
-        ], 
-        description= "Defines the coordinate translation after import from input space to Blender meters",
-        default='XY_CENTER',
-    )
     surf_resolution : bpy.props.EnumProperty(
         name = "Meshing density of surfaces and masks",
         items=[
@@ -100,6 +110,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         col.label(text="Default channel settings to set for new files.")
         col.prop(self, "n_default_channels")
         col.prop(self, "extra_channel_slots")
+        col.prop(self, "slice_cube_mode")
         col.template_list("SCENE_UL_Channels", "", self, "channels", bpy.context.scene, "MiN_ch_index", rows=6,sort_lock=True)
         col = layout.column()
         # col.label(text="Transformations upon import:")
@@ -112,20 +123,19 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
 
 def addon_preferences(context: bpy.types.Context | None = None):
     global DEFAULT_PREFERENCES
-    if context is None:
-        context = bpy.context
     try:
+        context = context or bpy.context
         return context.preferences.addons[ADDON_PACKAGE].preferences
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, RuntimeError, TypeError):
         if DEFAULT_PREFERENCES is None:
             DEFAULT_PREFERENCES = SimpleNamespace(
-                import_loc="XY_CENTER",
                 surf_resolution="0",
                 invert_color=False,
                 n_default_channels=8,
                 extra_channel_slots=2,
+                slice_cube_mode="SHADER",
                 cache_option="TEMPORARY",
-                cache_path=str(Path("~", ".microscopynodes").expanduser()),
+                cache_path=str(Path("~", "microscopynodes_cache").expanduser()),
                 channels=[default_channel(ix) for ix in range(8)],
             )
         return DEFAULT_PREFERENCES

@@ -3,7 +3,8 @@ import numpy as np
 
 from ..handle_blender_structs.min_keys import min_keys
 from ..handle_blender_structs.node_handling import set_modifier_input
-from ..min_nodes.geo_nodes import crosshatch_node_group, scale_node_group
+from ..min_nodes.geo_nodes import crosshatch_node_group
+from ..min_nodes.geo_nodes.annotation import scale_node_group
 from .base import MiNObject
 
 
@@ -54,33 +55,29 @@ class Axes(MiNObject):
         counts = tick_counts[valid]
         return float(candidates[np.argmin(np.abs(counts - target_ticks))])
 
-    def set_scene(self, scene_model):
-        set_modifier_input(self.min_gn, "Output Scale", scene_model.output_scale)
-        self.object["_MiN_output_scale"] = float(scene_model.output_scale)
-        self.object.data.update()
-        return
-
-    def set_input_scale(self, input_scale):
-        set_modifier_input(self.min_gn, "Input Scale", input_scale)
-        self.object["_MiN_input_scale"] = float(input_scale)
+    def set_holder(self, holder):
+        scale_node = self.node_group.nodes["Scale Grid"]
+        scale_node.node_tree = scale_node_group()
+        scale_node.inputs["Holder"].default_value = holder
         self.object.data.update()
         return
         
     def set_settings(self, dataset_model):
+        initialize = self.object.parent is None
         tick_step_input_name = self._tick_step_input_name(dataset_model)
         for item in self.node_group.interface.items_tree:
-            if getattr(item, "item_type", None) == 'SOCKET' and item.in_out == 'INPUT':
+            if item.item_type == 'SOCKET' and item.in_out == 'INPUT':
                 if item.name.startswith(f"{self.TICK_STEP_PREFIX} ("):
                     item.name = tick_step_input_name
                     break
-        _, _, extent_unit = dataset_model.intermediate_bbox
+        _, _, dataset_extents = dataset_model.intermediate_bbox
         
-        tick_step = self._nice_tick_step(extent_unit)
+        tick_step = self._nice_tick_step(dataset_extents)
         line_thickness = 0.25
 
-        self.object.location = dataset_model.dataset_center_world
-        self.object.scale = np.maximum(extent_unit, 1e-6)
-        self.set_input_scale(dataset_model.channels[0].data.unit)
+        if initialize:
+            self.object.location = dataset_extents / 2.0
+            self.object.scale = np.maximum(dataset_extents, 1e-6)
 
         set_modifier_input(self.min_gn, tick_step_input_name, tick_step)
         set_modifier_input(self.min_gn, "Grid", True)
@@ -111,26 +108,6 @@ class Axes(MiNObject):
         interface.items_tree[-1].min_value = 0.0
         interface.items_tree[-1].max_value = 3.4028234663852886e+38
         interface.items_tree[-1].attribute_domain = 'POINT'
-
-        interface.new_socket(name="Input Scale", in_out="INPUT", socket_type='NodeSocketFloat')
-        interface.items_tree[-1].default_value = 1.0
-        interface.items_tree[-1].min_value = 0.0
-        interface.items_tree[-1].max_value = 3.4028234663852886e+38
-        interface.items_tree[-1].attribute_domain = 'POINT'
-        if hasattr(interface.items_tree[-1], "hide_in_modifier"):
-            interface.items_tree[-1].hide_in_modifier = True
-        if hasattr(interface.items_tree[-1], "hide_value"):
-            interface.items_tree[-1].hide_value = True
-
-        interface.new_socket(name="Output Scale", in_out="INPUT", socket_type='NodeSocketFloat')
-        interface.items_tree[-1].default_value = 1.0
-        interface.items_tree[-1].min_value = 0.0
-        interface.items_tree[-1].max_value = 3.4028234663852886e+38
-        interface.items_tree[-1].attribute_domain = 'POINT'
-        if hasattr(interface.items_tree[-1], "hide_in_modifier"):
-            interface.items_tree[-1].hide_in_modifier = True
-        if hasattr(interface.items_tree[-1], "hide_value"):
-            interface.items_tree[-1].hide_value = True
 
         interface.new_socket(name="Grid", in_out="INPUT", socket_type='NodeSocketBool')
         interface.items_tree[-1].default_value = True
@@ -167,29 +144,19 @@ class Axes(MiNObject):
 
         scale_node = nodes.new("GeometryNodeGroup")
         scale_node.node_tree = scale_node_group()
-        scale_node.name = "Scale Bars"
-        scale_node.label = "Scale Bars"
+        scale_node.name = "Scale Grid"
+        scale_node.label = "Scale Grid"
         scale_node.width = 260
         scale_node.location = (-50, 0)
 
-        world_per_unit = nodes.new("ShaderNodeMath")
-        world_per_unit.operation = "DIVIDE"
-        world_per_unit.name = "World per Unit"
-        world_per_unit.label = "World per Unit"
-        world_per_unit.location = (-350, -120)
-        world_per_unit.inputs[0].default_value = 1.0
-        world_per_unit.inputs[1].default_value = 1.0
-
         links.new(inputnode.outputs["Tick Step (unit)"], scale_node.inputs["Tick Step (unit)"])
-        links.new(inputnode.outputs["Input Scale"], world_per_unit.inputs[0])
-        links.new(inputnode.outputs["Output Scale"], world_per_unit.inputs[1])
-        links.new(world_per_unit.outputs[0], scale_node.inputs["World per Unit"])
         links.new(inputnode.outputs["Grid"], scale_node.inputs["Grid"])
         links.new(inputnode.outputs["Line thickness"], scale_node.inputs["Line thickness"])
         # links.new(crosshatch.outputs[0], scale_node.inputs["Tick Geometry"])
         links.new(combine_axes.outputs["Bundle"], scale_node.inputs["Axis Bundle"])
 
         axes_mat = self.init_material_axes()
+        self.ensure_material_slot(axes_mat)
         scale_node.inputs["Material"].default_value = axes_mat
 
         links.new(scale_node.outputs["Geometry"], outputnode.inputs["Geometry"])

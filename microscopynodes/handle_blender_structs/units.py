@@ -4,9 +4,9 @@ UNIT_VALUES = {
     "MICROMETER": 1e-6,
     "MILLIMETER": 1e-3,
     "METER": 1.0,
-    "AU": 1.0,
 }
 
+DEFAULT_UNIT = "MICROMETER"
 AUTO_IMPORT_SCALE = "AUTO_SCALE"
 DEFAULT_IMPORT_SCALE = "MICROMETER_SCALE"
 AUTO_TARGET_EXTENT_METERS = 10
@@ -70,11 +70,11 @@ def _holder_extent_units(holder):
 def auto_import_scale_for_scene(scene):
     input_extents = []
     for obj in scene.objects:
-        if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
+        if "_MiN_dataset_input_scale" not in obj:
             continue
         extent_units = _holder_extent_units(obj)
         if extent_units > 0:
-            input_extents.append(extent_units * float(obj["_MiN_input_scale"]))
+            input_extents.append(extent_units * float(obj["_MiN_dataset_input_scale"]))
 
     if not input_extents:
         return None
@@ -87,7 +87,6 @@ def update_import_scale(self, context):
     from ..blender_objects.factories import MinObjectFactory
     from ..data_model import SceneModel
     from .min_keys import min_keys
-    from .node_handling import get_min_gn
 
     if self.MiN_import_scale == AUTO_IMPORT_SCALE:
         import_scale = auto_import_scale_for_scene(context.scene)
@@ -95,16 +94,14 @@ def update_import_scale(self, context):
             self.MiN_import_scale = import_scale
         return
 
-    scene_model = SceneModel(output_scale=self.MiN_import_scale)
+    scene_model = SceneModel(
+        output_scale=self.MiN_import_scale,
+        import_transform=self.MiN_import_loc,
+    )
     for obj in context.scene.objects:
-        if obj.type != "EMPTY" or "_MiN_input_scale" not in obj:
+        if "_MiN_dataset_input_scale" not in obj:
             continue
         MinObjectFactory(min_keys.HOLDER, obj=obj).set_scene(scene_model)
-        for child in obj.children:
-            min_gn = get_min_gn(child)
-            if min_gn is None or "axes" not in min_gn.name.lower():
-                continue
-            MinObjectFactory(min_keys.AXES, obj=child).set_scene(scene_model)
 
 
 def import_scale_property(update=update_import_scale):
@@ -172,7 +169,7 @@ def unit_name(unit):
     for name, candidate in UNIT_VALUES.items():
         if candidate == value:
             return name
-    return "AU"
+    return DEFAULT_UNIT
 
 
 def parse_unit(unit):
@@ -186,4 +183,4 @@ def parse_unit(unit):
         return "MILLIMETER"
     if unit in ['m', 'meter', 'M', 'METER']:
         return "METER"
-    return "AU"
+    return DEFAULT_UNIT

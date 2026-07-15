@@ -1,26 +1,25 @@
 import bpy
 
 from .base import MeshChannelObject
-from ..handle_blender_structs.node_handling import get_socket, group_input_output_for_socket, new_socket
+from ..handle_blender_structs.node_handling import get_socket, group_input_output_for_socket, new_socket, set_modifier_input_socket
 from ..handle_blender_structs.min_keys import min_keys
-from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
+from ..min_nodes.geo_nodes.utilities.import_microscopy_volume import import_microscopy_volume_node_group
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch
 
 
 class SurfaceObject(MeshChannelObject):
     min_type = min_keys.SURFACE
+    gn_frame_label = "Surface"
+    frame_color = (0.506, 0.663, 0.506)
 
     # identical to VolumeObject but annoyign to import
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
+        metadata = ch.files_for(self.min_type).metadata
         ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
         for key, val in ch_to_node.items():
-            import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
+            import_node.inputs.get(key).default_value = metadata[val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
-
-        for input_field in import_node.inputs: 
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
-                input_field.hide = True
         return 
 
     def init_shader(self, mat):
@@ -43,7 +42,7 @@ class SurfaceObject(MeshChannelObject):
         import_node.name = f"IMPORT_{ch.identifier}"
         import_node.label = ch.name
         for input_field in import_node.inputs:
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+            if input_field.name not in ("Include", "Normalized"):
                 input_field.hide = True
 
         affine_node = nodes.new("FunctionNodeCombineMatrix")
@@ -53,11 +52,10 @@ class SurfaceObject(MeshChannelObject):
         for affine_socket in affine_node.inputs:
             if not affine_socket.is_linked:
                 affine_socket.hide = True
-        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
-        masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
+        masked_grid, mask_grid = self.slice_cube_channel_output(ch, import_node)
 
         socket_ix = get_socket(self.node_group, ch, return_ix=True, min_type="SWITCH")[1]
         threshold_socket = new_socket(self.node_group, ch, 'NodeSocketFloat', min_type='THRESHOLD',  ix=socket_ix+1)
@@ -65,7 +63,7 @@ class SurfaceObject(MeshChannelObject):
         threshold_socket.max_value = 1.001
         threshold_socket.attribute_domain = 'POINT'
 
-        self.gn_mod[threshold_socket.identifier] =  ch.metadata[self.min_type]['threshold']      
+        set_modifier_input_socket(self.gn_mod, threshold_socket, ch.files_for(self.min_type).metadata['threshold'])
         threshold = group_input_output_for_socket(nodes.get('Group Input'), threshold_socket)
 
         grid_to_mesh = nodes.new('GeometryNodeGridToMesh')
@@ -74,8 +72,8 @@ class SurfaceObject(MeshChannelObject):
         links.new(masked_grid, grid_to_mesh.inputs.get('Grid'))
         links.new(threshold, grid_to_mesh.inputs.get("Threshold"))
 
-        out_ch = self.store_channel_attribute(x + 1000, y, ch, grid_to_mesh.outputs.get('Mesh'))
-        links.new(out_ch, join_node.inputs["Geometry"])
+        self.add_channel_to_bundle(ch, grid_to_mesh.outputs.get("Mesh"), "GEOMETRY")
+        self.frame_gn_nodes([import_node, affine_node, mask_grid, grid_to_mesh])
         return
 
     def update_gn(self, ch):
@@ -91,10 +89,10 @@ class SurfaceObject(MeshChannelObject):
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
             colornode = mat.node_tree.nodes.get(f"[color_lut_{ch.identifier}]")
             set_color_ramp_from_ch(ch, colornode)
-            if princ is not None and ch.viz.emission and princ.inputs[28].default_value == 0.0:
-                princ.inputs[28].default_value = 0.5
-            elif princ is not None and not ch.viz.emission and princ.inputs[28].default_value == 0.5:
-                princ.inputs[28].default_value = 0
+            if princ is not None and ch.viz.emission and princ.inputs[29].default_value == 0.0:
+                princ.inputs[29].default_value = 0.5
+            elif princ is not None and not ch.viz.emission and princ.inputs[29].default_value == 0.5:
+                princ.inputs[29].default_value = 0
         except Exception as e:
             print(e, 'in update surface shader')
             pass

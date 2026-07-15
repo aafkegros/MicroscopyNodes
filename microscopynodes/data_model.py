@@ -1,10 +1,20 @@
-from typing import Annotated, Optional, Tuple, List, Dict, Any
-from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator, ConfigDict
+from typing import Annotated, Tuple, List, Dict, Any, Literal
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 import numpy as np
 from cmap import Color, Colormap
 from .handle_blender_structs.min_keys import min_keys
 from .handle_blender_structs.units import output_scale_for_import_scale, unit_label_from_value, unit_value
-import dask.array as da
+from .io.artifacts import GeneratedChannelFilesModel, write_mask
+
+#######
+#
+# the data model is an intermediate shape that can easily be generated from code, back and forth the input GUI and into local cache files
+# This can be handed to the blender_state managers to impact only the state of the tracked variables
+# The rest of blender state is left to Blender itself to manage, as i do not want to mirror the entirety of Blender state
+#
+#######
+
+
 
 # subtractive space as derived from https://trygvrad.github.io/multivariate-colormaps-for-n-dimensions/ (not a true implementation)
 INIT_COLORS = [
@@ -19,24 +29,44 @@ INIT_COLORS = [
 ]
 
 
-class ChannelDataModel(BaseModel):
-    # allow arbitrary types to parse dask arrays - might remove
-    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
+def _validate_axis_order(value, allowed, field_name):
+    if not value:
+        raise ValueError(f"{field_name} must not be empty")
+    invalid = sorted(set(value) - set(allowed))
+    if invalid:
+        raise ValueError(f"{field_name} contains unsupported axes: {''.join(invalid)}")
+    duplicates = sorted(axis for axis in set(value) if value.count(axis) > 1)
+    if duplicates:
+        raise ValueError(f"{field_name} contains duplicate axes: {''.join(duplicates)}")
+    return value
 
+
+class ChannelDataModel(BaseModel):
     dataset_resolution: int # currently static resolution identifier 
 
     ix: int # channel index in the original array used as unique identifier for the dataset TODO abstract this inot the ix in the dataset?
-    axes_order: Annotated[str, Field(pattern=r"^[txyz]*$")] # removes channel axis - optional later: make xarray?
+    axes_order: str # removes channel axis - optional later: make xarray?
     source_axes_order: str | None = None
-    source_data: da.Array = Field(alias="data") # lazy link to source data
-    affine: List[List[float]] | None = None #transforms into unit space
+    mask_path: str | None = None
+    affine: List[List[float]] = Field(default_factory=lambda: np.eye(4).tolist()) #transforms into unit space
     unit: float #the data-unit in meters, affine transform maps into this
-    frame_start: int = None
-    frame_end: int = None
+    frame_start: int | None = None
+    frame_end: int | None = None
 
-    source: str  #for logging
+    source: str  # URI of the data
+    internal_path: str | None = None # path inside container sources such as zarr
     min_rescale_xyz: Tuple[float, float, float] = (1.0, 1.0, 1.0)
-    _data_cache: da.Array | None = PrivateAttr(default=None)
+    _source_array_cache: Any = PrivateAttr(default=None)
+    _data_cache: Any = PrivateAttr(default=None) # check if necessary?
+    _mask_cache: Any = PrivateAttr(default=None)
+
+    @property
+    def mask(self):
+        if self.mask_path is None:
+            return None
+        if self._mask_cache is None:
+            self._mask_cache = np.load(self.mask_path, allow_pickle=False)
+        return self._mask_cache
 
     @field_validator("min_rescale_xyz")
     def validate_min_rescale_xyz(cls, v):
@@ -44,24 +74,51 @@ class ChannelDataModel(BaseModel):
             raise ValueError("min_rescale_xyz values must be greater than or equal to 1.")
         return tuple(float(value) for value in v)
 
+    @field_validator("axes_order")
+    def validate_axes_order(cls, value):
+        return _validate_axis_order(value, "txyz", "axes_order")
+
+    @field_validator("source_axes_order")
+    def validate_source_axes_order(cls, value):
+        if value is None:
+            return None
+        return _validate_axis_order(value, "tcxyz", "source_axes_order")
+
     @property
     def data(self):
         channel_axis = self.channel_axis
         if channel_axis is None:
-            return self.source_data
+            return self._source_array
         if self._data_cache is None:
+            import dask.array as da
+
             self._data_cache = da.take(
-                self.source_data,
+                self._source_array,
                 indices=self.ix,
                 axis=channel_axis,
             )
         return self._data_cache
 
-    @data.setter
-    def data(self, value):
-        self.source_data = value
-        self.source_axes_order = self.axes_order
-        self._data_cache = None
+    @property
+    def _source_array(self):
+        if self._source_array_cache is None:
+            from .file_to_array.source_array import open_source_array
+
+            data = open_source_array(self.source, self.internal_path)
+            data = self._stride_rescale(data)
+            self._source_array_cache = data
+        return self._source_array_cache
+
+    def _stride_rescale(self, data):
+        slices = []
+        axes_order = self.source_axes_order or self.axes_order
+        for axis in axes_order:
+            if axis in "xyz":
+                step = int(self.min_rescale_xyz["xyz".find(axis)])
+                slices.append(slice(None, None, max(step, 1)))
+            else:
+                slices.append(slice(None))
+        return data[tuple(slices)]
 
     @property
     def channel_axis(self):
@@ -71,7 +128,7 @@ class ChannelDataModel(BaseModel):
 
     @property
     def data_shape(self):
-        shape = tuple(self.source_data.shape)
+        shape = tuple(self._source_array.shape)
         channel_axis = self.channel_axis
         if channel_axis is None:
             return shape
@@ -83,23 +140,7 @@ class ChannelDataModel(BaseModel):
 
     @property
     def data_dtype(self):
-        return self.source_data.dtype
-
-    @field_validator("source_data")
-    def validate_data_shape(cls, v, info):
-        if v is not None:
-            axes_order = info.data.get("axes_order")
-            source_axes_order = info.data.get("source_axes_order")
-            expected_axes = source_axes_order or axes_order
-            if expected_axes is not None and v.ndim != len(expected_axes):
-                raise ValueError(f"data.ndim ({v.ndim}) does not match axes_order length ({len(expected_axes)})")
-        return v
-
-    @field_validator('affine', mode='before')
-    def default_affine(cls, v):
-        if v is None:
-            return np.eye(4).tolist()
-        return v
+        return self._source_array.dtype
 
     @field_validator('affine')
     def validate_affine(cls, v):
@@ -112,14 +153,14 @@ class ChannelDataModel(BaseModel):
     def parse_unit_scale(cls, v):
         return unit_value(v)
 
-    @field_validator("frame_start", "frame_end")
-    def validate_frame_bounds(cls, v, info):
-        return v
-
     @model_validator(mode="after")
     def validate_frame_order(self):
         if self.source_axes_order is None:
             self.source_axes_order = self.axes_order
+        if self.source_axes_order.replace("c", "") != self.axes_order:
+            raise ValueError(
+                "source_axes_order without its channel axis must match axes_order"
+            )
         if "t" not in self.axes_order:
             self.frame_start = 0
             self.frame_end = 0
@@ -161,8 +202,6 @@ class ChannelDataModel(BaseModel):
 
 
 class ChannelVizModel(BaseModel):
-    model_config = ConfigDict(json_encoders={Colormap: Colormap.as_dict})
-
     ix: int = 0 
     name: str | None = None
     volume: bool = True
@@ -170,7 +209,7 @@ class ChannelVizModel(BaseModel):
     labelmask: bool = False
     emission: bool = True
     cmap: Colormap | None = None
-    surf_resolution: int = 0
+    surf_resolution: int = 0 # will be deprecated?
 
     @model_validator(mode="before")
     @classmethod
@@ -188,20 +227,13 @@ class ChannelVizModel(BaseModel):
             data["cmap"] = Colormap([INIT_COLORS[ix % len(INIT_COLORS)]])
         return data
 
-    @field_validator("cmap", mode="before")
-    def validate_cmap(cls, v):
-        if isinstance(v, Colormap):
-            return v
-        return Colormap(v)
-
-
 class ChannelModel(BaseModel):
     data: ChannelDataModel
     viz: ChannelVizModel
+    source_name: str | None = None
     cache_path: str
     force_remaking_files: bool = False
-    metadata: Dict[min_keys, Any] = Field(default_factory=dict) # runtime assessed
-    file_constructors: Dict[min_keys, List[Dict[str, Any]]] = Field(default_factory=dict) # local file paths to load from
+    generated: GeneratedChannelFilesModel = Field(default_factory=GeneratedChannelFilesModel)
 
     @property
     def identifier(self):
@@ -211,13 +243,50 @@ class ChannelModel(BaseModel):
     def name(self):
         return self.viz.name
 
+    def files_for(self, min_type):
+        return self.generated.for_type(min_type)
+
+    def store_mask(self, mask):
+        mask_path, mask = write_mask(self.cache_path, mask)
+        self.data.mask_path = mask_path
+        self.data._mask_cache = mask
+
+    def apply_viz_defaults(self, defaults: List[ChannelVizModel]):
+        if not defaults:
+            return
+
+        ix = self.data.ix
+        template = defaults[ix % len(defaults)]
+        if self.source_name:
+            name = self.source_name
+        elif ix < len(defaults):
+            name = template.name
+        else:
+            name = f"Channel {ix}"
+
+        self.viz = template.model_copy(
+            update={"ix": ix, "name": name},
+            deep=True,
+        )
+
 class DatasetModel(BaseModel):
     channels: Annotated[List[ChannelModel], Field(min_length=1)]
 
-    name : Optional[str] 
-    relative_loc: Tuple[float, float, float] = (-0.5, -0.5, 0) # world origin in /bbox
+    name: str | None = None
+    slice_cube_mode: Literal["GEOMETRY", "SHADER"] = "SHADER"
 
-    local_files_exist: bool = False
+    def apply_viz_defaults(self, defaults: List[ChannelVizModel]):
+        for channel in self.channels:
+            channel.apply_viz_defaults(defaults)
+
+    @property
+    def local_files_exist(self):
+        for channel in self.channels:
+            for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
+                if getattr(channel.viz, min_type.name.lower(), False):
+                    if not channel.files_for(min_type).constructors:
+                        return False
+        return True
 
     @property
     def unit_label(self):
@@ -250,13 +319,13 @@ class DatasetModel(BaseModel):
         
     @property
     def dataset_origin_world(self):
-        mins, _, extent = self.intermediate_bbox
-        return np.array(self.relative_loc, dtype=float) * extent - mins
+        mins, _, _ = self.intermediate_bbox
+        return -mins
 
     @property
     def dataset_center_world(self):
         _, _, extent = self.intermediate_bbox
-        return (np.array(self.relative_loc, dtype=float) + 0.5) * extent
+        return extent / 2.0
 
     @model_validator(mode="after")
     def set_defaults(self):
@@ -264,31 +333,23 @@ class DatasetModel(BaseModel):
             self.name = 'Microscopy Dataset'
         return self
 
-    def make_local_files(self):
-        from .io.factories import DataIOFactory
-
-        try:
-            for ch in self.channels:
-                for min_type in (min_keys.VOLUME, min_keys.SURFACE, min_keys.LABELMASK):
-                    load = getattr(ch.viz, min_type.name.lower(), False)
-                    if not load:
-                        continue
-                    data_io = DataIOFactory(min_type)
-                    file_constructors = data_io.make_local_files(ch)
-                    ch.file_constructors[min_type] = file_constructors
-                    ch.metadata[min_type] = data_io.get_metadata(file_constructors)
-            self.local_files_exist = True
-            return {"ok": True, "error": ""}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
-
 class SceneModel(BaseModel):
-    output_scale: float
+    output_scale: float # conversion factor for blender scales
+    import_transform: Tuple[float, float, float] = (0.5, 0.5, 0.0) # offset from world origin in inferred bbox
 
     @field_validator("output_scale", mode="before")
     def parse_output_scale(cls, v):
         return cls.output_scale_value(v)
+
+    @field_validator("import_transform", mode="before")
+    def parse_import_transform(cls, value):
+        if isinstance(value, str):
+            return {
+                "ZERO": (0.0, 0.0, 0.0),
+                "XY_CENTER": (0.5, 0.5, 0.0),
+                "XYZ_CENTER": (0.5, 0.5, 0.5),
+            }[value]
+        return tuple(float(component) for component in value)
 
     @classmethod
     def output_scale_value(cls, value):

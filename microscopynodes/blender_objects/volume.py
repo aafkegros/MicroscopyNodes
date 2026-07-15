@@ -4,8 +4,8 @@ import numpy as np
 from .base import ChannelObject
 from ..handle_blender_structs.node_handling import expand_node_ui, group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
-from ..min_nodes.geo_nodes.import_microscopy_volume import import_microscopy_volume_node_group
-from ..min_nodes.geo_nodes.join_grids import join_grids_node_group
+from ..min_nodes.geo_nodes.utilities.import_microscopy_volume import import_microscopy_volume_node_group
+from ..min_nodes.geo_nodes.utilities.nodeActiveGridPositions import active_grid_positions_node_group
 from ..min_nodes.shader_nodes.nodeMicroscopyShading import microscopy_shading_node
 from ..min_nodes.shader_nodes import set_color_ramp_from_ch, volume_alpha_node
 
@@ -15,6 +15,8 @@ NR_HIST_BINS = 2**16
 class VolumeObject(ChannelObject):
     min_type = min_keys.VOLUME
     shader_y_step = 750
+    gn_frame_label = "Volume"
+    frame_color = (0.506, 0.537, 0.663)
 
     def init_shader(self, mat):
         super().init_shader(mat)
@@ -22,33 +24,6 @@ class VolumeObject(ChannelObject):
         links = mat.node_tree.links
         links.new(nodes["Add Shaders"].outputs[0], nodes["Material Output"].inputs["Volume"])
         return
-
-    def init_gn(self):
-        super().init_gn()
-        nodes = self.node_group.nodes
-        links = self.node_group.links
-
-        join_node = nodes.new("GeometryNodeGroup")
-        join_node.node_tree = join_grids_node_group(self.shader_count)
-        join_node.name = "Join"
-        join_node.location = (800, -100)
-        join_node.hide = True
-        join_node.inputs["Total channels"].default_value = self.shader_count
-
-        set_material = nodes.new('GeometryNodeSetMaterial')
-        set_material.name = "Set Material"
-        set_material.location = (1100, -100)
-
-        links.new(join_node.outputs[0], set_material.inputs['Geometry'])
-        links.new(set_material.outputs[0], nodes["Group Output"].inputs["Geometry"])
-        return
-
-    def ensure_channel_capacity(self):
-        super().ensure_channel_capacity()
-        join_node = self.node_group.nodes.get("Join")
-        if join_node is not None:
-            join_node.node_tree = join_grids_node_group(self.shader_count)
-            join_node.inputs["Total channels"].default_value = self.shader_count
 
     def add_ch_to_gn(self, ch):
         in_node = self.node_group.nodes.get('Group Input')
@@ -63,7 +38,7 @@ class VolumeObject(ChannelObject):
         import_node.name = f"IMPORT_{ch.identifier}"
         import_node.label = ch.name
         for input_field in import_node.inputs:
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+            if input_field.name not in ("Include", "Normalized"):
                 input_field.hide = True
 
         affine_node = self.node_group.nodes.new("FunctionNodeCombineMatrix")
@@ -73,28 +48,76 @@ class VolumeObject(ChannelObject):
         for affine_socket in affine_node.inputs:
             if not affine_socket.is_linked:
                 affine_socket.hide = True
-        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
-        masked_grid = self.mask_grid_for_slice_cube(x, y, ch, import_node.outputs["Grid"])
+        masked_grid, mask_grid = self.slice_cube_channel_output(ch, import_node)
 
-        join_node.inputs["Total channels"].default_value = max(
-            join_node.inputs["Total channels"].default_value,
-            min(ch.data.ix + 1, self.shader_count),
-        )
-        links.new(masked_grid, join_node.inputs[str(min(ch.data.ix, self.shader_count - 1))])
+        self.add_channel_to_bundle(ch, masked_grid, "FLOAT")
+        self.frame_gn_nodes([import_node, affine_node, mask_grid])
         return
 
     def update_import_node(self, import_node, file_constructors, ch):
         super().update_import_node(import_node, file_constructors, ch)
+        metadata = ch.files_for(self.min_type).metadata
         ch_to_node = {"VDB Maximum":"vdb_max","VDB Minimum":"vdb_min", "Original Maximum":"data_max"}
         for key, val in ch_to_node.items():
-            import_node.inputs.get(key).default_value = ch.metadata[self.min_type][val]
+            import_node.inputs.get(key).default_value = metadata[val]
         import_node.inputs.get('Grid Name').default_value = 'data' # TEMPORARY
         return
 
+    def infer_visibility(self):
+        nodes = self.node_group.nodes
+        links = self.node_group.links
+        output = nodes.get("Group Output")
+        output_socket = output.inputs["Geometry"]
+
+        original_socket = output_socket.links[0].from_socket
+        active_points = nodes.new("GeometryNodeGroup")
+        active_points.name = "[visibility] Active Grid Positions"
+        active_points.node_tree = active_grid_positions_node_group()
+        active_points.location = (1300, -100)
+
+        links.new(
+            nodes["Channel Bundle"].outputs["Bundle"],
+            active_points.inputs["Grid Bundle"],
+        )
+        links.new(active_points.outputs["Points"], output_socket)
+
+        try:
+            bpy.context.view_layer.update()
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            evaluated_object = depsgraph.id_eval_get(self.object)
+            evaluated_geometry = evaluated_object.evaluated_geometry()
+            point_cloud = evaluated_geometry.pointcloud
+            indices = self._read_vector_attribute(point_cloud, "ix").astype(int)
+            if len(indices) == 0:
+                return np.empty((0, 0, 0), dtype=bool)
+
+            values = self._read_boolean_attribute(point_cloud, "value")
+            mask = np.zeros(tuple(indices.max(axis=0) + 1), dtype=bool)
+            mask[tuple(indices.T)] = values
+            return mask
+        finally:
+            links.new(original_socket, output_socket)
+            nodes.remove(active_points)
+
+    def _read_vector_attribute(self, point_cloud, name):
+        point_count = len(point_cloud.attributes["position"].data)
+        if point_count == 0:
+            return np.empty((0, 3), dtype=float)
+
+        values = np.empty(point_count * 3, dtype=float)
+        point_cloud.attributes[name].data.foreach_get("vector", values)
+        return values.reshape((-1, 3))
+
+    def _read_boolean_attribute(self, point_cloud, name):
+        values = np.empty(len(point_cloud.attributes["position"].data), dtype=bool)
+        point_cloud.attributes[name].data.foreach_get("value", values)
+        return values
+
     def draw_histogram(self, nodes, loc, width, hist):
+        hist = np.asarray(hist)
         histnode =nodes.new(type="ShaderNodeFloatCurve")
         histnode.location = loc
         histmap = histnode.mapping
@@ -123,15 +146,16 @@ class VolumeObject(ChannelObject):
 
     def update_material(self, mat, ch):
         nodes = mat.node_tree.nodes
+        metadata = ch.files_for(self.min_type).metadata
 
         color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
         if color_lut is not None:
             set_color_ramp_from_ch(ch, color_lut)
 
-        if self.min_type in ch.metadata:
+        if metadata:
             histnode = nodes.get(f'[Histogram_{ch.identifier}]')
-            if ch.metadata[self.min_type] is not None and histnode is not None:
-                new_histnode = self.draw_histogram(nodes, histnode.location, histnode.width, ch.metadata[self.min_type]['histogram'])
+            if histnode is not None:
+                new_histnode = self.draw_histogram(nodes, histnode.location, histnode.width, metadata['histogram'])
                 new_histnode.name = histnode.name
                 new_histnode.label = histnode.label
                 new_histnode.parent = histnode.parent
@@ -144,6 +168,7 @@ class VolumeObject(ChannelObject):
 
     def init_channel_shader(self, mat, ch):
         mat.use_nodes = True
+        metadata = ch.files_for(self.min_type).metadata
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
@@ -151,35 +176,47 @@ class VolumeObject(ChannelObject):
         node_attr = nodes.new(type='ShaderNodeAttribute')
         node_attr.location = (-1600, y_offset)
         node_attr.name = f"[channel_load_{ch.identifier}]"
-        node_attr.attribute_name = f'Channel {ch.data.ix}'
+        node_attr.attribute_name = ch.name
         node_attr.label = ch.name
-        node_attr.hide = True
 
-        ramp_node = nodes.new(type="ShaderNodeValToRGB")
-        ramp_node.location = (-1200, y_offset)
-        ramp_node.width = 1000
-        ramp_node.color_ramp.elements[0].position = ch.metadata[self.min_type]['threshold']
-        ramp_node.color_ramp.elements[0].color = (1,1,1,0)
-        ramp_node.color_ramp.elements[1].color = (1,1,1,1)
-        ramp_node.color_ramp.elements[1].position = 1
-        ramp_node.name = f'[alpha_ramp_{ch.identifier}]'
-        ramp_node.label = "Pixel Intensities"
-        ramp_node.show_options = True
-        if 'threshold_upper' in ch.metadata[self.min_type]:
-            ramp_node.color_ramp.elements[1].position = ch.metadata[self.min_type]['threshold_upper']
-        ramp_node.outputs[0].hide = True
-        links.new(node_attr.outputs.get('Fac'), ramp_node.inputs.get("Fac"))  
+        contrast_limits = nodes.new(type="ShaderNodeValToRGB")
+        contrast_limits.location = (-1200, y_offset + 40)
+        contrast_limits.width = 1000
+        contrast_limits.color_ramp.elements[0].position = metadata['threshold']
+        contrast_limits.color_ramp.elements[0].color = (1,1,1,0)
+        contrast_limits.color_ramp.elements[1].color = (1,1,1,1)
+        contrast_limits.color_ramp.elements[1].position = 1
+        contrast_limits.name = f'[contrast_limits_{ch.identifier}]'
+        contrast_limits.label = "Color contrast Limits"
+        contrast_limits.show_options = True
+        if 'threshold_upper' in metadata:
+            contrast_limits.color_ramp.elements[1].position = metadata['threshold_upper']
+        contrast_limits.outputs[0].hide = True
+        expand_node_ui(contrast_limits)
+        links.new(node_attr.outputs.get('Fac'), contrast_limits.inputs.get("Fac"))
 
-        histnode = self.draw_histogram(nodes, (-1200, y_offset + 300), 1000, ch.metadata[self.min_type]['histogram'])
+        alpha_limits = nodes.new(type="ShaderNodeValToRGB")
+        alpha_limits.location = (-1200, y_offset - 150)
+        alpha_limits.width = 1000
+        alpha_limits.color_ramp.elements[0].position = metadata['threshold']
+        alpha_limits.color_ramp.elements[0].color = (0,0,0,0)
+        alpha_limits.color_ramp.elements[1].color = (0,0,0,1)
+        alpha_limits.color_ramp.elements[1].position = 1
+        alpha_limits.name = f'[alpha_limits_{ch.identifier}]'
+        alpha_limits.label = "Alpha Limits"
+        alpha_limits.show_options = True
+        alpha_limits.outputs[0].hide = True
+        links.new(node_attr.outputs.get('Fac'), alpha_limits.inputs.get("Fac"))
+
+        histnode = self.draw_histogram(nodes, (-1200, y_offset + 300), 1000, metadata['histogram'])
         histnode.name = f'[Histogram_{ch.identifier}]'
 
         alphanode =  nodes.new('ShaderNodeGroup')
         alphanode.node_tree = volume_alpha_node()
         alphanode.name = f'[volume_alpha_{ch.identifier}]'
         alphanode.location = (-300, y_offset - 120)
-        alphanode.inputs.get("Alpha").default_value = 1
-        alphanode.inputs.get("Alpha-Intensity Coupling").default_value = 1
-        links.new(ramp_node.outputs.get('Alpha'), alphanode.inputs.get("Value"))
+        alphanode.inputs.get("Alpha Multiplier").default_value = 10
+        links.new(alpha_limits.outputs.get('Alpha'), alphanode.inputs.get("Value"))
         alphanode.width = 300
         expand_node_ui(alphanode)
 
@@ -189,7 +226,7 @@ class VolumeObject(ChannelObject):
         color_lut.name = f"[color_lut_{ch.identifier}]"
         color_lut.show_options = True
         color_lut.outputs[1].hide = True
-        links.new(ramp_node.outputs[1], color_lut.inputs[0])
+        links.new(contrast_limits.outputs[1], color_lut.inputs[0])
 
         microscopy_shading = nodes.new("ShaderNodeGroup")
         microscopy_shading.node_tree = microscopy_shading_node()
@@ -202,7 +239,7 @@ class VolumeObject(ChannelObject):
         expand_node_ui(microscopy_shading)
 
         frame, _ = self.add_ch_to_shader(mat, ch, microscopy_shading.outputs["Shader"])
-        for node in (node_attr, ramp_node, histnode, alphanode, color_lut, microscopy_shading):
+        for node in (node_attr, contrast_limits, alpha_limits, histnode, alphanode, color_lut, microscopy_shading):
             node.parent = frame
 
         links.new(color_lut.outputs[0], microscopy_shading.inputs["Color"])

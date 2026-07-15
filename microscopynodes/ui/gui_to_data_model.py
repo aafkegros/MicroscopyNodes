@@ -3,12 +3,12 @@ import numpy as np
 import tempfile
 from pathlib import Path
 
-from .handle_blender_structs.dependent_props import ensure_valid_reload_object
-from .file_to_array import selected_array_option, channel_data_model
-from .ui.preferences import addon_preferences
+from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
+from ..file_to_array import selected_array_option, channel_data_model
+from .preferences import addon_preferences
 
 from typing import List
-from .data_model import DatasetModel, ChannelModel
+from ..data_model import DatasetModel, ChannelModel
 
 def parse_blender_ui():
     scn = bpy.context.scene
@@ -18,16 +18,31 @@ def parse_blender_ui():
         scn.MiN_update_settings = True
 
     channels = parse_channellist()
-    relative_loc = parse_relative_loc()
     name = Path(scn.MiN_input_file).name
 
     # Build DatasetModel
     scene_model = DatasetModel(
         name=name,
         channels=channels,
-        relative_loc = relative_loc,
+        slice_cube_mode=addon_preferences().slice_cube_mode,
     )
+    if scn.MiN_load_with_mask and scn.MiN_reload is not None:
+        from ..blender_state import Dataset
+
+        infer_visibility_to_channel_data(
+            Dataset(holder=scn.MiN_reload),
+            scene_model,
+        )
     return scene_model
+
+
+def infer_visibility_to_channel_data(dataset, dataset_model):
+    if dataset.volume is None:
+        return
+    mask = dataset.volume.infer_visibility()
+    for channel in dataset_model.channels:
+        channel.store_mask(mask)
+        channel.force_remaking_files = True
 
 # ----------------------------------------------------------------
 # --- Channel Model Construction --------------------------------
@@ -82,13 +97,3 @@ def parse_pixel_size_values():
     if not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
         pixel_size *= selected_array_option().scale()
     return pixel_size
-
-
-def parse_relative_loc():
-    prefloc = addon_preferences(bpy.context).import_loc
-    if prefloc == "XY_CENTER":
-        return [-0.5,-0.5,0] 
-    if prefloc == "XYZ_CENTER":
-        return [-0.5,-0.5,-0.5] 
-    if prefloc == "ZERO":
-        return [0, 0, 0] 

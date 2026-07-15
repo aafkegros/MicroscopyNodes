@@ -2,7 +2,6 @@ import bpy
 from nodebpy import TreeBuilder, geometry as g
 from nodebpy.builder import CustomGeometryGroup
 from nodebpy.types import (
-    InputBoolean,
     InputCollection,
     InputFloat,
     InputGeometry,
@@ -10,6 +9,7 @@ from nodebpy.types import (
     InputObject,
 )
 
+from ..nodeHolderBundleInputs import HolderBundleInputs
 from .nodeMaskBoxField import ClipFieldToBox
 
 
@@ -26,9 +26,9 @@ class MaskGrid(CustomGeometryGroup):
         object: InputObject = None,
         collection: InputCollection = None,
         mesh: InputGeometry = None,
+        holder: InputObject = None,
         mask_resolution: InputFloat = 0.3,
         mask: InputFloat = 0.0,
-        invert: InputBoolean = False,
     ):
         super().__init__(
             **{
@@ -37,9 +37,9 @@ class MaskGrid(CustomGeometryGroup):
                 "Object": object,
                 "Collection": collection,
                 "Mesh": mesh,
+                "Holder": holder,
                 "Mask Resolution": mask_resolution,
                 "Mask": mask,
-                "Invert": invert,
             }
         )
 
@@ -48,6 +48,8 @@ class MaskGrid(CustomGeometryGroup):
 
 
 def _build_mask_grid(tree):
+    tree._arrange = "simple"
+
     tree.tree.show_modifier_manage_panel = True
 
     grid = tree.inputs.float(
@@ -59,6 +61,12 @@ def _build_mask_grid(tree):
     object = tree.inputs.object("Object")
     collection = tree.inputs.collection("Collection", optional_label=True)
     mesh = tree.inputs.geometry("Mesh")
+    holder = tree.inputs.object(
+        "Holder",
+        optional_label=True,
+        hide_value=True,
+        hide_in_modifier=True,
+    )
     mask_resolution = tree.inputs.float(
         "Mask Resolution",
         0.3,
@@ -70,8 +78,8 @@ def _build_mask_grid(tree):
         hide_value=True,
         optional_label=True,
     )
-    invert = tree.inputs.boolean("Invert")
-    masked_grid = tree.outputs.float("Masked Grid")
+    inside_mask = tree.outputs.float("Inside Mask")
+    outside_mask = tree.outputs.float("Outside Mask")
 
     object_geometry = g.ObjectInfo(
         object=object,
@@ -96,12 +104,17 @@ def _build_mask_grid(tree):
     realized = g.RealizeInstances(
         mask_source.o.output,
     ).o.geometry
+    holder_inputs = HolderBundleInputs(holder=holder)
+    voxel_size = g.Math.divide(
+        value=mask_resolution,
+        value_001=holder_inputs.o.scene_world_scale_base,
+    ).o.value
 
     volume_grid = g.GetNamedGrid.float(
         volume=g.MeshToVolume(
             mesh=realized,
             resolution_mode="Size",
-            voxel_size=mask_resolution,
+            voxel_size=voxel_size,
             interior_band_width=0.0,
         ).o.volume,
         name="density",
@@ -133,15 +146,15 @@ def _build_mask_grid(tree):
         false=sampled_mask,
         true=box_mask,
     ).o.output
-    mask_factor = g.Switch.float(
-        switch=invert,
-        false=mask_value,
-        true=g.BooleanMath.l_not(mask_value).o.boolean,
-    ).o.output
-
     g.PruneGrid.float(
-        grid=g.Math.multiply(grid, mask_factor).o.value,
-    ).o.grid >> masked_grid
+        grid=g.Math.multiply(grid, mask_value).o.value,
+    ).o.grid >> inside_mask
+    g.PruneGrid.float(
+        grid=g.Math.multiply(
+            grid,
+            g.BooleanMath.l_not(mask_value).o.boolean,
+        ).o.value,
+    ).o.grid >> outside_mask
 
 
 def mask_grid_node_group():
@@ -149,7 +162,7 @@ def mask_grid_node_group():
     if node_group:
         return node_group
 
-    with TreeBuilder.geometry(GROUP_NAME) as tree:
+    with TreeBuilder.geometry(GROUP_NAME, arrange="simple") as tree:
         _build_mask_grid(tree)
 
     return tree.tree

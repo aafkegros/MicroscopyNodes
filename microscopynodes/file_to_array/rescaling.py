@@ -1,5 +1,3 @@
-from copy import copy
-
 import numpy as np
 
 from ..data_model import ChannelModel, DatasetModel
@@ -38,8 +36,6 @@ def rescale_dataset(dataset_model, rescale_xyz, dataset_resolution=None):
     return DatasetModel(
         name=_rescaled_name(dataset_model.name, rescale_xyz),
         channels=channels,
-        relative_loc=dataset_model.relative_loc,
-        local_files_exist=dataset_model.local_files_exist,
     )
 
 
@@ -57,36 +53,24 @@ def normalize_rescale_xyz(rescale_xyz):
 
 def _rescale_channel(channel_model, rescale_xyz, dataset_resolution):
     data = channel_model.data.model_copy(deep=False)
-    data.source_data = _stride_rescale(
-        data.source_data,
-        data.source_axes_order or data.axes_order,
-        rescale_xyz,
+    data.min_rescale_xyz = tuple(
+        float(existing) * float(new)
+        for existing, new in zip(data.min_rescale_xyz, rescale_xyz)
     )
+    data._source_array_cache = None
     data._data_cache = None
     data.affine = _rescale_affine(data.affine, rescale_xyz)
-    data.min_rescale_xyz = tuple(float(value) for value in rescale_xyz)
     if dataset_resolution is not None:
         data.dataset_resolution = dataset_resolution
 
     return ChannelModel(
         data=data,
         viz=channel_model.viz.model_copy(deep=True),
+        source_name=channel_model.source_name,
         cache_path=channel_model.cache_path,
         force_remaking_files=channel_model.force_remaking_files,
-        metadata=copy(channel_model.metadata),
-        file_constructors=copy(channel_model.file_constructors),
+        generated=channel_model.generated.model_copy(deep=True),
     )
-
-
-def _stride_rescale(data, axes_order, rescale_xyz):
-    slices = []
-    for axis in axes_order:
-        if axis in "xyz":
-            step = int(rescale_xyz["xyz".find(axis)])
-            slices.append(slice(None, None, max(step, 1)))
-        else:
-            slices.append(slice(None))
-    return data[tuple(slices)]
 
 
 def _rescale_affine(affine, rescale_xyz):

@@ -1,12 +1,16 @@
 from .base import MeshChannelObject
 from ..handle_blender_structs.node_handling import group_input_output_for_socket, new_socket
 from ..handle_blender_structs.min_keys import min_keys
-from ..min_nodes.geo_nodes.import_microscopy_meshes import import_microscopy_meshes_node_group
-from ..min_nodes.geo_nodes.nodeMaskMesh import mask_mesh_node_group
+from ..min_nodes.geo_nodes.utilities.import_microscopy_meshes import import_microscopy_meshes_node_group
 from ..min_nodes.shader_nodes import remap_oid_node, set_color_ramp_from_ch
 
 class LabelmaskObject(MeshChannelObject):
     min_type = min_keys.LABELMASK
+    gn_frame_label = "Labelmask"
+    frame_color = (0.663, 0.506, 0.663)
+
+    def update_import_node(self, import_node, file_constructors, ch):
+        super().update_import_node(import_node, file_constructors, ch)
 
     def init_shader(self, mat):
         super().init_shader(mat)
@@ -28,7 +32,7 @@ class LabelmaskObject(MeshChannelObject):
         import_node.name = f"IMPORT_{ch.identifier}"
         import_node.label = ch.name
         for input_field in import_node.inputs:
-            if input_field.name not in ['Include', 'Normalized', 'Frame']:
+            if input_field.name != "Include":
                 input_field.hide = True
 
         affine_node = nodes.new("FunctionNodeCombineMatrix")
@@ -38,25 +42,17 @@ class LabelmaskObject(MeshChannelObject):
         for affine_socket in affine_node.inputs:
             if not affine_socket.is_linked:
                 affine_socket.hide = True
-        links.new(in_node.outputs["Frame"], import_node.inputs["Frame"])
         links.new(affine_node.outputs["Matrix"], import_node.inputs["Channel Affine Matrix"])
         links.new(group_input_output_for_socket(in_node, socket), import_node.inputs.get("Include"))
 
-        mask_mesh = nodes.new("GeometryNodeGroup")
-        mask_mesh.node_tree = mask_mesh_node_group()
-        mask_mesh.name = f"SLICE_CUBE_{ch.identifier}"
-        mask_mesh.location = (x + 170, y)
-        mask_mesh.show_options = False
-        if mask_mesh.inputs.get("With") is not None:
-            mask_mesh.inputs["With"].default_value = 'Box'
-
-        links.new(import_node.outputs["Geometry"], mask_mesh.inputs["Mesh"])
-        out_ch = self.store_channel_attribute(x + 450, y, ch, mask_mesh.outputs["Masked Mesh"])
-        links.new(out_ch, join_node.inputs["Geometry"])
+        channel_geometry, mask_mesh = self.slice_cube_channel_output(ch, import_node)
+        self.add_channel_to_bundle(ch, channel_geometry, "GEOMETRY")
+        self.frame_gn_nodes([import_node, affine_node, mask_mesh])
         return
 
     def init_channel_shader(self, mat, ch):
         super().init_channel_shader(mat, ch)
+        metadata = ch.files_for(self.min_type).metadata
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
         y_offset = -self.shader_y_step * ch.data.ix
@@ -75,7 +71,7 @@ class LabelmaskObject(MeshChannelObject):
         remap.name = f"[remap_oid_{ch.identifier}]"
         remap.location = (-420, y_offset - 35)
         remap.show_options = False
-        remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
+        remap.inputs.get('# Objects').default_value = metadata['max']
         remap.parent = frame
 
         links.new(idnode.outputs.get('Fac'), remap.inputs.get('Value'))
@@ -85,19 +81,20 @@ class LabelmaskObject(MeshChannelObject):
 
     def update_material(self, mat, ch):
         try:
+            metadata = ch.files_for(self.min_type).metadata
             nodes =  mat.node_tree.nodes
             color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
             remap = nodes.get(f'[remap_oid_{ch.identifier}]')
             set_color_ramp_from_ch(ch, color_lut)
             if remap is not None and color_lut is not None:
-                remap.inputs.get('# Objects').default_value = ch.metadata[self.min_type]['max']
+                remap.inputs.get('# Objects').default_value = metadata['max']
                 remap.inputs.get('Revolving Colormap').default_value = (color_lut.color_ramp.interpolation == 'CONSTANT')
                 remap.inputs.get('# Colors').default_value = max(len(color_lut.color_ramp.elements), 5)
             princ = mat.node_tree.nodes.get(f"[{ch.identifier}] principled")
-            if princ is not None and ch.viz.emission and princ.inputs[28].default_value == 0.0:
-                princ.inputs[28].default_value = 0.5
-            elif princ is not None and not ch.viz.emission and princ.inputs[28].default_value == 0.5:
-                princ.inputs[28].default_value = 0
+            if princ is not None and ch.viz.emission and princ.inputs[29].default_value == 0.0:
+                princ.inputs[29].default_value = 0.5
+            elif princ is not None and not ch.viz.emission and princ.inputs[29].default_value == 0.5:
+                princ.inputs[29].default_value = 0
         except Exception as e:
             print(e)
             pass

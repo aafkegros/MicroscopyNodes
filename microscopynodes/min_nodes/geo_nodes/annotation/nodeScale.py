@@ -1,6 +1,7 @@
 import bpy
 from .nodeScaleBox import scalebox_node_group, AXIS_ITEM_NAMES
 from .nodeGridVerts import grid_verts_node_group
+from ..nodeHolderBundleInputs import holder_bundle_inputs_node_group
 
 
 def _add_bundle_items(bundle_node, item_names, socket_type='BOOLEAN'):
@@ -9,19 +10,15 @@ def _add_bundle_items(bundle_node, item_names, socket_type='BOOLEAN'):
 
 
 def scale_node_group():
-    node_group = bpy.data.node_groups.get("Scale bars")
+    node_group = bpy.data.node_groups.get("Scale Grid")
     if node_group:
         return node_group
 
-    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name="Scale bars")
+    node_group = bpy.data.node_groups.new(type='GeometryNodeTree', name="Scale Grid")
     links = node_group.links
     interface = node_group.interface
 
-    interface.new_socket("World per Unit", in_out="INPUT", socket_type='NodeSocketFloat')
-    interface.items_tree[-1].default_value = 1e-6
-    interface.items_tree[-1].min_value = 0.0
-    interface.items_tree[-1].max_value = 3.4028234663852886e+38
-    interface.items_tree[-1].attribute_domain = 'POINT'
+    interface.new_socket("Holder", in_out="INPUT", socket_type='NodeSocketObject')
 
     interface.new_socket("Tick Step (unit)", in_out="INPUT", socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 1.0
@@ -63,11 +60,18 @@ def scale_node_group():
     self_info.location = (-1000, 350)
     links.new(self_object.outputs["Self Object"], self_info.inputs["Object"])
 
+    holder_inputs = node_group.nodes.new("GeometryNodeGroup")
+    holder_inputs.node_tree = holder_bundle_inputs_node_group()
+    holder_inputs.name = "Holder Bundle Inputs"
+    holder_inputs.label = "Holder Bundle Inputs"
+    holder_inputs.location = (-1200, 100)
+    links.new(group_input.outputs["Holder"], holder_inputs.inputs["Holder"])
+
     world_per_unit_xyz = node_group.nodes.new("ShaderNodeCombineXYZ")
     world_per_unit_xyz.location = (-1000, 120)
-    links.new(group_input.outputs["World per Unit"], world_per_unit_xyz.inputs["X"])
-    links.new(group_input.outputs["World per Unit"], world_per_unit_xyz.inputs["Y"])
-    links.new(group_input.outputs["World per Unit"], world_per_unit_xyz.inputs["Z"])
+    links.new(holder_inputs.outputs["Scene World Scale Base"], world_per_unit_xyz.inputs["X"])
+    links.new(holder_inputs.outputs["Scene World Scale Base"], world_per_unit_xyz.inputs["Y"])
+    links.new(holder_inputs.outputs["Scene World Scale Base"], world_per_unit_xyz.inputs["Z"])
 
     extent_unit = node_group.nodes.new("ShaderNodeVectorMath")
     extent_unit.operation = "DIVIDE"
