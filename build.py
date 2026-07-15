@@ -28,6 +28,11 @@ linux_x64 = Platform(pypi_suffix="manylinux2014_x86_64", metadata="linux-x64")
 macos_arm = Platform(pypi_suffix="macosx_12_0_arm64", metadata="macos-arm64")
 
 EXCLUDED_POETRY_PACKAGES = {"python", "bpy", "numpy"}
+EXCLUDED_WHEEL_PACKAGES = {
+    "numpy",
+    "packaging",
+    "typing_extensions",
+}
 
 
 def _pyproject() -> dict:
@@ -109,14 +114,11 @@ def update_toml_whls(platforms):
     wheel_files = glob.glob(f"{wheels_dir}/*.whl")
     wheel_files.sort()
 
-    packages_to_remove = {
-        "numpy"
-    }
-
     to_remove = []
     to_keep = []
     for whl in wheel_files:
-        if any(pkg in whl for pkg in packages_to_remove):
+        package_name = Path(whl).name.partition("-")[0].lower()
+        if package_name in EXCLUDED_WHEEL_PACKAGES:
             to_remove.append(whl)
         else:
             to_keep.append(whl)
