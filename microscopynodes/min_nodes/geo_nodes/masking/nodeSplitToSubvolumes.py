@@ -81,14 +81,15 @@ def _build_split_to_subvolumes(tree):
         value=voxel_size,
         value_001=holder_inputs.o.scene_world_scale_base,
     ).o.value
+    realized_mesh = g.RealizeInstances(foreach.input.o.element).o.geometry
     base_volume = g.MeshToVolume(
-        mesh=foreach.input.o.element,
+        mesh=realized_mesh,
         resolution_mode="Size",
         voxel_size=protected_voxel_size,
         interior_band_width=0.0,
     ).o.volume
     volume_grid = g.GetNamedGrid.float(
-        volume=g.RealizeInstances(base_volume).o.geometry,
+        volume=base_volume,
         name="density",
         remove=True,
     )
