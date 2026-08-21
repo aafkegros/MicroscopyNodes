@@ -116,10 +116,10 @@ class TifLoadOperator(bpy.types.Operator):
 
     def execute(self, context):
         wm = context.window_manager
-        self.dataset_model = parse_blender_ui()
-        self.prev_active_obj = context.active_object
-        package_name = __package__.rsplit(".ui", 1)[0]
         try:
+            self.dataset_model = parse_blender_ui()
+            self.prev_active_obj = context.active_object
+            package_name = __package__.rsplit(".ui", 1)[0]
             self.local_file_process = LocalFileProcess(
                 self.dataset_model,
                 blender_binary=bpy.app.binary_path,
@@ -160,7 +160,11 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
     bl_label = "Load"
 
     def execute(self, context):
-        dataset_model = parse_blender_ui()
+        try:
+            dataset_model = parse_blender_ui()
+        except ValueError as error:
+            self.report({'ERROR'}, str(error))
+            return {'CANCELLED'}
         generate_local_files(dataset_model)
         Scene.from_blender_ui(context)
         ensure_valid_reload_object(context.scene)

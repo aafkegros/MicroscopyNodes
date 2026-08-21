@@ -75,6 +75,8 @@ def get_cache_dir():
         path = addon_preferences().cache_path
     if addon_preferences().cache_option == 'WITH_PROJECT':
         path = bpy.path.abspath('//')
+        if not path:
+            raise ValueError("Save the .blend file before using With Project storage.")
     return str(Path(path) / hash_path(bpy.context.scene.MiN_input_file))
 
 def hash_path(path):
