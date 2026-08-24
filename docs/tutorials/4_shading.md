@@ -1,5 +1,7 @@
 # Shading
 
+For a guided first adjustment, start with [Adjust color, contrast, and opacity](./visualization.md). This section is the detailed reference for the generated shader trees.
+
 **Shading** encompasses the visualization of Blender's objects. The shading options can be found in two places:
 
 - in the {{ svg("workspace") }} Shader Nodes workspace, find this in the {{ svg("topbar") }} topbar.

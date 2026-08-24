@@ -1,73 +1,82 @@
-# Large data
+# Large datasets and sparse reloading
 
-Microscopy data is often very large, {{ svg("microscopy_nodes") }} Microscopy Nodes has some strategies to deal with this. These depend on the size of the data, the shape of the data, and your computational resources (and skills). The key of this is working at a smaller scale, and then **reloading** to larger data.
+Build the scene with a small version of the data, then load full resolution only where it contributes to the final result.
 
-Here it is relevant to distinguish between two types of large data: 
+{{ youtube("n2w0pI7tzu8", 560, 315) }}
 
-- Time sequence/few channels (not loading all data in the same timeframe)
-    
-    > This mostly has issues in storage, and is more a point of only loading the data you need at a certain point, but will always just work.
+## Start small
 
-- Large data that's all concurrently loaded
-    
-    > This becomes a bigger issue, especially with the current **4 GiB limit of EEVEE**.
+OME-Zarr datasets can contain multiple prepared scales. Microscopy Nodes can also create downsampled scales for a large TIFF.
 
-!!! warning "EEVEE cannot handle large data" 
-    EEVEE currently **cannot handle** [volumetric data over 4 GiB](https://projects.blender.org/blender/blender/issues/136263). This means that scaling up our data will be easier in Cycles. By default after loading, the render engine is set to Cycles. 
-    
-    **Cycles is only applied** to the view if the shading preview is set to {{ svg("shading_rendered", 'small-icon') }} Rendered preview.
+Choose a small scale while setting up:
 
-There are a few strategies:
+- channel representations;
+- {{ svg("material") }} shaders and color maps;
+- {{ svg("view_camera") }} cameras and animation;
+- {{ svg("geometry_nodes") }} masks and processing;
+- render settings.
 
-## Working at large scale
+This keeps Blender responsive and reduces the time spent converting local cache files.
 
-You can actually work at large scales, as long as you have enough and take care to work **only in Cycles**:
+## Reload at higher resolution
 
-Some {{ svg("workspace") }} workspaces will **automatically** be in {{ svg("shading_texture") }} Material preview mode. It is convenient to first go through the different {{ svg("workspace") }} workspaces and switch them all to {{ svg("shading_rendered") }} Rendered preview.
+In the {{ svg("microscopy_nodes") }} loading panel, point the {{ svg("file_refresh") }} Reload field to the existing dataset holder. Choose a larger scale and keep:
 
-## **Reloading**
+- {{ svg("file") }} **Update data** on;
+- {{ svg("material") }} **Update settings** off.
 
-The **reloading** workflow means that you first work on a smaller version of the data and later replace this with a larger one. 
+Press **Reload**. The holder and edited visualization remain in place while the underlying data is replaced.
 
-This is controlled mainly by the {{ svg("file_refresh") }} Reload field in the {{ svg("microscopy_nodes") }} Microscopy Nodes load panel:
-![alt text](../figures/reload_not_filled.png)
+Use ordinary reloading when the complete high-resolution volume fits comfortably on the machine.
 
-This can be pointed to a previously loaded Microscopy Nodes [holder object](./3_objects.md#holder):
-![alt text](../figures/reload_filled.png)
+## Reload only a region
 
-Which will make a new action **Reload** the data in the holder. This has two extra options:
+Often only a small region needs full resolution. Microscopy Nodes can use the currently visible geometry-masked voxels as a sparse reload mask.
 
-- {{ svg("file") }} Overwrite data
-   
-    > Changes out the underlying data (labelmasks are currently always regenerated)
+### 1. Build the mask at low resolution
 
-- {{ svg("material") }} Overwrite settings
-  
-    > Overwrites all settings from the load panel, but retains anything set by the user, this includes input location/transform, emission, and color
+Load or reload the dataset with {{ svg("geometry_nodes") }} **Geometry slicing** enabled. Position and scale the Slice Cube around the region of interest, or use any geometry-mask source described in [Slice, mask, and recolor data](./slicing_masking.md).
 
-For reloading to deal with large data, it is usually best to reload only updating {{ svg("file") }} the underlying data to the higher resolution.
+The mask can come from:
 
-### Reloading on workstation or cluster
+- the Slice Cube;
+- a custom or sculpted mesh;
+- a label mask;
+- an isosurface;
+- multiple masks combined in Geometry Nodes.
 
-It is possible to make a project on a less capable computer, and then transfer it to a workstation or an HPC cluster. This can be done in multiple ways:
+What matters is the grid present at the end of the volume's Geometry Nodes masking branch.
 
-- Transfering with data
-  > Easiest to do with your data loaded 'With Project' in the [extra import settings](./2_loading_data.md#5-extra-import-settings-optional), then it is an easy matter of transferring the .blend file and the data folder next to it to this computer.
--  Reloading from a GUI
--  Reloading from the command line
+### 2. Choose sparse reload
 
-### Reloading from the command line
+In the loading panel:
 
-To replace your data from the command line interface, you set up all the {{ svg("file_refresh") }} reloading and import settings in the GUI (this currently works best with {{ svg("material") }} Overwrite settings off) and run a headless python script that looks like this:
-```
-import bpy
-bpy.ops.microscopynodes.load_background()
-bpy.ops.wm.save_mainfile()
-```
-by running:
-`/path/to/Blender/executable -b /path/to/blendfile.blend -P /path/to/reload_script.py`
+1. Keep the existing holder in the {{ svg("file_refresh") }} Reload field.
+2. Enable **Reload only visible** with the {{ svg("hide_off") }} eye control.
+3. Turn off {{ svg("material") }} **Update settings** if shader and node edits should remain unchanged.
+4. Choose the desired higher-resolution scale.
+5. Press **Reload**.
 
-This will then load the data according to the Microscopy Nodes settings, and resave the .blend file. 
+Only voxels surviving the spatial mask are requested and written into the new cache files.
 
-You can subsequently render headlessly as well, here you can follow the {{ svg('blender') }} [Blender documentation on this](https://docs.blender.org/manual/en/latest/advanced/command_line/render.html).
+!!! note "Conversion can still take time"
+    Sparse loading reduces the resulting data, but requesting and writing a high-resolution region may still be slow. The loaded result should be much more responsive afterward.
 
+## Combine low and high resolution
+
+A useful final scene can contain:
+
+- one sparse high-resolution dataset for the region of interest;
+- one low-resolution copy providing whole-cell or whole-volume context.
+
+Load the low-resolution dataset as a separate hierarchy. In its Geometry Nodes mask, exclude the region occupied by the high-resolution copy. This avoids double-rendering the same voxels and makes it possible to animate a multiscale zoom.
+
+Match the two datasets' {{ svg("material") }} intensity limits, LUTs, and transparency where the transition should be visually continuous. Alternatively, use different colors to communicate the difference in scale explicitly.
+
+## Performance guidance
+
+- Hide unused channels in the {{ svg("modifier") }} modifier so they are not loaded into RAM.
+- Keep render samples low while working.
+- Use {{ svg("shading_rendered") }} Cycles for volumes that exceed EEVEE's practical limits or rely on dense scattering.
+- Make and edit masks at a small data scale, then reload the result at high resolution.
+- Store cache data **With Project** when moving the `.blend` file to another workstation.

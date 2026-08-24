@@ -1,15 +1,8 @@
-# Loading microscopy data 
+# Load microscopy data
 
-## Video tutorials
+Microscopy Nodes uses the same loading workflow for fluorescence, dense EM, segmentations, and time series. What changes is the representation and visualization chosen for each channel.
 
-The **Fluorescence** tutorial shows how to load *emissive* data, and the **EM** tutorial shows how to load *scattering data*, these settings can be good to interchange!
-
-{{ youtube("lroStEHiPV8", 280, 158) }}
-{{ youtube("Rwq7Tu8Avss", 280, 158) }}
-
-The **labelmask/surface** tutorial is shown for EM data, but can be useful for any data type and binary or label masks:
-
-{{ youtube("YO3FxTFGH00", 280, 158) }}
+{{ youtube("CsunbIn3ABw", 560, 315) }}
 
 ## 1. Point to your data
 
@@ -36,7 +29,7 @@ For **local files**, you can use the file explorer {{ svg("file_folder") }}.
 
 Microscopy Nodes **automatically** selects the smallest scale of data available. 
 
-Downscaled versions get created if the data is over 4 GiB per timepoint. For OME-Zarr, all premade scales are also shown.
+If the source data is larger than **1 GiB per timepoint**, Microscopy Nodes automatically offers additional downscaled versions. This applies to both **TIFF** and **OME-Zarr** sources. For OME-Zarr, any multiscale levels already stored in the source are shown as well.
 
 ![example scales](<../figures/tutorials/Screenshot 2025-07-02 at 18.07.14.png>)
 
@@ -52,7 +45,7 @@ This contains:
 - Pixel Sizes
   > This may be truncated in the view, up to 6 decimal places are used.
 - Pixel Units 
-  > Å to m, or 'arbritrary unit (a.u)'
+  > Å, nm, µm, mm, or m
 - Axis order
   > A piece of text such as 'tzcyx'. number of letters needs to match the number of axes. Allows remapping of axis order by editing the text field.
 - Time (only if time axis exists)
@@ -93,11 +86,19 @@ Defaults can be changed in the [preferences](./preferences.md).
     Labelmasks {{ svg("outliner_data_pointcloud", "small-icon") }} expect an array with separate integer values per object. If it gets a data channel, it will try to still split it into separate objects
 
 ## 5. Extra import settings (optional)
-These settings are below the `Load` button as they are not essential to remap for your first load. They can be useful to change if you're using Microscopy Nodes more often, or have specific needs. Most of these will persist between sessions.
+These settings are below the **Load** button. Most users can leave them at their defaults for a first load.
 
-![alt text](../figures/panel_extra.png)
+![On-load scene and slicing controls followed by Data Storage](<../figures/on load settings.png>)
 
-This includes the **Data Storage** - where the intermediate files get stored
+The panel is ordered as follows:
+
+1. **On load – Scene**
+    - {{ svg("world") }} sets the world color to white when any non-emissive channel is loaded, or black when all loaded channels emit light.
+    - {{ svg("scene") }} applies Microscopy Nodes' responsive render defaults. It turns itself off after a successful load so later loads do not overwrite settings you have changed.
+2. **On load – Slicing**
+    - {{ svg("geometry_nodes") }} **Geometry** adds a **Mask Grid** or **Mask Mesh** node to each loaded data object. This supports arbitrary masks and sparse reloading, but its voxelized boundaries can look stepped.
+    - {{ svg("material") }} **Shader** clips the rendered material with the Slice Cube. It gives a clean box boundary but does not mask the underlying data.
+3. **Data Storage** chooses where converted VDB and mesh cache files are written:
 
 - Temporary (Default)
   > Puts the data in a temporary file, you can check the temporary path in the [preferences](./preferences.md)
@@ -106,20 +107,15 @@ This includes the **Data Storage** - where the intermediate files get stored
 - With Project
   > Will create a folder next to the project location. Requires that the project is saved
 
-{{ svg("world") }} overwrite the world color upon loading. This is useful as the world color (white, black or grey) is used as default lighting.
+The storage choice and default slicing mode persist in the add-on preferences.
 
-{{ svg("scene") }} overwrite [render settings](./rendering.md) upon loading. This turns itself off after the first load, to avoid overwriting custom settings.
+## 6. Set coordinate scale and location
 
-{{ svg("con_sizelike") }} defines the **input transform** - Blender works in meters, but *Microscopy Nodes* uses this as multiple optional coordinate spaces:
+The {{ svg("con_sizelike") }} scale and {{ svg("orientation_parent") }} location controls sit below the extra-settings box. They are **responsive controls**, not one-time loading options: changing either one updates an already loaded dataset immediately.
 
-- `px -> cm`
-  > Default, scales the object such that each pixel takes 1 cm space in XY. Scales the Z axis such that it is isotropic with XY.
-- `Å -> m`
-- `nm -> m`
-- `µm -> m`
-- `mm -> m`
-- `m -> m`
-- `nm -> cm (Molecular Nodes)` 
+![Coordinate scale and dataset location controls](<../figures/coord spaces.png>)
+
+{{ svg("con_sizelike") }} **Microscopy scale → Blender scale** converts the physical units of the dataset into Blender meters. **Auto** chooses a practical scene size. Manual choices are available for nm, µm, mm, and m, with output scales in meters, decimeters, or centimeters; `nm → cm (Molecular Nodes)` matches Molecular Nodes conventions.
 
 {{ svg("orientation_parent") }} defines the **input location**:
 
@@ -127,9 +123,25 @@ This includes the **Data Storage** - where the intermediate files get stored
 - `XYZ Center`
 - `Origin`
 
-!!! warning "Choosing an input transform"
-    Note that you may need to go one scale higher than you expect with the {{ svg("con_sizelike", "small-icon") }} input transform, as a few meters is already quite large (the default cube is 2 m). The normal unit is the size of your dataset, and not always the unit of your pixel size.
+The location is applied through the dataset's holder, so **XY Center**, **XYZ Center**, and **Origin** reposition the whole hierarchy without changing the data coordinates inside it.
 
-## 6. Load 
+## 7. Load
 
 Press the big `Load` button to load a dataset
+
+Switch the viewport to {{ svg("shading_texture") }} Material Preview or {{ svg("shading_rendered") }} Rendered Preview to see volume data. The resulting hierarchy contains a holder, the selected data objects, an Axes object, and a Slice Cube.
+
+Next, use [Adjust color, contrast, and opacity](./visualization.md) to make the signal readable, or see [How Microscopy Nodes works](./workflow_overview.md) for an overview of the generated scene.
+
+## 8. Reload data or settings
+
+Point the {{ svg("file_refresh") }} Reload field to an existing Microscopy Nodes holder to update it instead of creating a new hierarchy.
+
+![Reload holder with Reload only visible, Update data, and Update settings enabled](<../figures/reload buttons.png>)
+
+- {{ svg("file") }} **Update data** replaces the underlying data, scale, or selected time range.
+- {{ svg("material") }} **Update settings** reapplies channel representations, colors, emission choices, and other loading settings.
+
+Turn off **Update settings** when replacing a small working scale with final high-resolution data while retaining shader edits. Turn off **Update data** when only the channel configuration needs to change.
+
+For regional high-resolution loading, continue with [Large datasets and sparse reloading](./large_data.md).

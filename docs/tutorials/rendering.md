@@ -8,7 +8,7 @@ There are two major render engines in Blender. **EEVEE**, a [rasterized](https:/
 
 ### EEVEE
 
-**EEVEE** is a render engine that is made to be fast, and powerful. It is less optimized for {{ svg("volume") }} volumetric data, especially for dense/scattering volumes. Currently, it can only handle volume data < 4 GiB.
+**EEVEE** is a render engine that is made to be fast, and powerful. It is less optimized for {{ svg("outliner_ob_volume") }} volumetric data, especially for dense/scattering volumes. Currently, it can only handle volume data < 4 GiB.
 
 However, it is still very strong, is usually able to combine semi-transparent masks and volumes, and is often faster, especially for rendering emissive time-lapses. 
 

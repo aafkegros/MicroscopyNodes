@@ -1,4 +1,6 @@
-# 1. First Use
+# Install and learn Blender basics
+
+These instructions apply to **Microscopy Nodes 3.1** with **Blender 5.2 or newer**.
 
 ## **Installing Microscopy Nodes**
 
@@ -6,8 +8,10 @@
 
 1. Open Blender.
 2. Navigate to `Edit > Preferences`.
-3. In the Add-ons tab, search for `Microscopy Nodes`.
+3. Open **Get Extensions** and search for `Microscopy Nodes`.
 4. Click **Install** to download and enable the add-on.
+
+After installation, the {{ svg("microscopy_nodes") }} Microscopy Nodes panel is available in the {{ svg("scene_data") }} Scene Properties.
 
 
 ## **Blender Interface Overview**

@@ -1,38 +1,44 @@
 # Microscopy in Blender
 
-`Microscopy Nodes` is a Blender add-on that incorporates bioimage support for the open-source software blender. {{ svg('microscopy_nodes') }} Microscopy Nodes simplifies loading bioimage (tif/zarr) files as volumetric objects in Blender. 
+{{ svg('microscopy_nodes') }} **Microscopy Nodes 3.1** adds microscopy-data workflows to Blender 5.2 and newer. It loads TIFF and OME-Zarr data as editable volumes, surfaces, label masks, and time series while preserving physical scale.
 
-Please make some pretty figures with this add-on! 
+New here? [Install Microscopy Nodes](./tutorials/1_start.md), then [load your first dataset](./tutorials/2_loading_data.md).
 
 For usage questions please use the [image.sc forum](https://forum.image.sc/tag/microscopy-nodes) 😁
 For issues/bug reports/feature requests please [open an issue](https://github.com/aafkegros/MicroscopyNodes/issues).
 
-If you publish with this add-on, please cite [the preprint](https://www.biorxiv.org/content/10.1101/2025.01.09.632153v1):
-```
-@article {Gros2025.01.09.632153,
-	author = {Gros, Oane and Bhickta, Chandni and Lokaj, Granita and Schwab, Yannick and K{\"o}hler, Simone and Banterle, Niccol{\`o}},
-	title = {Microscopy Nodes: versatile 3D microscopy visualization with Blender},
-	elocation-id = {2025.01.09.632153},
-	year = {2025},
-	doi = {10.1101/2025.01.09.632153},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2025/01/14/2025.01.09.632153},
-	eprint = {https://www.biorxiv.org/content/early/2025/01/14/2025.01.09.632153.full.pdf},
-	journal = {bioRxiv}
-} 
+If you publish work made with Microscopy Nodes, please cite [Gros et al. (2026), *Microscopy Nodes: versatile 3D microscopy visualization with Blender*](https://doi.org/10.1038/s44319-025-00654-8).
+
+```bibtex
+@article{gros_microscopy_2026,
+    title = {Microscopy {Nodes}: versatile {3D} microscopy visualization with {Blender}},
+    volume = {27},
+    issn = {1469-3178},
+    shorttitle = {Microscopy {Nodes}},
+    url = {https://doi.org/10.1038/s44319-025-00654-8},
+    doi = {10.1038/s44319-025-00654-8},
+    language = {en},
+    number = {3},
+    journal = {EMBO Reports},
+    author = {Gros, Aafke and Bhickta, Chandni and Lokaj, Granita and Johnston, Brady and Schwab, Yannick and Köhler, Simone and Banterle, Niccolò},
+    month = feb,
+    year = {2026},
+    pages = {581--597}
+}
 ```
 
 ## Current Features
 Microscopy Nodes supports:
 
-- up to 5D (tzcyx in any axis order) tifs and OME-Zarr files can be loaded. 
-- Channel interface to define how to load data
-- Replacing a pyramidal dataset with it's higher resolution version
-- Accurate scale bars and boxes
-- Loading of per-index label masks
-- Lazy loading of giant files (no data is loaded in RAM outside what's rendered)
+- Up to 5D (`tzcyx` in any axis order) TIFF and OME-Zarr loading
+- Volume, isosurface, and per-index label-mask representations
+- Multiscale and sparse high-resolution reloading
+- Geometry masking, segmented-region recoloring, and volume processing
+- Projection of volume measurements onto meshes
+- Time-series animation and automatic time labels
+- Accurate scale grids and orthographic scale bars
 
-### [Get Started!](./tutorials/1_start.md)
+### [Get started](./tutorials/1_start.md)
 <img src="https://github.com/aafkegros/MicroscopyNodes/blob/main/figures/newprettyside.png?raw=true" width="600"/>
 
 

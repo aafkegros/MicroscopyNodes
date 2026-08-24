@@ -1,26 +1,35 @@
 site_name: Microscopy Nodes
 repo_url: https://github.com/aafkegros/MicroscopyNodes
 nav:
-  - Home: overview.md
-  - Help: faq.md
-  - Tutorials:
-    - Starting with Microscopy Nodes:
-      - 1. First Use: tutorials/1_start.md
-      - 2. Loading data: tutorials/2_loading_data.md
-      - 3. Data objects: tutorials/3_objects.md
-      - 4. Shading:
-        - Overview: tutorials/4_shading.md
-        - Volume shading: tutorials/4_volume_shading.md
-        - Surface shading: tutorials/4_surface_shading.md
-        - Labelmask shading: tutorials/4_labelmask_shading.md
-      - 5. Creating output: tutorials/5_creating_ouput.md
-
-    - Extra tutorials:
-      - Large datasets: tutorials/large_data.md
-      - OME-Zarr troubleshooting: tutorials/ome_zarr_troubleshooting.md
-      - Preferences: tutorials/preferences.md
-      - Rendering: tutorials/rendering.md
-      - Surface smoothing: tutorials/surface_smoothing.md
+  - Home: index.md
+  - Start here:
+    - Install and learn Blender basics: tutorials/1_start.md
+    - Load microscopy data: tutorials/2_loading_data.md
+    - How Microscopy Nodes works: tutorials/workflow_overview.md
+  - Core workflows:
+    - Adjust color, contrast, and opacity: tutorials/visualization.md
+    - Slice, mask, and recolor: tutorials/slicing_masking.md
+    - Visualize dense EM data: tutorials/dense_em.md
+    - Work with time-series data: tutorials/time_series.md
+    - Cameras, animation, and output: tutorials/creating_output.md
+    - Scale bars, grids, and time labels: tutorials/annotation.md
+  - Advanced workflows:
+    - Large datasets and sparse reloading: tutorials/large_data.md
+    - Project volume data onto meshes: tutorials/mesh_projection.md
+    - Surface modification: tutorials/surface_smoothing.md
+  - Reference:
+    - Objects and modifiers: tutorials/3_objects.md
+    - Shading:
+      - Overview: tutorials/4_shading.md
+      - Volume shading: tutorials/4_volume_shading.md
+      - Surface shading: tutorials/4_surface_shading.md
+      - Labelmask shading: tutorials/4_labelmask_shading.md
+    - Rendering settings: tutorials/rendering.md
+    - Preferences: tutorials/preferences.md
+  - Troubleshooting and support:
+    - OME-Zarr troubleshooting: tutorials/ome_zarr_troubleshooting.md
+    - Help and contact: faq.md
+    - Blender versions before 4.2: outdated.md
 
 
 theme:
