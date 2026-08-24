@@ -28,6 +28,32 @@ INIT_COLORS = [
     Color("#0093AF"),
 ]
 
+FORBIDDEN_CHANNEL_NAME_CHARACTERS = frozenset(
+    '/*&|"^~!,{}()+$#@[];:?<>.-%\\='
+)
+
+
+def sanitize_channel_name(name: str) -> str:
+    return "".join(
+        "_" if character in FORBIDDEN_CHANNEL_NAME_CHARACTERS else character
+        for character in name
+    )
+
+
+def channel_name_error(name: str) -> str | None:
+    invalid = sorted(set(name) & FORBIDDEN_CHANNEL_NAME_CHARACTERS)
+    if not invalid:
+        return None
+    characters = " ".join(repr(character) for character in invalid)
+    return f"Channel names cannot contain: {characters}"
+
+
+def validate_channel_name(name: str) -> str:
+    error = channel_name_error(name)
+    if error is not None:
+        raise ValueError(error)
+    return name
+
 
 def _validate_axis_order(value, allowed, field_name):
     if not value:
@@ -210,6 +236,13 @@ class ChannelVizModel(BaseModel):
     emission: bool = True
     cmap: Colormap | None = None
     surf_resolution: int = 0 # will be deprecated?
+
+    @field_validator("name")
+    @classmethod
+    def valid_channel_name(cls, name):
+        if name is None:
+            return None
+        return validate_channel_name(name)
 
     @model_validator(mode="before")
     @classmethod

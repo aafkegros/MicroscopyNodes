@@ -9,6 +9,8 @@ from microscopynodes.data_model import (
     ChannelModel,
     ChannelVizModel,
     DatasetModel,
+    FORBIDDEN_CHANNEL_NAME_CHARACTERS,
+    sanitize_channel_name,
 )
 from microscopynodes.handle_blender_structs.min_keys import min_keys
 from microscopynodes.handle_blender_structs.progress_handling import set_progress_path
@@ -49,6 +51,20 @@ def test_source_axis_channel_is_removed_from_data_axes():
     )
 
     assert channel_data.source_axes_order.replace("c", "") == channel_data.axes_order
+
+
+@pytest.mark.parametrize("character", FORBIDDEN_CHANNEL_NAME_CHARACTERS)
+def test_channel_viz_rejects_names_with_invalid_blender_bundle_keys(character):
+    with pytest.raises(ValueError, match="Channel names cannot contain"):
+        ChannelVizModel(name=f"Channel {character}0")
+
+
+def test_channel_name_sanitizer_replaces_invalid_blender_bundle_keys():
+    invalid_name = "Channel" + "".join(FORBIDDEN_CHANNEL_NAME_CHARACTERS)
+
+    assert sanitize_channel_name(invalid_name) == "Channel" + "_" * len(
+        FORBIDDEN_CHANNEL_NAME_CHARACTERS
+    )
 
 
 def test_dataset_model_round_trips_generated_files_and_file_backed_mask(tmp_path):

@@ -40,15 +40,30 @@ def update_ix(self, context):
     context.scene.MiN_ch_index = self.ix
 
 
+def update_channel_name(self, context):
+    from ..data_model import sanitize_channel_name
+
+    sanitized_name = sanitize_channel_name(self.name)
+    if sanitized_name != self.name:
+        self.name = sanitized_name
+        return
+    update_ix(self, context)
+
+
 class ChannelDescriptor(bpy.types.PropertyGroup):
     # Initialization of these classes is done in set_channels - these defaults are not used by mic nodes itself
     ix : bpy.props.IntProperty() # channel in the image array
 
     update_func = update_ix
+    name_update_func = update_channel_name
     if os.environ.get('MIN_TEST', False):
         update_func = None
+        name_update_func = None
 
-    name : bpy.props.StringProperty(description="Channel name (editable)", update = update_func )
+    name : bpy.props.StringProperty(
+        description="Channel name (unsupported bundle characters become underscores)",
+        update=name_update_func,
+    )
     volume : bpy.props.BoolProperty(description="Load data as volume", default=True, update=update_func )
     emission : bpy.props.BoolProperty(description="Volume data emits light on load\n(off is recommended for EM)", default=True, update=update_func )
     surface : bpy.props.BoolProperty(description="Load isosurface object.\nAlso useful for binary masks", default=False, update=update_func )
@@ -137,7 +152,12 @@ class SCENE_UL_Channels(UIList):
         row = split.row(align=True)
         control = row.row(align=True)
         control.enabled = settings_enabled
+        from ..data_model import channel_name_error
+        name_error = channel_name_error(channel.name)
+        control.alert = name_error is not None
         control.prop(channel, "name", text="", emboss=True)
+        if name_error is not None:
+            row.label(text="", icon="ERROR")
         
         volumecheckbox = "OUTLINER_OB_VOLUME" if channel.volume else "VOLUME_DATA"
         row.prop(channel, "volume", text="", emboss=True, icon=volumecheckbox)
