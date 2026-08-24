@@ -1,4 +1,4 @@
-# 3. Objects
+# Objects and modifiers
 
 Microscopy Nodes loads your microscopy data as different types of **objects**, depending on how you loaded each channel.
 
@@ -31,7 +31,7 @@ The  {{ svg("outliner_ob_mesh") }} **Axes** object is always loaded with your da
     - Grid
       > Whether to draw a grid or only a box 
     - Line thickness
-      > Thickness of lines in arbitrary units
+      > Relative thickness of the grid lines
     - Frontface culling
       > If ticked, clips out the axes that are closest to the camera or viewpoint, so that they do not obstruct the view.
     - Separate planes
@@ -43,7 +43,7 @@ The  {{ svg("outliner_ob_mesh") }} **Axes** object is always loaded with your da
 Scale grids can be **moved**, **scaled** and **rotated** independently of the holder without losing their accuracy.
 
 !!! note "Bars versus grids"
-    In *Microscopy Nodes*, only scale grids are shown. Blender’s default cameras are perspective cameras, where traditional scale bars are not very meaningful. We'll probably add support for some form of scale bar in the future for orthographic renders.
+    Scale grids remain meaningful in a 3D perspective scene. A conventional scale bar is globally accurate only with an orthographic camera. Microscopy Nodes provides dynamic and rigid scale-bar nodes; see [Scale bars, grids, and time labels](./annotation.md).
 
 ---
 
@@ -101,11 +101,11 @@ The {{ svg("outliner_ob_mesh") }} **Label Mask** object is a mesh generated from
 
 ## Slice Cube
 
-The {{ svg("outliner_ob_mesh") }} **Slice Cube** is a movable object that defines the visibility of other objects.
+The {{ svg("outliner_ob_mesh") }} **Slice Cube** is a movable object that defines a region of interest for other objects.
 
-The slice cube is inherently nothing else than a Cube with a transparent shader. The linkage to its transparency is done from the {{ svg("material") }} shader **of the sliced object**. This means you can also add a new cube and point to this instead.
+With {{ svg("material") }} shader slicing, its bounds make data outside the cube transparent. With {{ svg("geometry_nodes") }} geometry slicing, it becomes a voxel mask and provides inside and outside grids that can be processed, recolored, or reloaded independently.
 
-This has no {{ svg("modifier") }} Geometry options or {{ svg("material") }} Shader options
+The default cube can be replaced by another object, mesh, collection, label mask, or grid in the Geometry Nodes mask setup. See [Slice, mask, and recolor data](./slicing_masking.md).
 
 
 ---

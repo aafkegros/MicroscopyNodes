@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "microscopynodes"
-version = "3.1.0"
+version = "3.1.2"
 name = "Microscopy Nodes"
 tagline = "Handling microscopy data in Blender, up to 5D volumes"
 maintainer = "Aafke Gros <aafke.gros@embl.de>"
@@ -18,7 +18,7 @@ platforms = [
 tags = [
 	"Import-Export"
 ]
-blender_version_min = "5.1.0"
+blender_version_min = "5.2.0"
 license = [
   "SPDX:GPL-3.0-or-later"
 ]
@@ -27,16 +27,16 @@ copyright =[
 ]
 
 wheels = [
-	"./wheels/aiobotocore-3.7.0-py3-none-any.whl",
-	"./wheels/aiohappyeyeballs-2.6.2-py3-none-any.whl",
-	"./wheels/aiohttp-3.14.1-cp313-cp313-macosx_11_0_arm64.whl",
-	"./wheels/aiohttp-3.14.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
-	"./wheels/aiohttp-3.14.1-cp313-cp313-win_amd64.whl",
+	"./wheels/aiobotocore-3.9.0-py3-none-any.whl",
+	"./wheels/aiohappyeyeballs-2.7.1-py3-none-any.whl",
+	"./wheels/aiohttp-3.14.3-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+	"./wheels/aiohttp-3.14.3-cp313-cp313-win_amd64.whl",
 	"./wheels/aioitertools-0.13.0-py3-none-any.whl",
 	"./wheels/aiosignal-1.4.0-py3-none-any.whl",
-	"./wheels/annotated_types-0.7.0-py3-none-any.whl",
+	"./wheels/annotated_types-0.8.0-py3-none-any.whl",
 	"./wheels/attrs-26.1.0-py3-none-any.whl",
-	"./wheels/botocore-1.43.0-py3-none-any.whl",
+	"./wheels/botocore-1.43.56-py3-none-any.whl",
 	"./wheels/click-8.4.2-py3-none-any.whl",
 	"./wheels/cloudpickle-3.1.2-py3-none-any.whl",
 	"./wheels/cmap-0.7.1-py3-none-any.whl",
@@ -50,7 +50,7 @@ wheels = [
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_arm64.whl",
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl",
 	"./wheels/google_crc32c-1.8.0-cp313-cp313-win_amd64.whl",
-	"./wheels/idna-3.18-py3-none-any.whl",
+	"./wheels/idna-3.19-py3-none-any.whl",
 	"./wheels/imagecodecs-2025.3.30-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/imagecodecs-2025.3.30-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
 	"./wheels/imagecodecs-2025.3.30-cp313-cp313-win_amd64.whl",
@@ -63,7 +63,6 @@ wheels = [
 	"./wheels/numcodecs-0.16.5-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/numcodecs-0.16.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
 	"./wheels/numcodecs-0.16.5-cp313-cp313-win_amd64.whl",
-	"./wheels/packaging-26.2-py3-none-any.whl",
 	"./wheels/partd-1.4.2-py3-none-any.whl",
 	"./wheels/propcache-0.5.2-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/propcache-0.5.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
@@ -80,15 +79,14 @@ wheels = [
 	"./wheels/six-1.17.0-py2.py3-none-any.whl",
 	"./wheels/tifffile-2026.2.24-py3-none-any.whl",
 	"./wheels/toolz-1.1.0-py3-none-any.whl",
-	"./wheels/typing_extensions-4.15.0-py3-none-any.whl",
-	"./wheels/typing_inspection-0.4.2-py3-none-any.whl",
+	"./wheels/typing_inspection-0.4.4-py3-none-any.whl",
 	"./wheels/urllib3-2.7.0-py3-none-any.whl",
-	"./wheels/wrapt-2.2.2-cp313-cp313-macosx_11_0_arm64.whl",
-	"./wheels/wrapt-2.2.2-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
-	"./wheels/wrapt-2.2.2-cp313-cp313-win_amd64.whl",
-	"./wheels/yarl-1.24.2-cp313-cp313-macosx_11_0_arm64.whl",
-	"./wheels/yarl-1.24.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
-	"./wheels/yarl-1.24.2-cp313-cp313-win_amd64.whl",
+	"./wheels/wrapt-2.3.0-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/wrapt-2.3.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+	"./wheels/wrapt-2.3.0-cp313-cp313-win_amd64.whl",
+	"./wheels/yarl-1.24.5-cp313-cp313-macosx_11_0_arm64.whl",
+	"./wheels/yarl-1.24.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+	"./wheels/yarl-1.24.5-cp313-cp313-win_amd64.whl",
 	"./wheels/zarr-3.1.5-py3-none-any.whl",
 	"./wheels/zmesh-1.9.0-cp313-cp313-macosx_11_0_arm64.whl",
 	"./wheels/zmesh-1.9.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",

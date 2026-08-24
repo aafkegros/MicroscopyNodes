@@ -239,6 +239,12 @@ class ChannelObject(MiNObject):
                 key = 'Frame'
             if import_node.inputs.get(key) is None:
                 continue
+            if key == "cache_dir":
+                try:
+                    if bpy.path.relpath(str(val)) in {"//", "//."}:
+                        val = "/"
+                except ValueError:
+                    pass
             if import_node.inputs.get(key).type == "STRING":
                 import_node.inputs.get(key).default_value = str(val)
                 continue

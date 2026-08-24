@@ -7,6 +7,15 @@ from ..blender_state import Scene, Dataset
 from .gui_to_data_model import parse_blender_ui
 from ..handle_blender_structs.dependent_props import ensure_valid_reload_object
 from ..handle_blender_structs.progress_handling import clear_progress
+from ..data_model import channel_name_error
+
+
+def channel_list_error(context):
+    for channel in context.scene.MiN_channelList:
+        error = channel_name_error(channel.name)
+        if error is not None:
+            return f"{error} ({channel.name!r})"
+    return None
 
 
 def select_post_load_object(context, dataset, previous_active_obj):
@@ -43,7 +52,13 @@ class TifLoadOperator(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return not context.window_manager.MiN_load_running
+        if context.window_manager.MiN_load_running:
+            return False
+        error = channel_list_error(context)
+        if error is not None:
+            cls.poll_message_set(error)
+            return False
+        return True
 
     def _remove_timer(self, context):
         if self._timer is None:
@@ -116,10 +131,10 @@ class TifLoadOperator(bpy.types.Operator):
 
     def execute(self, context):
         wm = context.window_manager
-        self.dataset_model = parse_blender_ui()
-        self.prev_active_obj = context.active_object
-        package_name = __package__.rsplit(".ui", 1)[0]
         try:
+            self.dataset_model = parse_blender_ui()
+            self.prev_active_obj = context.active_object
+            package_name = __package__.rsplit(".ui", 1)[0]
             self.local_file_process = LocalFileProcess(
                 self.dataset_model,
                 blender_binary=bpy.app.binary_path,
@@ -159,8 +174,20 @@ class TifLoadBackgroundOperator(bpy.types.Operator):
     bl_idname ="microscopynodes.load_background"
     bl_label = "Load"
 
+    @classmethod
+    def poll(cls, context):
+        error = channel_list_error(context)
+        if error is not None:
+            cls.poll_message_set(error)
+            return False
+        return True
+
     def execute(self, context):
-        dataset_model = parse_blender_ui()
+        try:
+            dataset_model = parse_blender_ui()
+        except ValueError as error:
+            self.report({'ERROR'}, str(error))
+            return {'CANCELLED'}
         generate_local_files(dataset_model)
         Scene.from_blender_ui(context)
         ensure_valid_reload_object(context.scene)

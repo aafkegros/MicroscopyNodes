@@ -86,32 +86,20 @@ def _build_import_microscopy_meshes(tree):
     imported_instances = g.ImportOBJ(path=obj_path).o.instances
     imported_ids = g.ImportCSV(path=csv_path, delimiter=",").o.point_cloud
 
-    foreach_in = tree.nodes.new("GeometryNodeForeachGeometryElementInput")
-    foreach_out = tree.nodes.new("GeometryNodeForeachGeometryElementOutput")
-    foreach_out.domain = "INSTANCE"
-    foreach_out.generation_items.clear()
-    foreach_out.generation_items.new("GEOMETRY", "Geometry").domain = "POINT"
-    foreach_out.input_items.clear()
-    foreach_out.main_items.clear()
-    foreach_in.pair_with_output(foreach_out)
-    foreach_in.inputs["Selection"].default_value = True
-    tree.tree.links.new(imported_instances.socket, foreach_in.inputs[0])
-
     oid = g.SampleIndex.point.integer(
         geometry=imported_ids,
         value=g.NamedAttribute.integer(name="oid").o.attribute,
-        index=foreach_in.outputs["Index"],
+        index=g.Index().o.index,
         clamp=False,
     ).o.value
-    geometry_with_oid = g.StoreNamedAttribute.point.integer(
-        geometry=foreach_in.outputs["Element"],
+    geometry_with_oid = g.StoreNamedAttribute.instance.integer(
+        geometry=imported_instances,
         name="oid",
         value=oid,
     ).o.geometry
-    tree.tree.links.new(geometry_with_oid.socket, foreach_out.inputs[1])
 
     transformed = g.TransformGeometry(
-        geometry=foreach_out.outputs[2],
+        geometry=geometry_with_oid,
         mode="Matrix",
         transform=channel_affine_matrix,
     ).o.geometry

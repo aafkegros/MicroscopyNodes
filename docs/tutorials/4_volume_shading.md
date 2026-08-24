@@ -23,41 +23,22 @@ This is where the single-channel `Grid` attribute gets read out from the volume 
 
     ![unfolded loading](../shader_screenshots/volume_ch_id0_channel_input.png)
 
-## Pixel Intensities
+## Intensity limits
 
-The pixel intensities rescale the min and max value, and thus the linear interpolation of the data. This is analogous to a Fiji **Brightness & Contrast** window.
+The two ramps below the histogram remap normalized source values before shading. This is analogous to a Fiji **Brightness & Contrast** window, with an additional independent transparency range.
 
-You can move the two handles to move the **min** and **max**.
+- The upper **Color Contrast Limits** ramp defines the range passed into the Color LUT.
+- The lower **Alpha Limits** ramp defines the intensity range used for transparency.
 
-![alt text](../shader_screenshots/volume_ch_id0_histogram_pixels.png)
+Select a handle and change its position to move that ramp's minimum or maximum. The two ranges can match, but they do not have to: for example, color can retain a broad intensity gradient while alpha hides more of the background.
 
-??? note "How this works"
-    This is a Blender `Color Ramp` that only outputs Alpha, and not Color. We feed in normalized data between 0 and 1 (as represented in histogram) and map this to the color ramp. The color ramp is two nodes of alpha 0 (min) and 1 (max).
-
-    This also means you can add extra nodes in here if you want nonlinearity in your pixel intensities, or flip the nodes to invert. However, it is often easier to just change the colormap.
+![A complete volume channel shader with Color Contrast Limits above Alpha Limits](<../figures/full channel volume shader with both sliders.png>)
 
 ## Color LUT
 
-![alt text](../shader_screenshots/volume_ch_id0_color_lut_single.png)
-![alt text](../shader_screenshots/volume_ch_id0_color_lut_viridis.png)
+The **Color LUT** maps the normalized result of **Color Contrast Limits** to color. To replace it, **right-click** the Color LUT ramp, choose **Replace LUT**, then select a family and color map. **Reverse LUT** in the same menu flips the selected map. The ramp handles remain directly editable for custom colors.
 
-On load, a volume channel usually starts as a single-color ramp. Replacing the LUT swaps that ramp for a full colormap such as `viridis`.
-
-The lookup tables are `Color Ramp` objects, LUTs can be edited:
-
-- **Editing** handles
-    - You can drag to change its position and click on it to get a color picker. To change contrast, its recommended to change the *pixel intensities* instead of the color.
-    - The bottom fields are the *index*, *position* and *color* of the selected field - allowing editing of the handles with more precision
-- **Replacing** the LUT by {{ svg("mouse_rmb") }} right clicking the LUT and selecting {{ svg("color") }} LUTs. This lists multiple [colormaps](https://cmap-docs.readthedocs.io).
-    - {{ svg("ipo_linear") }} Sequential, monotonic rising or falling, often good for microscopy
-    - {{ svg("lincurve") }} Diverging, distinctive middle of the colormap
-    - {{ svg("mesh_circle") }} Cyclical, start and end together
-    - {{ svg("outliner_data_pointcloud") }} Qualitative, separates consecutive values, good for labelmasks
-    - {{ svg("add") }} Miscellaneous
-    - {{ svg("mesh_plane") }} Single Color, gives a new black-to-white colormap, to easily edit LUTs
-- {{ svg("arrow_leftright") }} Flipping the LUT
-    - either under the down-carrot or under {{ svg("mouse_rmb") }} right clicking the LUT
-    - Flipped LUTs can be [loaded by default](./preferences.md)
+![Replace LUT menu opened by right-clicking the Color LUT ramp](<../figures/replace lut menu.png>)
 
 ## Volume Transparency
 

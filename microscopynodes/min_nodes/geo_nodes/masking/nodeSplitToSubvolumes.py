@@ -36,6 +36,7 @@ class SplitToSubvolumes(CustomGeometryGroup):
 
 def _build_split_to_subvolumes(tree):
     tree._arrange = "simple"
+    tree.tree.show_modifier_manage_panel = True
     tree.tree.description = (
         "Voxelize pre-split mesh instances and sample a grid into each generated subvolume"
     )
@@ -80,34 +81,36 @@ def _build_split_to_subvolumes(tree):
         value=voxel_size,
         value_001=holder_inputs.o.scene_world_scale_base,
     ).o.value
-    topology = g.MeshToDensityGrid(
-        mesh=foreach.input.o.element,
-        voxel_size=protected_voxel_size,
-        gradient_width=0.0,
-    ).o.density_grid
-    sampled_grid = g.FieldToGrid.float(
-        topology=topology,
-        items={
-            "Sampled Grid": g.SampleGrid.float(
-                grid=grid,
-                position=g.Position().o.position,
-                interpolation=sampling,
-            ).o.value,
-        },
-    ).node.outputs["Sampled Grid"]
+    realized_mesh = g.RealizeInstances(foreach.input.o.element).o.geometry
     base_volume = g.MeshToVolume(
-        mesh=foreach.input.o.element,
+        mesh=realized_mesh,
         resolution_mode="Size",
         voxel_size=protected_voxel_size,
         interior_band_width=0.0,
     ).o.volume
-    sampled_volume = g.StoreNamedGrid.float(
+    volume_grid = g.GetNamedGrid.float(
         volume=base_volume,
         name="density",
-        grid=sampled_grid,
+        remove=True,
+    )
+    sampled_grid = g.SampleGrid.float(
+        grid=grid,
+        position=g.Position().o.position,
+        interpolation=sampling,
+    ).o.value
+    sampled_volume = g.StoreNamedGrid.float(
+        volume=volume_grid.o.volume,
+        name="density",
+        grid=g.Math.multiply(
+            value=volume_grid.o.grid,
+            value_001=sampled_grid,
+        ).o.value,
     ).o.volume
+    volume_instance = g.GeometryToInstance(sampled_volume).o.instances
 
-    foreach.output.capture_generated(sampled_volume) >> subvolumes
+    generated_volume = foreach.output.capture_generated(volume_instance)
+    foreach.output.node.generation_items[-1].name = "Volume"
+    generated_volume >> subvolumes
 
 
 def split_to_subvolumes_node_group():

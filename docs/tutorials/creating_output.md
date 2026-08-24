@@ -1,4 +1,4 @@
-# Creating output
+# Cameras, animation, and output
 
 Creating output from a scene in Blender is done by adding a {{ svg("view_camera") }} camera and pressing `Render > Render Image` or `Render > Render Animation` for the full animation. This writes images or movies to your [output folder](./rendering.md#output-location-and-format).
 
@@ -36,6 +36,8 @@ Camera properties can be found under the {{ svg("view_camera") }} camera icon in
 
     In contrast to this, orthographic cameras show all objects as the same size, no matter the distance to the camera. This thus can be better for comparing scales of objects in data, although it is less intuitive to viewers.
 
+    Use an orthographic camera when adding a conventional scientific scale bar. See [Scale bars, grids, and time labels](./annotation.md).
+
 ## Setting up lighting
 
 Lighting can be very important for getting a good feeling of depth for the data, but it is not always necessary or essential.
@@ -62,6 +64,8 @@ So a simple camera animation setup takes:
 - Again hover over the camera `Location` and `Rotation` in the {{ svg("properties") }} properties and press `I`, setting a keyframe.
 
 Then in between the two keyframes, Blender will interpolate the camera positioning.
+
+For microscopy time series, the data's source-frame animation can be slowed, delayed, or paused independently of the camera. See [Work with time-series data](./time_series.md).
 
 ## Rendering
 

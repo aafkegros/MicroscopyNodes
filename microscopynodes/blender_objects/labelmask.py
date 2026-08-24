@@ -62,7 +62,7 @@ class LabelmaskObject(MeshChannelObject):
         idnode = nodes.new("ShaderNodeAttribute")
         idnode.name = f"[oid_{ch.identifier}]"
         idnode.attribute_name = 'oid'
-        idnode.attribute_type = 'GEOMETRY'
+        idnode.attribute_type = 'INSTANCER'
         idnode.location = (-760, y_offset - 35)
         idnode.parent = frame
 
@@ -85,7 +85,10 @@ class LabelmaskObject(MeshChannelObject):
             nodes =  mat.node_tree.nodes
             color_lut = nodes.get(f'[color_lut_{ch.identifier}]')
             remap = nodes.get(f'[remap_oid_{ch.identifier}]')
+            idnode = nodes.get(f'[oid_{ch.identifier}]')
             set_color_ramp_from_ch(ch, color_lut)
+            if idnode is not None:
+                idnode.attribute_type = 'INSTANCER'
             if remap is not None and color_lut is not None:
                 remap.inputs.get('# Objects').default_value = metadata['max']
                 remap.inputs.get('Revolving Colormap').default_value = (color_lut.color_ramp.interpolation == 'CONSTANT')
