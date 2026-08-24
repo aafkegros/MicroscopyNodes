@@ -47,3 +47,16 @@ def test_non_project_cache_dir_remains_absolute(monkeypatch):
     value, _ = _cache_dir_written_to_import_node("/cache")
 
     assert value == "/cache"
+
+
+def test_cache_dir_on_another_windows_drive_remains_absolute(monkeypatch):
+    def different_drive(path):
+        raise ValueError("path is on mount 'C:', start on mount 'D:'")
+
+    monkeypatch.setattr(
+        "microscopynodes.blender_objects.base.bpy.path.relpath",
+        different_drive,
+    )
+    value, _ = _cache_dir_written_to_import_node("C:\\cache")
+
+    assert value == "C:\\cache"
