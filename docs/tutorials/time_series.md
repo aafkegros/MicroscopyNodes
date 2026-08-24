@@ -35,3 +35,5 @@ The data remains fixed between those keyframes, while the {{ svg("view_camera") 
 Use the Microscopy Nodes **Time Annotation** geometry node to convert the current frame into a formatted label. Set the acquisition period and choose input and output units, for example seconds to minutes.
 
 See [Scale bars, grids, and time labels](./annotation.md) and [Cameras, animation, and output](./creating_output.md).
+
+For tracked label masks, [Split and animate subvolumes](./subvolumes.md) explains how to preserve each object's `oid` while separating regions across time.

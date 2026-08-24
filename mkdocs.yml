@@ -16,6 +16,7 @@ nav:
   - Advanced workflows:
     - Large datasets and sparse reloading: tutorials/large_data.md
     - Project volume data onto meshes: tutorials/mesh_projection.md
+    - Split and animate subvolumes: tutorials/subvolumes.md
     - Surface modification: tutorials/surface_smoothing.md
   - Reference:
     - Objects and modifiers: tutorials/3_objects.md

@@ -72,3 +72,5 @@ Geometry masks operate at voxel resolution. Curved or rotated boundaries may the
 - Prefer shader slicing when you only need a clean box cut.
 
 The resulting mask can also define which voxels are loaded at high resolution. Continue with [Large datasets and sparse reloading](./large_data.md).
+
+When each masked region needs to move independently, continue with [Split and animate subvolumes](./subvolumes.md).
