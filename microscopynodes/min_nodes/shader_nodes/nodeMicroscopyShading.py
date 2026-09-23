@@ -40,6 +40,17 @@ def microscopy_shading_node():
     interface.items_tree[-1].attribute_domain = 'POINT'
     interface.items_tree[-1].description = "The amount of intensity coupling, used for normalizing the colormap brightness to achieve linear values"
 
+    interface.new_socket("Force Alpha/Color to scale linearly", in_out="INPUT", socket_type='NodeSocketBool')
+    interface.items_tree[-1].default_value = False
+    interface.items_tree[-1].description = (
+        "With Linear Alpha, set the colormap's HSV Value to 1 while preserving hue and saturation, "
+        "so alpha alone controls emission strength. This prevents a matching linear color ramp "
+        "and alpha ramp from multiplying intensity twice (for example, 0.5 × 0.5 = 0.25 becomes "
+        "1 × 0.5 = 0.5). With Constant Alpha, the color is unchanged. When disabled, the original "
+        "colormap brightness and alpha multiply normally. This normalizes HSV Value, not perceived "
+        "luminance; scattering, absorption, and display transforms can still produce a nonlinear appearance."
+    )
+
     interface.new_socket("Emission / Scattering", in_out="INPUT", socket_type='NodeSocketFloat')
     interface.items_tree[-1].default_value = 0.0
     interface.items_tree[-1].min_value = 0.0
@@ -60,7 +71,13 @@ def microscopy_shading_node():
     normalize.location = (-450, 130)
     normalize.label = "Ensure linear scaling"
     links.new(group_input.outputs["Color"], normalize.inputs["Color"])
-    links.new(group_input.outputs["Alpha-Intensity Coupling"], normalize.inputs["Alpha-Intensity Coupling"])
+    correction = nodes.new("ShaderNodeMath")
+    correction.operation = 'MULTIPLY'
+    correction.label = "Enable linearity correction"
+    correction.location = (-650, 200)
+    links.new(group_input.outputs["Alpha-Intensity Coupling"], correction.inputs[0])
+    links.new(group_input.outputs["Force Alpha/Color to scale linearly"], correction.inputs[1])
+    links.new(correction.outputs[0], normalize.inputs["Alpha-Intensity Coupling"])
 
     emission_strength = nodes.new("ShaderNodeMath")
     emission_strength.location = (-450, -80)
