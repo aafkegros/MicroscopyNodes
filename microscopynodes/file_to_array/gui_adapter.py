@@ -77,6 +77,12 @@ def change_path(self, context):
         log("")
         scn.property_unset("MiN_reload")
         try:
+            loader = get_loader(scn.MiN_input_file)
+            if loader is None:
+                return
+            # Keep source metadata editable even if model validation fails.
+            metadata = loader.metadata(scn.MiN_input_file)
+            scn.MiN_axes_order = metadata["axes_order"]
             options = dataset_options(scn.MiN_input_file, refresh=True)
         except Exception as e:
             print(e)
@@ -104,7 +110,11 @@ def change_array_option(self, context):
         if context.scene.MiN_enable_ui:
             _overwrite_channel_viz_from_scene(dataset_model, context.scene)
         axes_order = context.scene.MiN_axes_order or None
-        _apply_dataset_to_scene(dataset_model, context.scene, axes_order_override=axes_order)
+        context.scene["_MiN_syncing_input_file"] = True
+        try:
+            _apply_dataset_to_scene(dataset_model, context.scene, axes_order_override=axes_order)
+        finally:
+            context.scene["_MiN_syncing_input_file"] = False
 
 
 def channel_data_model(ch_ix, axes_order=None, **data_kwargs):
@@ -132,34 +142,40 @@ def change_channel_ax(self, context):
     from ..ui.preferences import addon_preferences
 
     scn = context.scene
-    channel_axis = _channel_axis_ix(scn.MiN_axes_order)
-    if scn.get("_MiN_channel_axis_ix", channel_axis) == channel_axis:
+    if _is_syncing_path(scn):
         return
 
-    scn["_MiN_channel_axis_ix"] = channel_axis
+    scn["_MiN_syncing_input_file"] = True
     try:
-        options = dataset_options(
-            scn.MiN_input_file,
-            axes_order=scn.MiN_axes_order,
-            refresh=True,
-        )
-    except Exception as e:
-        print(e)
-        log(f"Error loading file: {e}")
-        return
-    if not options:
-        return
-
-    apply_import_defaults(options, addon_preferences(context))
-    selected_ix = _selected_option_ix(scn, len(options))
-    _set_active_options(scn.MiN_input_file, scn.MiN_axes_order, options)
-    _fill_array_options(options, scn, axes_order_override=scn.MiN_axes_order)
-    scn.MiN_selected_array_option = str(selected_ix)
-    _apply_dataset_to_scene(
-        options[selected_ix],
-        scn,
-        axes_order_override=scn.MiN_axes_order,
-    )
+        was_valid = scn.MiN_enable_ui
+        scn.MiN_enable_ui = False
+        try:
+            options = dataset_options(
+                scn.MiN_input_file,
+                axes_order=scn.MiN_axes_order,
+                refresh=True,
+            )
+            if not options:
+                return
+            apply_import_defaults(options, addon_preferences(context))
+            if was_valid:
+                for dataset_model in options:
+                    _overwrite_channel_viz_from_scene(dataset_model, scn)
+            selected_ix = _selected_option_ix(scn, len(options))
+            _fill_array_options(options, scn, axes_order_override=scn.MiN_axes_order)
+            scn.MiN_selected_array_option = str(selected_ix)
+            _set_active_options(scn.MiN_input_file, scn.MiN_axes_order, options)
+            _apply_dataset_to_scene(
+                options[selected_ix], scn, axes_order_override=scn.MiN_axes_order,
+            )
+        except Exception as e:
+            print(e)
+            log(f"Error loading file: {e}")
+            return
+        scn.MiN_enable_ui = True
+        log("")
+    finally:
+        scn["_MiN_syncing_input_file"] = False
 
 
 def arr_shape():
