@@ -216,7 +216,8 @@ def _overwrite_channel_viz_from_scene(dataset_model, scene):
     for channel_model in dataset_model.channels:
         viz = current_viz.get(channel_model.data.ix)
         if viz is not None:
-            channel_model.viz = viz.model_copy(deep=True)
+            # Deep-copying cmap loses its name and categorical interpolation.
+            channel_model.viz = viz.model_copy()
 
 
 def _source_axes_order(dataset_model):
