@@ -114,7 +114,7 @@ def _build_import_microscopy_volume(tree):
         name=grid_name,
         remove=True,
     )
-    normalized_grid = g.MapRange(
+    ranged_grid = g.MapRange(
         value=source_grid.o.grid,
         from_min=vdb_minimum,
         from_max=vdb_maximum,
@@ -123,9 +123,28 @@ def _build_import_microscopy_volume(tree):
         clamp=True,
     ).o.result
     original_grid = g.Math.multiply(
-        value=normalized_grid,
+        value=ranged_grid,
         value_001=original_maximum,
     ).o.value
+
+    # Extend the upper bound by one original intensity unit where float
+    # precision permits, keeping the normalized maximum below 1.
+    intensity_increment = g.Math.divide(
+        value=1.0,
+        value_001=original_maximum,
+    ).o.value
+    exclusive_maximum = g.Math.add(
+        value=vdb_maximum,
+        value_001=intensity_increment,
+    ).o.value
+    normalized_grid = g.MapRange(
+        value=source_grid.o.grid,
+        from_min=vdb_minimum,
+        from_max=exclusive_maximum,
+        to_min=0.0,
+        to_max=1.0,
+        clamp=True,
+    ).o.result
 
     normalized_volume = g.StoreNamedGrid.float(
         volume=imported_volume,
