@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "microscopynodes"
-version = "3.1.2"
+version = "3.1.3"
 description = "Loading and handling microscopy data in Blender."
 authors = ["Aafke Gros <aafke.gros@embl.de>"]
 include = [
@@ -26,7 +26,7 @@ cmap = "==0.7.1"
 s3fs = "==2026.2.0"
 zmesh = "==1.9.0"
 databpy = "==0.7.0"
-nodebpy = "==520.0.1"
+nodebpy = "==520.29.0"
 pydantic = "*"
 
 [tool.poetry.group.dev.dependencies]

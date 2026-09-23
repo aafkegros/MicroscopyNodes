@@ -67,3 +67,25 @@ def test_preferences_fall_back_for_restricted_context(monkeypatch):
     fallback = preferences.addon_preferences(RestrictedContext())
 
     assert len(fallback.channels) == fallback.n_default_channels
+
+
+def test_categorical_colormap_survives_resolution_switch(monkeypatch):
+    import bpy
+    from cmap import Colormap
+    from microscopynodes.file_to_array import gui_adapter
+    from microscopynodes.file_to_array.rescaling import _rescale_channel
+
+    scene = bpy.context.scene
+    dataset = DatasetModel(channels=[_channel(0)])
+    dataset.apply_viz_defaults([ChannelVizModel(ix=0, cmap=Colormap("seaborn:tab10"))])
+    scaled = DatasetModel(channels=[_rescale_channel(dataset.channels[0], (2, 2, 2), 1)])
+    gui_adapter._fill_channel_list(dataset, scene)
+    scene.MiN_enable_ui = True
+    monkeypatch.setattr(gui_adapter, "selected_array_option", lambda: None)
+
+    for option in (scaled, dataset):
+        monkeypatch.setattr(gui_adapter, "selected_dataset_model", lambda: option)
+        gui_adapter.change_array_option(scene, bpy.context)
+        assert scene.MiN_channelList[0].cmap == "TAB10"
+        assert option.channels[0].viz.cmap.interpolation == "nearest"
+        assert option.channels[0].viz.cmap.lut(10).tolist() == Colormap("seaborn:tab10").lut(10).tolist()
