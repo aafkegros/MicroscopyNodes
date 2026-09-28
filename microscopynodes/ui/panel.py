@@ -78,8 +78,8 @@ class TIFLoadPanel(bpy.types.Panel):
             rowt.prop(scn,'MiN_load_start_frame')
             rowt.prop(scn,'MiN_load_end_frame')
 
-        col1.enabled = scn.MiN_enable_ui and data_inputs_enabled
-        col2.enabled = scn.MiN_enable_ui and data_inputs_enabled
+        col1.enabled = bool(scn.MiN_input_file) and data_inputs_enabled
+        col2.enabled = bool(scn.MiN_input_file) and data_inputs_enabled
 
         
         col = layout.column(align=False)  

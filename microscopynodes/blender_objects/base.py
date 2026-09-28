@@ -122,6 +122,7 @@ class ChannelObject(MiNObject):
         for node in self.node_group.nodes:
             if node.inputs.get("Holder") is not None:
                 node.inputs["Holder"].default_value = holder
+                node.inputs["Holder"].hide_value = False
                 node.inputs["Holder"].hide = True
 
     def set_channel_capacity(self, dataset_model):
@@ -329,7 +330,7 @@ class ChannelObject(MiNObject):
         join_node.name = "Join"
         join_node.location = (850, -100)
         if join_node.inputs.get("Holder") is not None:
-            join_node.inputs["Holder"].hide_value = True
+            join_node.inputs["Holder"].hide_value = False
 
         set_material = nodes.new("GeometryNodeSetMaterial")
         set_material.name = "Set Material"

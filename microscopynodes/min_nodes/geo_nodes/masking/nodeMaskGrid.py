@@ -64,7 +64,7 @@ def _build_mask_grid(tree):
     holder = tree.inputs.object(
         "Holder",
         optional_label=True,
-        hide_value=True,
+        hide_value=False,
         hide_in_modifier=True,
     )
     mask_resolution = tree.inputs.float(

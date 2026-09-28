@@ -1390,19 +1390,21 @@ files = [
 
 [[package]]
 name = "nodebpy"
-version = "520.0.1"
+version = "520.29.0"
 description = "Build nodes trees in Blender more elegantly with code"
 optional = false
 python-versions = ">=3.13"
 groups = ["main"]
 files = [
-    {file = "nodebpy-520.0.1-py3-none-any.whl", hash = "sha256:f90ad8468fad51bd6e033b65ae9d360b68d00ba94fb026fe13773dc68e9fb99f"},
-    {file = "nodebpy-520.0.1.tar.gz", hash = "sha256:2149cce00b7897d14e3bbbd53ec83d00a81302be3c41c507e1f18be26d031289"},
+    {file = "nodebpy-520.29.0-py3-none-any.whl", hash = "sha256:9ab80891c7c607be0ac72b26840db6c6695f3186844fc61a5b7b0f2feedd74f4"},
+    {file = "nodebpy-520.29.0.tar.gz", hash = "sha256:a354022dbcb46e509fe143eacac111ac3fb7537e86ca6c51ee842e27ff3078e0"},
 ]
 
 [package.extras]
 bpy = ["bpy (==5.2.*)"]
+format = ["ruff (>=0.14.11)"]
 networkx = ["networkx (>=3.6.1)"]
+plot = ["matplotlib (>=3.8)"]
 
 [[package]]
 name = "numcodecs"
@@ -2621,4 +2623,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.13.13"
-content-hash = "95aff6dcae47d454b12e85234c3a9b059038a6711154d79561af778f2775c1e1"
+content-hash = "a665fc16c088aeb6244731188338642a5792fd797880e06459667a5693c86cfc"

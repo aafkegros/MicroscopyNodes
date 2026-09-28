@@ -1,10 +1,27 @@
 import zmesh
+import numpy as np
 from pathlib import Path
 
 from .base import DataIO
 from ..handle_blender_structs.array_handling import len_axis, take_index, to_xyz
 from ..handle_blender_structs.progress_handling import log
 from ..handle_blender_structs.min_keys import min_keys
+
+
+def labelmask_ids_array(arr):
+    # zmesh reinterprets bytes as unsigned integers rather than casting values.
+    if arr.dtype.kind == "f":
+        if not np.all(np.isfinite(arr) & (arr >= 0) & (arr < 2**64)):
+            raise ValueError("Labelmask IDs must be finite non-negative integers below 2**64")
+        if not np.all(arr == np.floor(arr)):
+            raise ValueError("Labelmask IDs must be whole numbers")
+        return arr.astype(np.uint64)
+    if arr.dtype.kind not in "uib":
+        raise ValueError("Labelmask IDs must be non-negative integers")
+    if arr.dtype.kind == "i" and np.any(arr < 0):
+        raise ValueError("Labelmask IDs must be non-negative integers")
+    # Also normalize byte order, since zmesh expects native-endian values.
+    return arr.astype(np.dtype(f"u{arr.dtype.itemsize}"), copy=False)
 
 
 class LabelmaskIO(DataIO):
@@ -44,6 +61,7 @@ class LabelmaskIO(DataIO):
 
             timeframe_arr = take_index(ch.data.data, constructor["t"], "t", ch.data.axes_order).compute()
             timeframe_arr = to_xyz(timeframe_arr, ch.data.axes_order.replace("t", ""))
+            timeframe_arr = labelmask_ids_array(timeframe_arr)
 
             log(f"Meshing timepoint {constructor['t']}")
             mesher.mesh(timeframe_arr, close=True)

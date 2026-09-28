@@ -299,7 +299,6 @@ class ChannelModel(BaseModel):
 
         self.viz = template.model_copy(
             update={"ix": ix, "name": name},
-            deep=True,
         )
 
 class DatasetModel(BaseModel):
