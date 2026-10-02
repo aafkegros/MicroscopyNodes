@@ -1,6 +1,6 @@
 # Labelmask Shading
 
-The {{ svg("outliner_data_pointcloud") }} label mask shader is very similar to the {{ svg("outliner_data_surface") }} Surface shader, but is able to read out and use the `object id` to color by.
+The :blender-OUTLINER_DATA_POINTCLOUD: label mask shader is very similar to the :blender-OUTLINER_DATA_SURFACE: Surface shader, but is able to read out and use the `object id` to color by.
 
 ![alt text](../shader_screenshots/labelmask_full.png)
 
@@ -34,13 +34,13 @@ This means you can still use the usual mesh shading controls such as:
 while keeping the per-label coloring from the LUT.
 
 ??? warning "Emission can 'flatten' objects"
-    The feeling of **depth** in 3D rendering is often due to the interaction of objects with light. When things are emitting light themselves, they can often look flat. For more feeling of depth, it might be better to load with {{ svg("light", "small-icon") }} emission off, and set up some form of lighting.
+    The feeling of **depth** in 3D rendering is often due to the interaction of objects with light. When things are emitting light themselves, they can often look flat. For more feeling of depth, it might be better to load with <span class="small-icon">:blender-LIGHT:</span> emission off, and set up some form of lighting.
 
 ## Slice cube
 
 ![alt text](../shader_screenshots/labelmask_slicecube_texcoord.png)
 
-The Slice Cube section allows slicing of the labelmask. This has an {{ svg("object_data") }} Object pointer to a cube in the scene (by default the loaded slice cube).
+The Slice Cube section allows slicing of the labelmask. This has an :blender-OBJECT_DATA: Object pointer to a cube in the scene (by default the loaded slice cube).
 
 The object bounding box gets fed into the slicer, which hides all regions outside the bounding box.
 

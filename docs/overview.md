@@ -1,6 +1,6 @@
 # Microscopy in Blender
 
-{{ svg('microscopy_nodes') }} **Microscopy Nodes 3.1** adds microscopy-data workflows to Blender 5.2 and newer. It loads TIFF and OME-Zarr data as editable volumes, surfaces, label masks, and time series while preserving physical scale.
+:blender-MICROSCOPY_NODES: **Microscopy Nodes 3.1** adds microscopy-data workflows to Blender 5.2 and newer. It loads TIFF and OME-Zarr data as editable volumes, surfaces, label masks, and time series while preserving physical scale.
 
 New here? [Install Microscopy Nodes](./tutorials/1_start.md), then [load your first dataset](./tutorials/2_loading_data.md).
 

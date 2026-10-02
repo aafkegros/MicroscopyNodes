@@ -4,12 +4,12 @@ Dense electron-microscopy volumes use the same loading and shader controls as fl
 
 ## Load the data and labels
 
-In the {{ svg("microscopy_nodes") }} loading panel:
+In the :blender-MICROSCOPY_NODES: loading panel:
 
 1. Start with a small multiscale level.
-2. Load the original EM channel as a {{ svg("outliner_ob_volume") }} volume.
-3. Turn {{ svg("outliner_ob_light") }} emission off to begin with scattering.
-4. Load segmentation channels as {{ svg("outliner_ob_pointcloud") }} label masks.
+2. Load the original EM channel as a :blender-OUTLINER_OB_VOLUME: volume.
+3. Turn :blender-OUTLINER_OB_LIGHT: emission off to begin with scattering.
+4. Load segmentation channels as :blender-OUTLINER_OB_POINTCLOUD: label masks.
 5. Choose a categorical LUT for labels containing separate integer IDs.
 
 The example used in the current tutorial series is:
@@ -18,13 +18,13 @@ The example used in the current tutorial series is:
 
 ## Light a scattering volume
 
-A scattering volume will be invisible against an unlit black world. Set the {{ svg("world") }} world color to white or gray, increase its strength, or add Blender lights.
+A scattering volume will be invisible against an unlit black world. Set the :blender-WORLD: world color to white or gray, increase its strength, or add Blender lights.
 
-Use {{ svg("shading_rendered") }} **Rendered Preview** with Cycles when you need ray-traced internal scattering. Reduce the sample count while working interactively.
+Use :blender-SHADING_RENDERED: **Rendered Preview** with Cycles when you need ray-traced internal scattering. Reduce the sample count while working interactively.
 
 ## Reveal internal structure
 
-Dense data often fills the entire bounding box. In the {{ svg("material") }} volume shader:
+Dense data often fills the entire bounding box. In the :blender-MATERIAL: volume shader:
 
 - narrow the alpha range to remove uninformative material;
 - use a black-to-white LUT for a conventional EM appearance;

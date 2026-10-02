@@ -6,9 +6,9 @@ Volume sampling maps microscopy intensities onto a generated, sculpted, or impor
 
 ## Prepare a volume and a mesh
 
-Load the source channel as a {{ svg("outliner_ob_volume") }} volume and create the target {{ svg("outliner_ob_surface") }} surface. The target can be an isosurface from another microscopy channel or any mesh positioned in the same coordinate space.
+Load the source channel as a :blender-OUTLINER_OB_VOLUME: volume and create the target :blender-OUTLINER_OB_SURFACE: surface. The target can be an isosurface from another microscopy channel or any mesh positioned in the same coordinate space.
 
-Open the target object's {{ svg("geometry_nodes") }} Geometry Nodes workspace.
+Open the target object's :blender-GEOMETRY_NODES: Geometry Nodes workspace.
 
 ## Retrieve a named grid
 
@@ -29,11 +29,11 @@ For projection, set the distance, number of samples, and direction: inward, outw
 
 ## Send values to the shader
 
-Store the sampled result as a named float attribute. In the target mesh's {{ svg("material") }} shader:
+Store the sampled result as a named float attribute. In the target mesh's :blender-MATERIAL: shader:
 
 1. Read the same named attribute.
 2. Pass it through a **Pixel Intensity** control for contrast.
-3. Connect it to a {{ svg("material") }} Color LUT.
+3. Connect it to a :blender-MATERIAL: Color LUT.
 4. Feed the resulting color into the surface material.
 
 This makes the projected signal respond to the same scientific color-mapping controls as volume data.

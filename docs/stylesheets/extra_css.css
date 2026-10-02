@@ -29,24 +29,14 @@
     background-color: #ff8fe3 !important;  /* icon background */
 }
 
-.icon-wrapper {
-    color: var(--md-primary-fg-color); /* or any custom value */
+.md-typeset .blender-icon {
+    --blender-icon-size: 19px;
+    --blender-icon-color: #9D60BD;
+    vertical-align: -0.2em;
 }
 
-.icon {
-    vertical-align: -0.2em;
-    width: 19px;
-    height: auto;
-    color: #9D60BD;
-    display: inline-block;
-}
-
-.small-icon {
-    vertical-align: -0.2em;
-    width: 15px;
-    height: auto;
-    color: #9D60BD;
-    display: inline-block;
+.small-icon .blender-icon {
+    --blender-icon-size: 15px;
 }
 
 .yt-lazy {

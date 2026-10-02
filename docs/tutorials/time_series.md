@@ -1,16 +1,16 @@
 # Work with time-series data
 
-If the source axes contain `t`, Microscopy Nodes maps the selected image timepoints onto Blender's {{ svg("time") }} timeline.
+If the source axes contain `t`, Microscopy Nodes maps the selected image timepoints onto Blender's :blender-TIME: timeline.
 
 ## Choose the source range
 
-After entering the dataset path, check the detected axis order and set the start and end timepoints in the {{ svg("microscopy_nodes") }} loading panel. Load only the interval needed for the scene when storage or conversion time matters.
+After entering the dataset path, check the detected axis order and set the start and end timepoints in the :blender-MICROSCOPY_NODES: loading panel. Load only the interval needed for the scene when storage or conversion time matters.
 
 After loading, move through the timeline with the arrow keys or timeline controls. The microscopy data updates with the Blender frame.
 
 ## Retime the biological sequence
 
-Select the {{ svg("outliner_ob_empty") }} holder object. Its animated **Frame** property controls which microscopy timepoint is read.
+Select the :blender-OUTLINER_OB_EMPTY: holder object. Its animated **Frame** property controls which microscopy timepoint is read.
 
 - Move the first or last keyframe with `G` to add a delay.
 - Scale the keyframes with `S` to slow down or accelerate the complete sequence.
@@ -28,7 +28,7 @@ To hold one biological timepoint while the camera continues moving:
 4. Move later in the Blender timeline.
 5. Insert the same source-frame value again.
 
-The data remains fixed between those keyframes, while the {{ svg("view_camera") }} camera and all other animated scene properties remain independent.
+The data remains fixed between those keyframes, while the :blender-VIEW_CAMERA: camera and all other animated scene properties remain independent.
 
 ## Display elapsed time
 

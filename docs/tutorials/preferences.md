@@ -1,6 +1,6 @@
 # Preferences / Customization
 
-The {{ svg("microscopy_nodes") }} Microscopy Nodes addon has {{ svg("preferences") }} **Preferences** to allow for a custom experience and defaults. 
+The :blender-MICROSCOPY_NODES: Microscopy Nodes addon has :blender-PREFERENCES: **Preferences** to allow for a custom experience and defaults. 
 
 You can find these under `Edit > Preferences > Add-ons > Microscopy Nodes`.
 
@@ -17,7 +17,7 @@ Here we get multiple options for defaults and settings:
 - Extra channel slots
   > Reserves empty channel entries for adding derived or separately masked grids to the Geometry Nodes and shader channel bundles.
 - On load slice cube mode
-  > {{ svg("material") }} **Shader** gives a clean bounding-box slice. {{ svg("geometry_nodes") }} **Geometry** creates voxel masks that can use custom shapes, separate inside/outside regions, and drive sparse reloading. See [Slice, mask, and recolor data](./slicing_masking.md).
+  > :blender-MATERIAL: **Shader** gives a clean bounding-box slice. :blender-GEOMETRY_NODES: **Geometry** creates voxel masks that can use custom shapes, separate inside/outside regions, and drive sparse reloading. See [Slice, mask, and recolor data](./slicing_masking.md).
 - Mesh density
   > This sets how fine/coarse the geometries for labelmasks and surfaces are 
 - Invert Color

@@ -4,12 +4,12 @@ For a guided first adjustment, start with [Adjust color, contrast, and opacity](
 
 **Shading** encompasses the visualization of Blender's objects. The shading options can be found in two places:
 
-- in the {{ svg("workspace") }} Shader Nodes workspace, find this in the {{ svg("topbar") }} topbar.
-- in the {{ svg("material") }} material tab of the {{ svg("properties") }} properties.
+- in the :blender-WORKSPACE: Shader Nodes workspace, find this in the :blender-TOPBAR: topbar.
+- in the :blender-MATERIAL: material tab of the :blender-PROPERTIES: properties.
 
 These two locations contain the same information, laid out in different ways.
 
-The default Microscopy Nodes shaders are built from {{ svg("nodetree") }} nodes and describe how the loaded objects interact with **light**, **color**, and **transparency**.
+The default Microscopy Nodes shaders are built from :blender-NODETREE: nodes and describe how the loaded objects interact with **light**, **color**, and **transparency**.
 
 - [Volume shading](./4_volume_shading.md)
 - [Surface shading](./4_surface_shading.md)

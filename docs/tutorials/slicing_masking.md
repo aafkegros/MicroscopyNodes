@@ -10,14 +10,14 @@ Microscopy Nodes offers two slicing modes when loading or reloading:
 
 | Mode | Best for | Limitation |
 | --- | --- | --- |
-| {{ svg("material") }} **Shader slicing** | A clean, movable box slice | One box; the data itself is not masked |
-| {{ svg("geometry_nodes") }} **Geometry slicing** | Custom objects, labels, multiple regions, and sparse reloads | The mask is voxelized and can show stair-step artifacts |
+| :blender-MATERIAL: **Shader slicing** | A clean, movable box slice | One box; the data itself is not masked |
+| :blender-GEOMETRY_NODES: **Geometry slicing** | Custom objects, labels, multiple regions, and sparse reloads | The mask is voxelized and can show stair-step artifacts |
 
-Shader slicing is the default. Choose geometry slicing with {{ svg("geometry_nodes") }} in the loading panel's **On load – Slicing** controls when you need the more flexible workflows below.
+Shader slicing is the default. Choose geometry slicing with :blender-GEOMETRY_NODES: in the loading panel's **On load – Slicing** controls when you need the more flexible workflows below.
 
 ## Use the Slice Cube
 
-The loaded {{ svg("outliner_ob_mesh") }} Slice Cube can be moved, rotated, or scaled like any Blender object:
+The loaded :blender-OUTLINER_OB_MESH: Slice Cube can be moved, rotated, or scaled like any Blender object:
 
 - `G` moves it;
 - `R` rotates it;
@@ -28,7 +28,7 @@ With geometry slicing, each channel passes through a **Mask Grid** node. Its def
 
 ## Mask with any object
 
-This workflow requires a **Mask Grid** node in the volume's Geometry Nodes tree. It is added automatically when the dataset is loaded or reloaded with {{ svg("geometry_nodes") }} **Geometry slicing**. If the dataset was loaded with {{ svg("material") }} Shader slicing, add a **Mask Grid** node yourself and connect the channel grid to its **Grid** input, then connect **Inside Mask** or **Outside Mask** to the channel bundle in place of the original grid.
+This workflow requires a **Mask Grid** node in the volume's Geometry Nodes tree. It is added automatically when the dataset is loaded or reloaded with :blender-GEOMETRY_NODES: **Geometry slicing**. If the dataset was loaded with :blender-MATERIAL: Shader slicing, add a **Mask Grid** node yourself and connect the channel grid to its **Grid** input, then connect **Inside Mask** or **Outside Mask** to the channel bundle in place of the original grid.
 
 ![A channel grid passing through Mask Grid before entering the channel bundle](<../figures/mask grid in context.png>)
 
@@ -52,14 +52,14 @@ To color the inside and outside differently:
 1. Keep one Mask Grid output connected to the original channel.
 2. Add a second channel to the Geometry Nodes channel bundle.
 3. Connect the other mask output to that channel.
-4. Add a matching channel in the {{ svg("material") }} shader.
+4. Add a matching channel in the :blender-MATERIAL: shader.
 5. Give each shader branch its own intensity limits, LUT, alpha, or emission settings.
 
 The channel names in Geometry Nodes and Shader Nodes must match.
 
 ## Use segmentations without losing intensity
 
-A {{ svg("outliner_ob_pointcloud") }} label mask or generated {{ svg("outliner_ob_surface") }} surface can define a volume mask. The masked region still contains the original intensity values from the source volume, so it can be recolored without replacing the microscopy signal with a flat segmentation surface.
+A :blender-OUTLINER_OB_POINTCLOUD: label mask or generated :blender-OUTLINER_OB_SURFACE: surface can define a volume mask. The masked region still contains the original intensity values from the source volume, so it can be recolored without replacing the microscopy signal with a flat segmentation surface.
 
 This is particularly useful for dense EM data: show the complete volume in grayscale while highlighting annotated organelles with a separate color map.
 

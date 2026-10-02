@@ -1,6 +1,6 @@
 # Volume Shading
 
-The Shader Nodes workspace {{ svg("workspace") }} when selecting a Microscopy Nodes {{ svg("outliner_data_volume") }} volume:
+The Shader Nodes workspace :blender-WORKSPACE: when selecting a Microscopy Nodes :blender-OUTLINER_DATA_VOLUME: volume:
 
 ![workspace outtlined](../shader_screenshots/volume_full.png)
 
@@ -59,7 +59,7 @@ Here there are multiple options:
 
 ## Shaders (emission/scatter)
 
-This is where the *Microscopy Nodes* preprocessing hooks into Blender's built-in volume shaders. The node group contains both an {{ svg("outliner_ob_light") }} emissive and a {{ svg("light") }} scattering branch, and you can dynamically switch between them or mix them.
+This is where the *Microscopy Nodes* preprocessing hooks into Blender's built-in volume shaders. The node group contains both an :blender-OUTLINER_OB_LIGHT: emissive and a :blender-LIGHT: scattering branch, and you can dynamically switch between them or mix them.
 
 ![alt text](../shader_screenshots/volume_ch_id0_microscopy_shading.png)
 
@@ -72,9 +72,9 @@ This is where the *Microscopy Nodes* preprocessing hooks into Blender's built-in
 
 ![alt text](../shader_screenshots/volume_slicecube_texcoord.png)
 
-The Slice Cube section allows slicing of the volume. This has an {{ svg("object_data") }} Object pointer to a cube in the scene (by default the loaded slice cube).
+The Slice Cube section allows slicing of the volume. This has an :blender-OBJECT_DATA: Object pointer to a cube in the scene (by default the loaded slice cube).
 
 The object bounding box gets fed into the slicer, which sets all regions outside the bounding box to transparent.
 
 ??? note "How this works"
-    As shown if you press the {{ svg("nodetree", "small-icon") }} icon at the top right of the group, how the slicing node works is to take the remapped locations as the **Texture Coordinate** input provides (mapping the data to the coordinates of the cube space) and compare these to the boundes (1, -1). If positions are not in the range of the cube space, the shader is set to a *Transparent Shader*.
+    As shown if you press the <span class="small-icon">:blender-NODETREE:</span> icon at the top right of the group, how the slicing node works is to take the remapped locations as the **Texture Coordinate** input provides (mapping the data to the coordinates of the cube space) and compare these to the boundes (1, -1). If positions are not in the range of the cube space, the shader is set to a *Transparent Shader*.

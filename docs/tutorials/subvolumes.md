@@ -5,16 +5,16 @@ Split a microscopy grid into independently movable volume instances when you wan
 {{ youtube("7K-in7z2Dfk", 560, 315) }}
 
 !!! warning "Microscopy Nodes 3.1.2 or newer"
-    The subvolume nodes require **Microscopy Nodes 3.1.2 or newer**. This is an advanced {{ svg("geometry_nodes") }} Geometry Nodes workflow; first become comfortable with [loading data](./2_loading_data.md) and [masking grids](./slicing_masking.md).
+    The subvolume nodes require **Microscopy Nodes 3.1.2 or newer**. This is an advanced :blender-GEOMETRY_NODES: Geometry Nodes workflow; first become comfortable with [loading data](./2_loading_data.md) and [masking grids](./slicing_masking.md).
 
 ## Prepare the source grid and regions
 
-Load the intensity channel you want to sample as a {{ svg("outliner_ob_volume") }} **Volume**. You also need geometry defining each region that should become a separate subvolume. This can come from:
+Load the intensity channel you want to sample as a :blender-OUTLINER_OB_VOLUME: **Volume**. You also need geometry defining each region that should become a separate subvolume. This can come from:
 
-- a {{ svg("outliner_ob_surface") }} surface whose disconnected mesh islands identify separate structures; or
-- a {{ svg("outliner_ob_pointcloud") }} label mask, which already supplies one mesh instance per object ID.
+- a :blender-OUTLINER_OB_SURFACE: surface whose disconnected mesh islands identify separate structures; or
+- a :blender-OUTLINER_OB_POINTCLOUD: label mask, which already supplies one mesh instance per object ID.
 
-Open the Volume object's {{ svg("geometry_nodes") }} Geometry Nodes tree. A **Mask Grid** is enough when you only want to keep or remove a region. Use **Split to Subvolumes** when the regions need to move independently.
+Open the Volume object's :blender-GEOMETRY_NODES: Geometry Nodes tree. A **Mask Grid** is enough when you only want to keep or remove a region. Use **Split to Subvolumes** when the regions need to move independently.
 
 ## Convert a surface into mesh instances
 
@@ -31,7 +31,7 @@ Each disconnected mesh island is now supplied as a separate instance. A loaded l
 
 ## Sample the grid into subvolumes
 
-Connect the source channel grid to **Grid** on **Split to Subvolumes**, and set **Holder** to the dataset's {{ svg("outliner_ob_empty") }} holder. The node voxelizes every mesh instance and samples the source values into a corresponding volume instance.
+Connect the source channel grid to **Grid** on **Split to Subvolumes**, and set **Holder** to the dataset's :blender-OUTLINER_OB_EMPTY: holder. The node voxelizes every mesh instance and samples the source values into a corresponding volume instance.
 
 **Voxel Size** controls the resolution of these generated volumes. A smaller value follows the region more accurately but increases calculation time and memory use. Start coarse while constructing the node tree.
 
@@ -49,7 +49,7 @@ Index is useful for a static dataset, but it is not a persistent biological iden
 
 ## Preserve identities through time
 
-Loaded {{ svg("outliner_ob_pointcloud") }} label-mask instances carry their original integer object identity in the `oid` named attribute. For a tracked time series:
+Loaded :blender-OUTLINER_OB_POINTCLOUD: label-mask instances carry their original integer object identity in the `oid` named attribute. For a tracked time series:
 
 1. Read `oid` with an integer **Named Attribute** node.
 2. Capture it on the **Instance** domain before transforming the subvolumes.

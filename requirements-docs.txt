@@ -1,0 +1,7 @@
+blender-doc-icons[mkdocs]
+mkdocs>=1.6
+mkdocs-material>=9
+mkdocs-macros-plugin
+mkdocs-include-markdown-plugin
+pymdown-extensions
+mike

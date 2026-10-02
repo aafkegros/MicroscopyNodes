@@ -164,3 +164,6 @@ tests/.DS_Store
 tests/test_data/**
 .DS_Store
 .DS_Store
+
+# Isolated documentation environment
+.venv-docs/

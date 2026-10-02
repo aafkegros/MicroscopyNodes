@@ -6,13 +6,13 @@ Scientific annotations communicate the physical and temporal scale of a microsco
 
 ## Check the coordinate mapping
 
-Blender works internally in meters. The {{ svg("con_sizelike") }} input transform in the Microscopy Nodes panel maps the dataset's physical unit into a practical Blender scene size. **Auto** chooses an appropriate mapping for the dataset.
+Blender works internally in meters. The :blender-CON_SIZELIKE: input transform in the Microscopy Nodes panel maps the dataset's physical unit into a practical Blender scene size. **Auto** chooses an appropriate mapping for the dataset.
 
-The {{ svg("orientation_parent") }} input location chooses whether the dataset is centered in XY, centered in XYZ, or placed from its source origin.
+The :blender-ORIENTATION_PARENT: input location chooses whether the dataset is centered in XY, centered in XYZ, or placed from its source origin.
 
 ## Customize the scale grid
 
-Every loaded dataset includes an {{ svg("outliner_ob_mesh") }} **Axes** object. Its {{ svg("modifier") }} modifier controls:
+Every loaded dataset includes an :blender-OUTLINER_OB_MESH: **Axes** object. Its :blender-MODIFIER: modifier controls:
 
 - physical units per grid step;
 - grid or bounding-box display;
@@ -25,12 +25,12 @@ The Axes object can be moved and scaled independently after cropping or masking.
 ## Use an accurate scale bar
 
 !!! warning "Use an orthographic camera"
-    A conventional scale bar is only globally accurate with an {{ svg("view_camera") }} **orthographic camera**. Perspective makes objects nearer the camera appear larger, so one bar cannot represent every depth in the image.
+    A conventional scale bar is only globally accurate with an :blender-VIEW_CAMERA: **orthographic camera**. Perspective makes objects nearer the camera appear larger, so one bar cannot represent every depth in the image.
 
 To add a scale bar:
 
 1. Add an Empty object.
-2. Open its {{ svg("geometry_nodes") }} Geometry Nodes modifier and create a node tree.
+2. Open its :blender-GEOMETRY_NODES: Geometry Nodes modifier and create a node tree.
 3. Under `Add > Microscopy Nodes > Annotation`, add either **Dynamic Scale Bar** or **Rigid Scale Bar**.
 4. Use **To Active Camera** to align the annotation to the render plane.
 

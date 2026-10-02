@@ -2,9 +2,9 @@
 
 ## My volume is not visible
 
-Microscopy volumes are not shown in {{ svg("shading_solid") }} Solid mode. Switch the viewport to {{ svg("shading_texture") }} Material Preview or {{ svg("shading_rendered") }} Rendered Preview.
+Microscopy volumes are not shown in :blender-SHADING_SOLID: Solid mode. Switch the viewport to :blender-SHADING_TEXTURE: Material Preview or :blender-SHADING_RENDERED: Rendered Preview.
 
-For a scattering {{ svg("outliner_ob_volume") }} volume, also make sure the {{ svg("world") }} world is not black or add a Blender light. See [Adjust color, contrast, and opacity](./tutorials/visualization.md).
+For a scattering :blender-OUTLINER_OB_VOLUME: volume, also make sure the :blender-WORLD: world is not black or add a Blender light. See [Adjust color, contrast, and opacity](./tutorials/visualization.md).
 
 ## My OME-Zarr metadata does not load
 
@@ -16,9 +16,9 @@ Begin with the smallest useful multiscale level, reduce visible channels, and wo
 
 ## Where should I change something?
 
-- Use {{ svg("geometry_nodes") }} Geometry Nodes for masks, geometry, projection, and data processing.
-- Use {{ svg("material") }} Shader Nodes for color, opacity, and lighting.
-- Use the {{ svg("microscopy_nodes") }} loading panel to change scale, time range, storage, or channel representation.
+- Use :blender-GEOMETRY_NODES: Geometry Nodes for masks, geometry, projection, and data processing.
+- Use :blender-MATERIAL: Shader Nodes for color, opacity, and lighting.
+- Use the :blender-MICROSCOPY_NODES: loading panel to change scale, time range, storage, or channel representation.
 
 The [workflow overview](./tutorials/workflow_overview.md) explains this separation.
 

@@ -1,6 +1,6 @@
 # Rendering
 
-There are a lot of extra parameters that can be adjusted to optimize rendering in Blender. All of these are explained in the {{ svg("blender") }} [Blender manual](https://docs.blender.org/manual/en/latest/render/cycles/render_settings/index.html). Some, however, are especially useful to know for microscopy data or for new users. These are covered here.
+There are a lot of extra parameters that can be adjusted to optimize rendering in Blender. All of these are explained in the :blender-BLENDER: [Blender manual](https://docs.blender.org/manual/en/latest/render/cycles/render_settings/index.html). Some, however, are especially useful to know for microscopy data or for new users. These are covered here.
 
 ## Render Engines
 
@@ -8,7 +8,7 @@ There are two major render engines in Blender. **EEVEE**, a [rasterized](https:/
 
 ### EEVEE
 
-**EEVEE** is a render engine that is made to be fast, and powerful. It is less optimized for {{ svg("outliner_ob_volume") }} volumetric data, especially for dense/scattering volumes. Currently, it can only handle volume data < 4 GiB.
+**EEVEE** is a render engine that is made to be fast, and powerful. It is less optimized for :blender-OUTLINER_OB_VOLUME: volumetric data, especially for dense/scattering volumes. Currently, it can only handle volume data < 4 GiB.
 
 However, it is still very strong, is usually able to combine semi-transparent masks and volumes, and is often faster, especially for rendering emissive time-lapses. 
 
@@ -22,7 +22,7 @@ It may take longer to open an EEVEE interface with volumes, and for larger data 
 
 ## Render Settings
 
-The {{ svg("scene") }} render settings can be found in the {{ svg("properties") }} properties.
+The :blender-SCENE: render settings can be found in the :blender-PROPERTIES: properties.
 
 ### Samples
 
@@ -30,7 +30,7 @@ The number of samples is a metric for how much time the rendering algorithm take
 
 ### Volume scattering (Cycles)
 
-The amount of scattering in a volume is very important for the visualization of {{ svg("light") }} dense/scattering volumes. These are not as important in emissive {{ svg("outliner_ob_light") }} volumes.
+The amount of scattering in a volume is very important for the visualization of :blender-LIGHT: dense/scattering volumes. These are not as important in emissive :blender-OUTLINER_OB_LIGHT: volumes.
 
 This is only well-defined in a raytracer, so this is only available in Cycles. These can significantly affect performance.
 
@@ -50,7 +50,7 @@ The number of light bounces can be relevant also outside of the volumes. Especia
 
 ### Transparent background
 
-This can be found under Film > Transparent. Note that a transparent background can and will still be able to light a scene, if the {{ svg("world") }} background color is not black.
+This can be found under Film > Transparent. Note that a transparent background can and will still be able to light a scene, if the :blender-WORLD: background color is not black.
 
 ### Color Management
 
@@ -58,7 +58,7 @@ The `Color Management > View Transform` is set by default to `Standard` after lo
 
 ## Output settings
 
-The {{ svg("output") }} output settings can be found in the {{ svg("properties") }} properties.
+The :blender-OUTPUT: output settings can be found in the :blender-PROPERTIES: properties.
 
 ### Time
 
@@ -70,6 +70,6 @@ The timing of output can be changed. The **Frame Rate** for output videos and pr
 
 ### Output location and format
 
-Under {{ svg("output") }} > Output, the output file location and format can be defined. Here it is useful to note that if the format is set to `PNG`, as default, you would still have to compile the frames to video later.
+Under :blender-OUTPUT: > Output, the output file location and format can be defined. Here it is useful to note that if the format is set to `PNG`, as default, you would still have to compile the frames to video later.
 
 Optionally, you can set the output format to `FFMPEG Video`, which will output a full video when you render an animation. This does limit your capacity to edit the video encoding and you cannot stop the render e.g. halfway and still retain the first half of the output.

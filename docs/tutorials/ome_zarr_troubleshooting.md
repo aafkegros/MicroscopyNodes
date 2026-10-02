@@ -2,7 +2,7 @@
 
 [OME-Zarr](https://ngff.openmicroscopy.org/about/index.html) is a developing standard and is very flexible, which sometimes makes it hard to read and write, and no software supports all features. 
 
-{{ svg("microscopy_nodes") }} Microscopy Nodes supports OME-Zarr **up to version 0.5**, to load single, up to 5-dimensional, arrays. 
+:blender-MICROSCOPY_NODES: Microscopy Nodes supports OME-Zarr **up to version 0.5**, to load single, up to 5-dimensional, arrays. 
 
 !!! tip "Is your OME-Zarr not loading?"
     A quick option is to append `/0` after your path. Some OME-Zarr writers create a **group** at the .zarr adress, with the first (and often, only) image at .zarr/0
