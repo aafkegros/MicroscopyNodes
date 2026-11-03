@@ -21,6 +21,7 @@ dask = "==2026.1.2"
 tifffile = "==2026.2.24"
 imagecodecs = "==2025.3.30"
 zarr = "==3.1.5"
+ngff-zarr = {version = "*", extras = ["remote"]}
 fsspec = "==2026.2.0"
 cmap = "==0.7.1"
 s3fs = "==2026.2.0"

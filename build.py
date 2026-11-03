@@ -1,3 +1,4 @@
+import shlex
 import glob
 import os
 from pathlib import Path
@@ -60,6 +61,10 @@ def runtime_packages() -> List[str]:
                 packages.append(name)
             else:
                 packages.append(f"{name}{spec}")
+        elif isinstance(spec, dict) and "extras" in spec and "version" in spec:
+            extras = ",".join(spec["extras"])
+            version = spec["version"] if spec["version"] != "*" else ""
+            packages.append(f"{name}[{extras}]{version}")
         else:
             raise ValueError(
                 f"Unsupported dependency spec for {name!r}: {spec!r}. "
@@ -76,7 +81,7 @@ build_platforms = [
 
 def run_python(args: str):
     python = os.path.realpath(sys.executable)
-    subprocess.run([python] + args.split(" "))
+    subprocess.run([python] + shlex.split(args))
 
 
 def remove_whls():
@@ -104,9 +109,9 @@ def download_whls(
         remove_whls()
 
     for platform in platforms:
-        print(required_packages_from_pyproject, f"-m pip download {' '.join(required_packages_from_pyproject)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}")
+        print(required_packages_from_pyproject, f"-m pip download {shlex.join(required_packages_from_pyproject)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}")
         run_python(
-            f"-m pip download {' '.join(required_packages_from_pyproject)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}"
+            f"-m pip download {shlex.join(required_packages_from_pyproject)} --dest ./microscopynodes/wheels --only-binary=:all: --python-version={python_version} --platform={platform.pypi_suffix}"
         )
 
 def update_toml_whls(platforms):
