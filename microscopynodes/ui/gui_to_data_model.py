@@ -95,7 +95,8 @@ def parse_pixel_size():
     return  np.diag([*pixel_size, 1]).tolist()
 
 def parse_pixel_size_values():
-    pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
+    scn = bpy.context.scene
+    pixel_size = np.array([scn.MiN_xy_size, scn.MiN_xy_size * scn.MiN_yx_size_ratio, scn.MiN_z_size])
     if not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
         pixel_size *= selected_array_option().scale()
     return pixel_size

@@ -13,7 +13,7 @@ Microscopy Nodes supports importing **up to 5D** microscopy datasets (XYZ + time
 
 | Feature | Description |
 |--------|-------------|
-| **5D Support** | Load `.tif` and `.zarr` files with any axis order 'tzcyx' or any subset |
+| **5D Support** | Load `.tif` files with any axis order 'tzcyx' or any subset, and OME-Zarr |
 | **Channel Interface** | Define how to load each channel: <img src="./docs/grey_icons/blender_icon_outliner_data_volume.svg" width="15" style="vertical-align:-0.2em;"/> volume, <img src="./docs/grey_icons/blender_icon_outliner_data_surface.svg" width="15" style="vertical-align:-0.2em;"/> surface, <img src="./docs/grey_icons/blender_icon_outliner_data_pointcloud.svg" width="15" style="vertical-align:-0.2em;"/> label mask |
 | **Colors and LUTs** | Easy picking of colors per channel or non-linear LUT selection from [many colormaps](https://cmap-docs.readthedocs.io/en/stable/).  |
 | **Intuitive Slicing** | Slice any object by moving the Slicing Cube, as you would move any other Blender object |

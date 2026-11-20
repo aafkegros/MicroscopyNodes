@@ -70,6 +70,12 @@ def register_scene_props():
         description="xy physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
         default=1.0)
     
+    bpy.types.Scene.MiN_yx_size_ratio = FloatProperty(
+        name="",
+        description="Physical pixel size along y relative to x. 1 unless the pixels are not square",
+        default=1.0,
+        min=1e-6)
+
     bpy.types.Scene.MiN_z_size = FloatProperty(
         name="",
         description="z physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
@@ -150,6 +156,7 @@ def unregister_scene_props():
         "MiN_overwrite_background_color",
         "MiN_overwrite_render_settings",
         "MiN_xy_size",
+        "MiN_yx_size_ratio",
         "MiN_z_size",
         "MiN_unit",
         "MiN_ch_names",

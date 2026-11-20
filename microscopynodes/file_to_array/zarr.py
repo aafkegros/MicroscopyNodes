@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from urllib.parse import unquote_to_bytes, urljoin
 
+import clearscale as cs
 import numpy as np
 import zarr
 
@@ -12,6 +13,11 @@ from ..handle_blender_structs.units import unit_value
 
 OME_ZARR_V_0_4_KWARGS = dict(dimension_separator="/", normalize_keys=False)
 OME_ZARR_V_0_1_KWARGS = dict(dimension_separator=".")
+MAX_LOGGED_ERROR_LENGTH = 160
+
+
+class OmeZarrLoadError(ValueError):
+    """The zarr group does not hold a valid OME-Zarr image that can be loaded."""
 
 
 class ZarrLoader:
@@ -67,9 +73,9 @@ class ZarrLoader:
     def metadata(self, input_file):
         try:
             file_globals, options = self.parse_zattrs(input_file)
-        except KeyError as e:
-            print(f"key error: {e}")
-            log("Could not parse .zattrs")
+        except OmeZarrLoadError as e:
+            print(f"Could not load OME-Zarr: {e}")
+            log(_shortened(str(e)))
             return {
                 "axes_order": "",
                 "unit": None,
@@ -101,50 +107,39 @@ class ZarrLoader:
     def parse_zattrs(self, uri):
         group = self.open_zarr(uri)
 
-        try:
-            multiscale_spec = group.attrs['multiscales'][0]
-        except Exception:
-            multiscale_spec = group.attrs['ome']['multiscales'][0]
+        zarrays = {}
 
+        def array_shape(path):
+            """Callback to cache zarray handles while from_attrs uses them to obtain array shapes"""
+            zarrays[path] = zarr.open_array(store=group.store, path=path)
+            return zarrays[path].shape
+
+        multiscale = _loadable_multiscale(cs.OmeZarrGroup.from_attrs(group.attrs, shape_source=array_shape))
+
+        omero = multiscale.ome.omero
         file_globals = {
-            "ch_names": [c.get('label') for c in group.attrs.get('omero', {}).get('channels', [])],
-            "axes_order": _get_axes_order_from_spec(multiscale_spec),
+            "ch_names": [channel.extra.get("label") for channel in omero.channels] if omero else [],
+            "axes_order": "".join(str(axis) for axis in multiscale.axes),
+            "unit": _first_space_unit(multiscale),
         }
-        axes_order = file_globals["axes_order"]
 
-        try:
-            file_globals["unit"] = next(iter([
-                axis['unit']
-                for axis in multiscale_spec["axes"]
-                if axis['type'] == 'space'
-            ]), None)
-        except Exception:
-            file_globals["unit"] = None
-
+        space_axes = _space_axes(multiscale)
         options = []
-        for scale in multiscale_spec["datasets"]:
+        for path, scale in multiscale.items():
+            # Sizes are in the unit of the first space axis. Translations are not used.
+            pixel_size = _in_unit_of_first_axis(scale, space_axes).pixel_size
+            xy_size = pixel_size.get("x", 1.0)
+            zarray = zarrays[path]
             option = {
                 "identifier": len(options),
                 "store": uri,
-                "path": scale["path"],
-                "xy_size": 1.0,
-                "z_size": 1.0,
+                "path": path,
+                "xy_size": xy_size,
+                "y_size": pixel_size.get("y", xy_size),
+                "z_size": pixel_size.get("z", xy_size),
+                "array": zarray,
+                "shape": zarray.shape,
             }
-            if "coordinateTransformations" in scale:
-                scaletransform = [
-                    transform
-                    for transform in scale['coordinateTransformations']
-                    if transform['type'] == 'scale'
-                ][0]
-                option["xy_size"] = scaletransform['scale'][axes_order.find('x')]
-                if 'z' in axes_order:
-                    option["z_size"] = scaletransform['scale'][axes_order.find('z')]
-                else:
-                    option["z_size"] = option["xy_size"]
-
-            zarray = zarr.open_array(store=group.store, path=scale["path"])
-            option["array"] = zarray
-            option["shape"] = zarray.shape
             if np.issubdtype(zarray.dtype, np.floating):
                 log("Floating point arrays cannot be loaded lazily, will use a lot of RAM")
             options.append(option)
@@ -152,7 +147,7 @@ class ZarrLoader:
         return file_globals, options
 
     def _data_scale(self, option):
-        return [option["xy_size"], option["xy_size"], option["z_size"]]
+        return [option["xy_size"], option["y_size"], option["z_size"]]
 
     def _channel_name(self, ch_names, ch_ix):
         if ch_ix < len(ch_names) and ch_names[ch_ix]:
@@ -160,13 +155,45 @@ class ZarrLoader:
         return None
 
 
-def _get_axes_order_from_spec(validated_ome_spec):
-    if "axes" in validated_ome_spec:
-        ome_axes = validated_ome_spec["axes"]
-        if "name" in ome_axes[0]:
-            return "".join([d["name"] for d in ome_axes])
-        return "".join(ome_axes)
-    return "tczyx"
+def _loadable_multiscale(ome_group):
+    """The first valid multiscale of the group, or an OmeZarrLoadError that says why there is none."""
+    if ome_group.multiscales:
+        return ome_group.multiscales[0]
+    if ome_group.kind is None:
+        raise OmeZarrLoadError("No OME-Zarr image found at this path.")
+    if ome_group.kind is cs.GroupKind.INVALID:
+        raise OmeZarrLoadError(f"Found invalid or unsupported OME-Zarr: {ome_group.invalid_objects[0].error}")
+    hint = f" (e.g. '{ome_group.children[0].path}')" if ome_group.children else ""
+    raise OmeZarrLoadError(
+        f"This {ome_group.kind.value} group holds no image itself, try a path of an image inside it{hint}."
+    )
+
+
+def _space_axes(multiscale: cs.Multiscale):
+    return [axis for axis, ome_axis in multiscale.ome_zarr_axes.items() if ome_axis.type == "space"]
+
+
+def _first_space_unit(multiscale):
+    for axis in _space_axes(multiscale):
+        return multiscale.unit[axis] or None
+    return None
+
+
+def _in_unit_of_first_axis(scale: cs.Scale, space_axes):
+    """Pixel sizes of the space axes expressed in the unit of the first one, so that their sizes can be compared.
+    A Scale whose units can not be converted (e.g. unspecified or unrecognized) is kept as it is."""
+    if not space_axes or len({scale.unit[axis] for axis in space_axes}) == 1:
+        return scale
+    try:
+        return scale.with_unit_converted({axis: scale.unit[space_axes[0]] for axis in space_axes})
+    except ValueError:
+        return scale
+
+
+def _shortened(message):
+    if len(message) <= MAX_LOGGED_ERROR_LENGTH:
+        return message
+    return message[:MAX_LOGGED_ERROR_LENGTH].rstrip() + "…"
 
 
 def append_uri(uri, append):
