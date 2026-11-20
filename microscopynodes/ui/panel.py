@@ -48,6 +48,7 @@ class TIFLoadPanel(bpy.types.Panel):
         # First column
         col1 = split.column(align=True)
         col1.alignment='RIGHT'
+        non_square_pixels = abs(scn.MiN_yx_size_ratio - 1) > 1e-6
         if selected_array_option() is None or not selected_array_option().is_rescaled or not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
             col1.label(text="xy pixel size:")
             col1.label(text="z pixel size:")
@@ -58,6 +59,8 @@ class TIFLoadPanel(bpy.types.Panel):
             else:
                 col1.label(text=f"xy pixel size (after rescaling):")
                 col1.label(text=f"z pixel size (after rescaling):")
+        if non_square_pixels:
+            col1.label(text="y/x pixel size ratio:")
         col1.label(text="axes:")
 
         col2 = split.column(align=True)
@@ -69,6 +72,9 @@ class TIFLoadPanel(bpy.types.Panel):
         rowz = col2.row(align=True)
         rowz.prop(scn, "MiN_z_size", emboss=True)
         rowz.prop(scn, "MiN_unit", emboss=False)
+
+        if non_square_pixels:
+            col2.prop(scn, "MiN_yx_size_ratio", emboss=True)
         
         col2.prop(scn, "MiN_axes_order", emboss=True)
 

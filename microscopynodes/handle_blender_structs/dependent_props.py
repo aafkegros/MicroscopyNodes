@@ -58,12 +58,15 @@ def update_reload(self, context):
 
 
 def switch_pixel_size(self, context):
+    scale = selected_array_option().scale()
     if bpy.context.scene.MiN_pixel_sizes_are_rescaled:
-        bpy.context.scene.MiN_xy_size *= selected_array_option().scale()[0]
-        bpy.context.scene.MiN_z_size *= selected_array_option().scale()[2]
+        bpy.context.scene.MiN_xy_size *= scale[0]
+        bpy.context.scene.MiN_yx_size_ratio *= scale[1] / scale[0]
+        bpy.context.scene.MiN_z_size *= scale[2]
     else:
-        bpy.context.scene.MiN_xy_size /= selected_array_option().scale()[0]
-        bpy.context.scene.MiN_z_size /= selected_array_option().scale()[2]
+        bpy.context.scene.MiN_xy_size /= scale[0]
+        bpy.context.scene.MiN_yx_size_ratio /= scale[1] / scale[0]
+        bpy.context.scene.MiN_z_size /= scale[2]
 
 
 def register_scene_props():
