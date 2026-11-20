@@ -123,17 +123,20 @@ class ZarrLoader:
             "unit": _first_space_unit(multiscale),
         }
 
+        space_axes = _space_axes(multiscale)
         options = []
         for path, scale in multiscale.items():
-            # Only a single xy size and a z size are used; anisotropy along xy and translations are not.
-            xy_size = scale.pixel_size.get("x", 1.0)
+            # Sizes are in the unit of the first space axis. Translations are not used.
+            pixel_size = _in_unit_of_first_axis(scale, space_axes).pixel_size
+            xy_size = pixel_size.get("x", 1.0)
             zarray = zarrays[path]
             option = {
                 "identifier": len(options),
                 "store": uri,
                 "path": path,
                 "xy_size": xy_size,
-                "z_size": scale.pixel_size.get("z", xy_size),
+                "y_size": pixel_size.get("y", xy_size),
+                "z_size": pixel_size.get("z", xy_size),
                 "array": zarray,
                 "shape": zarray.shape,
             }
@@ -144,7 +147,7 @@ class ZarrLoader:
         return file_globals, options
 
     def _data_scale(self, option):
-        return [option["xy_size"], option["xy_size"], option["z_size"]]
+        return [option["xy_size"], option["y_size"], option["z_size"]]
 
     def _channel_name(self, ch_names, ch_ix):
         if ch_ix < len(ch_names) and ch_names[ch_ix]:
@@ -166,11 +169,25 @@ def _loadable_multiscale(ome_group):
     )
 
 
+def _space_axes(multiscale: cs.Multiscale):
+    return [axis for axis, ome_axis in multiscale.ome_zarr_axes.items() if ome_axis.type == "space"]
+
+
 def _first_space_unit(multiscale):
-    for axis, ome_axis in multiscale.ome_zarr_axes.items():
-        if ome_axis.type == "space":
-            return multiscale.unit[axis] or None
+    for axis in _space_axes(multiscale):
+        return multiscale.unit[axis] or None
     return None
+
+
+def _in_unit_of_first_axis(scale: cs.Scale, space_axes):
+    """Pixel sizes of the space axes expressed in the unit of the first one, so that their sizes can be compared.
+    A Scale whose units can not be converted (e.g. unspecified or unrecognized) is kept as it is."""
+    if not space_axes or len({scale.unit[axis] for axis in space_axes}) == 1:
+        return scale
+    try:
+        return scale.with_unit_converted({axis: scale.unit[space_axes[0]] for axis in space_axes})
+    except ValueError:
+        return scale
 
 
 def _shortened(message):
