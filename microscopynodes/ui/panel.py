@@ -1,7 +1,14 @@
+import textwrap
+
 import bpy
 from ..handle_blender_structs.dependent_props import valid_reload_object
 from ..file_to_array import selected_array_option
 from .preferences import addon_preferences
+
+def wrapped(text, width, ui_scale):
+    """Lines of text that fit labels in a region of this width in pixels. Approximate: characters differ in width."""
+    return textwrap.wrap(text, max(int((width - 30) / (7.5 * (ui_scale or 1.0))), 20))
+
 
 class TIFLoadPanel(bpy.types.Panel):
     bl_idname = "SCENE_PT_zstackpanel"
@@ -120,7 +127,14 @@ class TIFLoadPanel(bpy.types.Panel):
             action.operator("microscopynodes.load", text="Reload")
         action.enabled = wm.MiN_load_running or scn.MiN_enable_ui
 
-        action.prop(context.scene, 'MiN_progress_str', emboss=False)
+        if scn.MiN_progress_str and not (wm.MiN_load_running or scn.MiN_enable_ui):
+            # Loading failed. Show the message in full, a disabled field would truncate it.
+            error = layout.column(align=True)
+            error.alert = True
+            for ix, line in enumerate(wrapped(scn.MiN_progress_str, context.region.width, context.preferences.system.ui_scale)):
+                error.label(text=line, icon="ERROR" if ix == 0 else "BLANK1")
+        else:
+            action.prop(context.scene, 'MiN_progress_str', emboss=False)
 
         box = layout.box()
         on_load_split = box.split(factor=0.17, align=True)
