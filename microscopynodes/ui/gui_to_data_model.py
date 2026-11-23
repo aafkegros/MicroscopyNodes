@@ -91,8 +91,9 @@ def hash_path(path):
 
 
 def parse_pixel_size():
-    pixel_size = parse_pixel_size_values()
-    return  np.diag([*pixel_size, 1]).tolist()
+    affine = np.diag([*parse_pixel_size_values(), 1])
+    affine[:3, 3] = selected_array_option().translation
+    return affine.tolist()
 
 def parse_pixel_size_values():
     scn = bpy.context.scene

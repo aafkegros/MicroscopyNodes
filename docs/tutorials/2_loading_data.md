@@ -45,6 +45,7 @@ This contains:
 - Pixel Sizes
   > This may be truncated in the view, up to 6 decimal places are used.
   > If the pixels are not square, an extra y/x pixel size ratio is shown, with the y pixel size being the xy pixel size times this ratio. If the file gives the xyz pixel sizes in different units, they are converted to the unit of the first one.
+  > For OME-Zarr, the shift between the resolution levels is applied, so that different levels align. The position of the data itself is not used.
 - Pixel Units 
   > Å, nm, µm, mm, or m
 - Axis order

@@ -41,8 +41,7 @@ class ZarrLoader:
             array = self.load_array(option)
             channel_count = array.shape[axes_order.find('c')] if 'c' in axes_order else 1
             data_axes_order = axes_order.replace('c', '')
-            data_scale = self._data_scale(option)
-            affine = np.diag([*data_scale, 1]).tolist()
+            affine = self._affine(option)
 
             channels = []
             for ch_ix in range(channel_count):
@@ -124,10 +123,16 @@ class ZarrLoader:
         }
 
         space_axes = _space_axes(multiscale)
+        scales = {path: _in_unit_of_first_axis(scale, space_axes) for path, scale in multiscale.items()}
+        first_translation = next(iter(scales.values())).translation
         options = []
-        for path, scale in multiscale.items():
-            # Sizes are in the unit of the first space axis. Translations are not used.
-            pixel_size = _in_unit_of_first_axis(scale, space_axes).pixel_size
+        for path, scale in scales.items():
+            # Sizes and translations are in the unit of the first space axis.
+            pixel_size = scale.pixel_size
+            # Translations are the shift of the first pixel's center, so they differ between levels
+            # (typically by half of the difference in pixel size). Only this shift relative to the first level is
+            # used, to line the levels up. The position of the first level itself is not used.
+            translation = scale.translation - first_translation
             xy_size = pixel_size.get("x", 1.0)
             zarray = zarrays[path]
             option = {
@@ -137,6 +142,7 @@ class ZarrLoader:
                 "xy_size": xy_size,
                 "y_size": pixel_size.get("y", xy_size),
                 "z_size": pixel_size.get("z", xy_size),
+                "translation": [translation.get(axis, 0.0) for axis in "xyz"],
                 "array": zarray,
                 "shape": zarray.shape,
             }
@@ -146,8 +152,10 @@ class ZarrLoader:
 
         return file_globals, options
 
-    def _data_scale(self, option):
-        return [option["xy_size"], option["y_size"], option["z_size"]]
+    def _affine(self, option):
+        affine = np.diag([option["xy_size"], option["y_size"], option["z_size"], 1])
+        affine[:3, 3] = option["translation"]
+        return affine.tolist()
 
     def _channel_name(self, ch_names, ch_ix):
         if ch_ix < len(ch_names) and ch_names[ch_ix]:

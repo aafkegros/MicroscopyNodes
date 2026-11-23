@@ -2,6 +2,7 @@ import bpy
 import numpy as np
 import pytest
 import zarr
+from mathutils import Vector
 
 from microscopynodes.blender_state import Dataset
 from microscopynodes.ui.gui_to_data_model import parse_pixel_size
@@ -28,12 +29,17 @@ ZYX_AXES = [axis(name, unit="micrometer") for name in "zyx"]
 CZYX_AXES = [axis("c", "channel"), *ZYX_AXES]
 
 
-def level(path, shape, scale):
-    return path, shape, [{"type": "scale", "scale": scale}]
+def level(path, shape, scale, translation=None):
+    transformations = [{"type": "scale", "scale": scale}]
+    if translation is not None:
+        transformations.append({"type": "translation", "translation": translation})
+    return path, shape, transformations
 
 
 def level_0_6(path, transformations, output):
     transform = transformations[0]
+    if len(transformations) > 1:
+        transform = {"type": "sequence", "transformations": transformations}
     return {
         "path": path,
         "coordinateTransformations": [
@@ -171,6 +177,54 @@ def test_zarr_space_axes_with_unspecified_unit_are_not_converted(tmp_path):
     assert scene.MiN_enable_ui
     assert scene.MiN_unit == "MICROMETER"
     assert (scene.MiN_xy_size, scene.MiN_yx_size_ratio, scene.MiN_z_size) == pytest.approx((0.25, 2.0, 2.0))
+
+
+@pytest.mark.parametrize("version", ["0.4", "0.6"])
+def test_zarr_translation_of_levels_is_relative_to_the_first_level(tmp_path, version):
+    levels = [
+        level("0", (4, 16, 16), [1.0, 0.5, 0.5], translation=[10.0, 20.0, 30.0]),
+        level("1", (4, 8, 8), [1.0, 1.0, 1.0], translation=[10.0, 20.25, 30.25]),
+    ]
+    scene = load(write_multiscale(tmp_path / "translated.zarr", ZYX_AXES, levels, version=version))
+
+    assert [tuple(option.translation) for option in scene.MiN_array_options] == [(0.0, 0.0, 0.0), (0.25, 0.25, 0.0)]  # x, y, z
+    assert np.array(parse_pixel_size())[:3, 3] == pytest.approx([0.25, 0.25, 0.0]), "the last level is selected by default"
+
+    scene.MiN_selected_array_option = "0"
+    assert np.array(parse_pixel_size())[:3, 3] == pytest.approx([0.0, 0.0, 0.0])
+
+
+def surface_center_and_size(path, level):
+    prep_load()
+    scene = load(path)
+    scene.MiN_selected_array_option = str(scene.MiN_array_options[level].identifier)
+    for channel in scene.MiN_channelList:
+        channel.surface = True
+    do_load()
+    surface = Dataset(holder=bpy.context.scene.MiN_reload).surface.object
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    corners = np.array([surface.matrix_world @ Vector(corner) for corner in surface.evaluated_get(depsgraph).bound_box])
+    return (corners.min(axis=0) + corners.max(axis=0)) / 2, corners.max(axis=0) - corners.min(axis=0)
+
+
+def test_zarr_levels_line_up_with_translation(tmp_path):
+    # Pixel centers are at index * scale + translation, so a block of 8 pixels at level 0 covers the same space as the
+    # block of 4 pixels of the 2x coarser level 1, whose first pixel center lies half a level 0 pixel further.
+    # Only the centers are compared: where the surface is drawn around the block depends on the pixel size.
+    levels = [
+        level("0", (16, 16, 16), [1.0, 1.0, 1.0], translation=[0.0, 0.0, 0.0]),
+        level("1", (8, 8, 8), [2.0, 2.0, 2.0], translation=[0.5, 0.5, 0.5]),
+    ]
+    path = write_multiscale(tmp_path / "pyramid.zarr", ZYX_AXES, levels)
+    group = zarr.open_group(path, mode="a")
+    group["0"][4:12, 4:12, 4:12] = 60000
+    group["1"][2:6, 2:6, 2:6] = 60000
+
+    center0, size0 = surface_center_and_size(path, level=0)
+    center1, size1 = surface_center_and_size(path, level=1)
+
+    assert np.all(size0 > 0.1) and np.all(size1 > 0.1), "the surfaces exist"
+    assert center1 == pytest.approx(center0, abs=2e-3)
 
 
 def test_zarr_with_invalid_axis_order_is_rejected(tmp_path):
