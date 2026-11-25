@@ -58,7 +58,7 @@ class TIFLoadPanel(bpy.types.Panel):
         col2 = split.column(align=True)
 
         size_fields = [("xy", "MiN_ui_xy_size")]
-        if scn.MiN_x_size != scn.MiN_y_size:
+        if addon_preferences(context).always_show_xyz_pixel_sizes or scn.MiN_x_size != scn.MiN_y_size:
             size_fields = [("x", "MiN_x_size"), ("y", "MiN_y_size")]
         size_fields.append(("z", "MiN_z_size"))
 
