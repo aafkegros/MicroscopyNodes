@@ -55,34 +55,25 @@ class TIFLoadPanel(bpy.types.Panel):
         # First column
         col1 = split.column(align=True)
         col1.alignment='RIGHT'
-        non_square_pixels = abs(scn.MiN_yx_size_ratio - 1) > 1e-6
-        if selected_array_option() is None or not selected_array_option().is_rescaled or not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
-            col1.label(text="xy pixel size:")
-            col1.label(text="z pixel size:")
-        else:
-            if selected_array_option().path != "":
-                col1.label(text=f"{selected_array_option().path} xy pixel size:")
-                col1.label(text=f"{selected_array_option().path} z pixel size:")
-            else:
-                col1.label(text=f"xy pixel size (after rescaling):")
-                col1.label(text=f"z pixel size (after rescaling):")
-        if non_square_pixels:
-            col1.label(text="y/x pixel size ratio:")
-        col1.label(text="axes:")
-
         col2 = split.column(align=True)
-        
-        rowxy = col2.row(align=True)
-        rowxy.prop(scn, "MiN_xy_size", emboss=True)
-        rowxy.prop(scn, "MiN_unit", emboss=False)
-        
-        rowz = col2.row(align=True)
-        rowz.prop(scn, "MiN_z_size", emboss=True)
-        rowz.prop(scn, "MiN_unit", emboss=False)
 
-        if non_square_pixels:
-            col2.prop(scn, "MiN_yx_size_ratio", emboss=True)
-        
+        size_fields = [("xy", "MiN_ui_xy_size")]
+        if scn.MiN_x_size != scn.MiN_y_size:
+            size_fields = [("x", "MiN_x_size"), ("y", "MiN_y_size")]
+        size_fields.append(("z", "MiN_z_size"))
+
+        option = selected_array_option()
+        rescaled = option is not None and option.is_rescaled and scn.MiN_pixel_sizes_are_rescaled
+        for axis, prop in size_fields:
+            label = f"{axis} pixel size"
+            if rescaled:
+                label = f"{option.path} {label}" if option.path else f"{label} (after rescaling)"
+            col1.label(text=f"{label}:")
+            row = col2.row(align=True)
+            row.prop(scn, prop, emboss=True)
+            row.prop(scn, "MiN_unit", emboss=False)
+
+        col1.label(text="axes:")
         col2.prop(scn, "MiN_axes_order", emboss=True)
 
         if 't' in scn.MiN_axes_order:

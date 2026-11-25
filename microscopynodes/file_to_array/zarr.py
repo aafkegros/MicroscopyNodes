@@ -41,7 +41,6 @@ class ZarrLoader:
             array = self.load_array(option)
             channel_count = array.shape[axes_order.find('c')] if 'c' in axes_order else 1
             data_axes_order = axes_order.replace('c', '')
-            affine = self._affine(option)
 
             channels = []
             for ch_ix in range(channel_count):
@@ -54,7 +53,7 @@ class ZarrLoader:
                         axes_order=data_axes_order,
                         source_axes_order=axes_order,
                         internal_path=option["path"],
-                        affine=affine,
+                        affine=option["affine"],
                         unit=unit,
                         source=str(input_file),
                         **data_kwargs,
@@ -133,16 +132,16 @@ class ZarrLoader:
             # (typically by half of the difference in pixel size). Only this shift relative to the first level is
             # used, to line the levels up. The position of the first level itself is not used.
             translation = scale.translation - first_translation
-            xy_size = pixel_size.get("x", 1.0)
+            default_size = pixel_size.get("x", 1.0)
+            sizes = [pixel_size.get(axis, default_size) for axis in "xyz"]
+            affine = np.diag([*sizes, 1.0])
+            affine[:3, 3] = [translation.get(axis, 0.0) for axis in "xyz"]
             zarray = zarrays[path]
             option = {
                 "identifier": len(options),
                 "store": uri,
                 "path": path,
-                "xy_size": xy_size,
-                "y_size": pixel_size.get("y", xy_size),
-                "z_size": pixel_size.get("z", xy_size),
-                "translation": [translation.get(axis, 0.0) for axis in "xyz"],
+                "affine": affine.tolist(),
                 "array": zarray,
                 "shape": zarray.shape,
             }
@@ -151,11 +150,6 @@ class ZarrLoader:
             options.append(option)
 
         return file_globals, options
-
-    def _affine(self, option):
-        affine = np.diag([option["xy_size"], option["y_size"], option["z_size"], 1])
-        affine[:3, 3] = option["translation"]
-        return affine.tolist()
 
     def _channel_name(self, ch_names, ch_ix):
         if ch_ix < len(ch_names) and ch_names[ch_ix]:

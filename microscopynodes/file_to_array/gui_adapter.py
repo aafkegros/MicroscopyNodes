@@ -66,8 +66,8 @@ def change_path(self, context):
     try:
         scn.MiN_channel_nr = 0
         scn.MiN_enable_ui = False
-        scn.property_unset("MiN_xy_size")
-        scn.property_unset("MiN_yx_size_ratio")
+        scn.property_unset("MiN_x_size")
+        scn.property_unset("MiN_y_size")
         scn.property_unset("MiN_z_size")
         scn.property_unset("MiN_axes_order")
         scn.property_unset("MiN_load_start_frame")
@@ -205,8 +205,8 @@ def _apply_dataset_to_scene(dataset_model, scene, axes_order_override=None):
 
     scene["_MiN_channel_axis_ix"] = _channel_axis_ix(axes_order)
     scene.MiN_axes_order = axes_order
-    scene.MiN_xy_size = float(affine[0][0])
-    scene.MiN_yx_size_ratio = float(affine[1][1] / affine[0][0]) if affine[0][0] else 1.0
+    scene.MiN_x_size = float(affine[0][0])
+    scene.MiN_y_size = float(affine[1][1])
     scene.MiN_z_size = float(affine[2][2])
     scene.MiN_unit = unit_name(channel_data.unit)
     scene.MiN_channel_nr = len(dataset_model.channels)

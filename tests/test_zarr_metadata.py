@@ -106,9 +106,13 @@ def test_zarr_scales_unit_and_channel_names(tmp_path, version):
     assert scene.MiN_axes_order == "czyx"
     assert scene.MiN_unit == "MICROMETER"
     assert [channel.name for channel in scene.MiN_channelList] == ["DAPI", "GFP"]
-    assert [(option.xy_size, option.z_size) for option in scene.MiN_array_options] == [(0.5, 2.0), (1.0, 2.0)]
-    assert (scene.MiN_xy_size, scene.MiN_z_size) == (1.0, 2.0), "the last level is selected by default"
-    assert scene.MiN_yx_size_ratio == 1.0
+    assert [(option.x_size, option.z_size) for option in scene.MiN_array_options] == [(0.5, 2.0), (1.0, 2.0)]
+    assert (scene.MiN_x_size, scene.MiN_z_size) == (1.0, 2.0), "the last level is selected by default"
+    assert scene.MiN_y_size == 1.0
+    scene.MiN_x_size = 0.75
+    assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.75, 1.0, 2.0])
+    scene.MiN_ui_xy_size = 0.75
+    assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.75, 0.75, 2.0])
 
 
 def test_zarr_0_6_multiscale_loads(tmp_path):
@@ -131,22 +135,28 @@ def test_zarr_0_6_multiscale_loads(tmp_path):
 
     assert scene.MiN_enable_ui
     assert scene.MiN_axes_order == "zyx"
-    assert (scene.MiN_xy_size, scene.MiN_z_size) == (0.5, 2.0)
+    assert (scene.MiN_x_size, scene.MiN_z_size) == (0.5, 2.0)
 
 
-def test_zarr_anisotropic_xy_pixel_sizes(tmp_path):
+@pytest.mark.parametrize("version", ["0.4", "0.6"])
+def test_zarr_anisotropic_xy_pixel_sizes(tmp_path, version):
     levels = [
         level("0", (2, 8, 64, 64), [1, 2.0, 0.5, 0.25]),
         level("1", (2, 8, 32, 32), [1, 2.0, 1.0, 0.5]),
     ]
-    scene = load(write_multiscale(tmp_path / "aniso.zarr", CZYX_AXES, levels))
+    scene = load(write_multiscale(tmp_path / "aniso.zarr", CZYX_AXES, levels, version=version))
 
-    assert [(option.xy_size, option.y_size) for option in scene.MiN_array_options] == [(0.25, 0.5), (0.5, 1.0)]
-    assert scene.MiN_yx_size_ratio == pytest.approx(2.0)
+    assert [(option.x_size, option.y_size) for option in scene.MiN_array_options] == [(0.25, 0.5), (0.5, 1.0)]
+    assert scene.MiN_y_size == pytest.approx(1.0)
     assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.5, 1.0, 2.0]), "x, y and z of the selected level"
 
-    scene.MiN_xy_size = 0.1
-    assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.1, 0.2, 2.0]), "editing the xy size keeps the ratio"
+    scene.MiN_x_size = 0.1
+    assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.1, 1.0, 2.0])
+    scene.MiN_y_size = 0.8
+    assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.1, 0.8, 2.0])
+
+    scene.MiN_selected_array_option = "0"
+    assert np.diag(parse_pixel_size())[:3] == pytest.approx([0.25, 0.5, 2.0])
 
 
 def test_zarr_anisotropic_dataset_has_physical_extents(tmp_path):
@@ -166,7 +176,7 @@ def test_zarr_space_axes_in_different_units_are_converted(tmp_path, version):
     scene = load(write_multiscale(tmp_path / "mixed_units.zarr", axes, levels, version=version))
 
     assert scene.MiN_unit == "MICROMETER", "the unit of the first space axis"
-    assert (scene.MiN_xy_size, scene.MiN_yx_size_ratio, scene.MiN_z_size) == pytest.approx((0.25, 2.0, 2.0))
+    assert (scene.MiN_x_size, scene.MiN_y_size, scene.MiN_z_size) == pytest.approx((0.25, 0.5, 2.0))
 
 
 def test_zarr_space_axes_with_unspecified_unit_are_not_converted(tmp_path):
@@ -176,7 +186,7 @@ def test_zarr_space_axes_with_unspecified_unit_are_not_converted(tmp_path):
 
     assert scene.MiN_enable_ui
     assert scene.MiN_unit == "MICROMETER"
-    assert (scene.MiN_xy_size, scene.MiN_yx_size_ratio, scene.MiN_z_size) == pytest.approx((0.25, 2.0, 2.0))
+    assert (scene.MiN_x_size, scene.MiN_y_size, scene.MiN_z_size) == pytest.approx((0.25, 0.5, 2.0))
 
 
 @pytest.mark.parametrize("version", ["0.4", "0.6"])
@@ -266,4 +276,4 @@ def test_zarr_scene_group_points_to_its_images(tmp_path):
     scene = load(tmp_path / "scene.zarr" / "tiles" / "t1")
     assert scene.MiN_enable_ui
     assert scene.MiN_axes_order == "yx"
-    assert scene.MiN_xy_size == 0.5
+    assert scene.MiN_x_size == 0.5
