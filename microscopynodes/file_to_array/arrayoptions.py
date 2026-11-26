@@ -6,7 +6,6 @@ class ArrayOption(bpy.types.PropertyGroup):
     x_size: bpy.props.FloatProperty()
     y_size: bpy.props.FloatProperty()
     z_size: bpy.props.FloatProperty()
-    translation: bpy.props.FloatVectorProperty(size=3)
     is_rescaled: bpy.props.BoolProperty(default=False)
     icon: bpy.props.StringProperty()
     ui_text: bpy.props.StringProperty()
@@ -48,7 +47,6 @@ class ArrayOption(bpy.types.PropertyGroup):
         self.x_size = float(affine[0][0])
         self.y_size = float(affine[1][1])
         self.z_size = float(affine[2][2])
-        self.translation = [float(affine[ix][3]) for ix in range(3)]
         self.is_rescaled = _is_rescaled(channel_data)
         self.path = dataset_model.name or ""
         self.set_shape(shape)

@@ -118,13 +118,16 @@ def change_array_option(self, context):
             context.scene["_MiN_syncing_input_file"] = False
 
 
-def channel_data_model(ch_ix, axes_order=None, **data_kwargs):
+def channel_data_model(ch_ix, axes_order=None, *, pixel_size=None, **data_kwargs):
     dataset_model = selected_dataset_model()
     if dataset_model is None:
         return None
     channel_data = dataset_model.channels[ch_ix].data
     data = channel_data.model_dump(by_alias=True)
     data.update(data_kwargs)
+    if pixel_size is not None:
+        for axis, size in enumerate(pixel_size):
+            data["affine"][axis][axis] = float(size)
     if axes_order is not None:
         data["axes_order"] = axes_order.replace("c", "")
         data["source_axes_order"] = axes_order

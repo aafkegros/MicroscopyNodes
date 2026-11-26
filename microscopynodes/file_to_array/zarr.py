@@ -122,20 +122,14 @@ class ZarrLoader:
         }
 
         space_axes = _space_axes(multiscale)
-        scales = {path: _in_unit_of_first_axis(scale, space_axes) for path, scale in multiscale.items()}
-        first_translation = next(iter(scales.values())).translation
         options = []
-        for path, scale in scales.items():
-            # Sizes and translations are in the unit of the first space axis.
+        for path, scale in multiscale.items():
+            scale = _in_unit_of_first_axis(scale, space_axes)
             pixel_size = scale.pixel_size
-            # Translations are the shift of the first pixel's center, so they differ between levels
-            # (typically by half of the difference in pixel size). Only this shift relative to the first level is
-            # used, to line the levels up. The position of the first level itself is not used.
-            translation = scale.translation - first_translation
             default_size = pixel_size.get("x", 1.0)
             sizes = [pixel_size.get(axis, default_size) for axis in "xyz"]
             affine = np.diag([*sizes, 1.0])
-            affine[:3, 3] = [translation.get(axis, 0.0) for axis in "xyz"]
+            affine[:3, 3] = [scale.translation.get(axis, 0.0) for axis in "xyz"]
             zarray = zarrays[path]
             option = {
                 "identifier": len(options),
