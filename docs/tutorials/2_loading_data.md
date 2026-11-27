@@ -44,6 +44,8 @@ This contains:
 
 - Pixel Sizes
   > This may be truncated in the view, up to 6 decimal places are used.
+  > Square pixels share an XY pixel size field. When X and Y differ, each axis has its own editable pixel size. If the file gives the spatial pixel sizes in different units, they are converted to the unit of the first spatial axis.
+  > For OME-Zarr, the shift between the resolution levels is applied, so that different levels align. The position of the data itself is not used.
 - Pixel Units 
   > Å, nm, µm, mm, or m
 - Axis order

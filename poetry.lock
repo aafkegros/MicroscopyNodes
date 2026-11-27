@@ -472,6 +472,22 @@ files = [
 ]
 
 [[package]]
+name = "clearscale"
+version = "0.9.1"
+description = "Clear multiscale image metadata manipulation"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "clearscale-0.9.1-py3-none-any.whl", hash = "sha256:bd03cfce88d6cc06ad1e74bebdc8ca4254b9890bac3a8f40adcda085a3408b68"},
+    {file = "clearscale-0.9.1.tar.gz", hash = "sha256:ecb4f40235e0868efb58d139f7903059b2de2f7eead8f84c36202b544f61480e"},
+]
+
+[package.extras]
+dev = ["pre-commit", "pyright", "pytest", "pytest-cov"]
+docs = ["black", "mkdocstrings-python (==2.0.10)", "zensical (==0.0.74)"]
+
+[[package]]
 name = "click"
 version = "8.1.7"
 description = "Composable command line interface toolkit"
@@ -2623,4 +2639,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.13.13"
-content-hash = "a665fc16c088aeb6244731188338642a5792fd797880e06459667a5693c86cfc"
+content-hash = "20acadb8ea46a737bd1ad2c76e21dcb9c93a0268c728e54f8b5f00af01684f76"

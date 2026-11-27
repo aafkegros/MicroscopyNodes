@@ -27,7 +27,7 @@ class TifLoader:
         imgdata = zarr.open(tifffile.imread(input_file, aszarr=True), mode="r")
         channel_count = imgdata.shape[axes_order.find('c')] if 'c' in axes_order else 1
         data_axes_order = axes_order.replace('c', '')
-        data_scale = [metadata["xy_size"], metadata["xy_size"], metadata["z_size"]]
+        data_scale = [metadata[axis] for axis in ("x_size", "y_size", "z_size")]
         affine = np.diag([*data_scale, 1]).tolist()
 
         channels = []
@@ -54,10 +54,13 @@ class TifLoader:
 
     def metadata(self, input_file):
         with tifffile.TiffFile(input_file) as tif:
+            tags = tif.pages[0].tags
+            x_size = self._resolution_size(tags, "XResolution", default=1.0)
             metadata = {
                 "axes_order": tif.series[0].axes.lower().replace('s', 'c').replace('q', 'z'),
                 "unit": None,
-                "xy_size": self._xy_size(tif),
+                "x_size": x_size,
+                "y_size": self._resolution_size(tags, "YResolution", default=x_size),
                 "z_size": self._z_size(tif),
             }
             try:
@@ -67,12 +70,14 @@ class TifLoader:
                 pass
         return metadata
 
-    def _xy_size(self, tif):
+    def _resolution_size(self, tags, name, *, default):
         try:
-            value = tif.pages[0].tags['XResolution'].value
-            return value[1] / value[0]
-        except Exception:
-            return 1.0
+            numerator, denominator = tags[name].value
+            if numerator > 0 and denominator > 0:
+                return denominator / numerator
+        except (KeyError, TypeError, ValueError):
+            pass
+        return default
 
     def _z_size(self, tif):
         try:

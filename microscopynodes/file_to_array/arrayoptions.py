@@ -3,7 +3,8 @@ import bpy
 
 class ArrayOption(bpy.types.PropertyGroup):
     identifier: bpy.props.IntProperty()
-    xy_size: bpy.props.FloatProperty()
+    x_size: bpy.props.FloatProperty()
+    y_size: bpy.props.FloatProperty()
     z_size: bpy.props.FloatProperty()
     is_rescaled: bpy.props.BoolProperty(default=False)
     icon: bpy.props.StringProperty()
@@ -43,7 +44,8 @@ class ArrayOption(bpy.types.PropertyGroup):
 
         affine = channel_data.affine_matrix
         self.identifier = identifier
-        self.xy_size = float(affine[0][0])
+        self.x_size = float(affine[0][0])
+        self.y_size = float(affine[1][1])
         self.z_size = float(affine[2][2])
         self.is_rescaled = _is_rescaled(channel_data)
         self.path = dataset_model.name or ""

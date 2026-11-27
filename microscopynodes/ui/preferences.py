@@ -98,6 +98,11 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         description = "Invert color lookup tables on load",
         default = False
     )
+    always_show_xyz_pixel_sizes: BoolProperty(
+        name="Always Show Separate XYZ Pixel Sizes",
+        description="Show separate X, Y, and Z pixel size fields even when X and Y match",
+        default=False,
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -116,6 +121,7 @@ class MicroscopyNodesPreferences(bpy.types.AddonPreferences):
         # col.label(text="Transformations upon import:")
         col.prop(self, "surf_resolution")
         col.prop(self, "invert_color")
+        col.prop(self, "always_show_xyz_pixel_sizes")
         row = layout.row()
         row.prop(bpy.context.scene, 'MiN_remake', 
                         text = 'Overwrite files (debug, does not persist between sessions)', icon_value=0, emboss=True)
@@ -131,6 +137,7 @@ def addon_preferences(context: bpy.types.Context | None = None):
             DEFAULT_PREFERENCES = SimpleNamespace(
                 surf_resolution="0",
                 invert_color=False,
+                always_show_xyz_pixel_sizes=False,
                 n_default_channels=8,
                 extra_channel_slots=2,
                 slice_cube_mode="SHADER",

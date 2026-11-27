@@ -1,7 +1,14 @@
+import textwrap
+
 import bpy
 from ..handle_blender_structs.dependent_props import valid_reload_object
 from ..file_to_array import selected_array_option
 from .preferences import addon_preferences
+
+def wrapped(text, width, ui_scale):
+    """Lines of text that fit labels in a region of this width in pixels. Approximate: characters differ in width."""
+    return textwrap.wrap(text, max(int((width - 30) / (7.5 * (ui_scale or 1.0))), 20))
+
 
 class TIFLoadPanel(bpy.types.Panel):
     bl_idname = "SCENE_PT_zstackpanel"
@@ -48,28 +55,25 @@ class TIFLoadPanel(bpy.types.Panel):
         # First column
         col1 = split.column(align=True)
         col1.alignment='RIGHT'
-        if selected_array_option() is None or not selected_array_option().is_rescaled or not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
-            col1.label(text="xy pixel size:")
-            col1.label(text="z pixel size:")
-        else:
-            if selected_array_option().path != "":
-                col1.label(text=f"{selected_array_option().path} xy pixel size:")
-                col1.label(text=f"{selected_array_option().path} z pixel size:")
-            else:
-                col1.label(text=f"xy pixel size (after rescaling):")
-                col1.label(text=f"z pixel size (after rescaling):")
-        col1.label(text="axes:")
-
         col2 = split.column(align=True)
-        
-        rowxy = col2.row(align=True)
-        rowxy.prop(scn, "MiN_xy_size", emboss=True)
-        rowxy.prop(scn, "MiN_unit", emboss=False)
-        
-        rowz = col2.row(align=True)
-        rowz.prop(scn, "MiN_z_size", emboss=True)
-        rowz.prop(scn, "MiN_unit", emboss=False)
-        
+
+        size_fields = [("xy", "MiN_ui_xy_size")]
+        if addon_preferences(context).always_show_xyz_pixel_sizes or scn.MiN_x_size != scn.MiN_y_size:
+            size_fields = [("x", "MiN_x_size"), ("y", "MiN_y_size")]
+        size_fields.append(("z", "MiN_z_size"))
+
+        option = selected_array_option()
+        rescaled = option is not None and option.is_rescaled and scn.MiN_pixel_sizes_are_rescaled
+        for axis, prop in size_fields:
+            label = f"{axis} pixel size"
+            if rescaled:
+                label = f"{option.path} {label}" if option.path else f"{label} (after rescaling)"
+            col1.label(text=f"{label}:")
+            row = col2.row(align=True)
+            row.prop(scn, prop, emboss=True)
+            row.prop(scn, "MiN_unit", emboss=False)
+
+        col1.label(text="axes:")
         col2.prop(scn, "MiN_axes_order", emboss=True)
 
         if 't' in scn.MiN_axes_order:
@@ -114,7 +118,14 @@ class TIFLoadPanel(bpy.types.Panel):
             action.operator("microscopynodes.load", text="Reload")
         action.enabled = wm.MiN_load_running or scn.MiN_enable_ui
 
-        action.prop(context.scene, 'MiN_progress_str', emboss=False)
+        if scn.MiN_progress_str and not (wm.MiN_load_running or scn.MiN_enable_ui):
+            # Loading failed. Show the message in full, a disabled field would truncate it.
+            error = layout.column(align=True)
+            error.alert = True
+            for ix, line in enumerate(wrapped(scn.MiN_progress_str, context.region.width, context.preferences.system.ui_scale)):
+                error.label(text=line, icon="ERROR" if ix == 0 else "BLANK1")
+        else:
+            action.prop(context.scene, 'MiN_progress_str', emboss=False)
 
         box = layout.box()
         on_load_split = box.split(factor=0.17, align=True)

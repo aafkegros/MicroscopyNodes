@@ -48,7 +48,8 @@ def _make_channel(name="Channel 0", affine=None):
 def test_parse_physical_scale_mode_uses_physical_pixel_sizes():
     prep_load("5D_5cube")
     bpy.context.scene.MiN_unit = "MICROMETER"
-    bpy.context.scene.MiN_xy_size = 0.5
+    bpy.context.scene.MiN_x_size = 0.5
+    bpy.context.scene.MiN_y_size = 0.5
     bpy.context.scene.MiN_z_size = 2.0
     _set_import_scale("MICROMETER_SCALE")
 

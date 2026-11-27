@@ -53,7 +53,7 @@ def parse_channellist() -> List[ChannelModel]:
     scn = bpy.context.scene
     shared_data = {
         "unit": scn.MiN_unit,
-        "affine": parse_pixel_size(),
+        "pixel_size": parse_pixel_size_values(),
         "frame_start": scn.MiN_load_start_frame,
         "frame_end": scn.MiN_load_end_frame,
     }
@@ -90,12 +90,9 @@ def hash_path(path):
 # ----------------------------------------------------------------
 
 
-def parse_pixel_size():
-    pixel_size = parse_pixel_size_values()
-    return  np.diag([*pixel_size, 1]).tolist()
-
 def parse_pixel_size_values():
-    pixel_size = np.array([bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_xy_size,bpy.context.scene.MiN_z_size])
+    scn = bpy.context.scene
+    pixel_size = np.array([scn.MiN_x_size, scn.MiN_y_size, scn.MiN_z_size])
     if not bpy.context.scene.MiN_pixel_sizes_are_rescaled:
         pixel_size *= selected_array_option().scale()
     return pixel_size

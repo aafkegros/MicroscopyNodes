@@ -30,7 +30,7 @@ If you publish work made with Microscopy Nodes, please cite [Gros et al. (2026),
 
 Microscopy Nodes supports:
 
-- Up to 5D (`tzcyx` in any axis order) TIFF and OME-Zarr loading
+- Up to 5D (`tzcyx`) loading of TIFF (in any axis order) and OME-Zarr
 - Volume, isosurface, and per-index label-mask representations
 - Multiscale and sparse high-resolution reloading
 - Geometry masking, segmented-region recoloring, and volume processing

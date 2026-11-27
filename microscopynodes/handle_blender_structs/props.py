@@ -16,6 +16,15 @@ def update_load_with_mask(scene, context):
         scene.MiN_update_settings = False
 
 
+def get_ui_xy_size(scene):
+    return scene.MiN_x_size
+
+
+def set_ui_xy_size(scene, value):
+    scene.MiN_x_size = value
+    scene.MiN_y_size = value
+
+
 def register_scene_props():
     bpy.types.Scene.MiN_remake = bpy.props.BoolProperty(
     name = "MiN_remake", 
@@ -65,11 +74,23 @@ def register_scene_props():
 )
 
 
-    bpy.types.Scene.MiN_xy_size = FloatProperty(
+    bpy.types.Scene.MiN_x_size = FloatProperty(
         name="",
-        description="xy physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
+        description="Physical pixel size along X",
         default=1.0)
-    
+
+    bpy.types.Scene.MiN_y_size = FloatProperty(
+        name="",
+        description="Physical pixel size along Y",
+        default=1.0)
+
+    bpy.types.Scene.MiN_ui_xy_size = FloatProperty(
+        name="",
+        description="Physical pixel size along both X and Y",
+        options={'SKIP_SAVE'},
+        get=get_ui_xy_size,
+        set=set_ui_xy_size)
+
     bpy.types.Scene.MiN_z_size = FloatProperty(
         name="",
         description="z physical pixel size in micrometer (only 2 digits may show up, but it is accurate to 6 digits)",
@@ -149,7 +170,9 @@ def unregister_scene_props():
         "MiN_load_end_frame",
         "MiN_overwrite_background_color",
         "MiN_overwrite_render_settings",
-        "MiN_xy_size",
+        "MiN_x_size",
+        "MiN_y_size",
+        "MiN_ui_xy_size",
         "MiN_z_size",
         "MiN_unit",
         "MiN_ch_names",

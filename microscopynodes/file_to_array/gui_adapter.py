@@ -66,7 +66,8 @@ def change_path(self, context):
     try:
         scn.MiN_channel_nr = 0
         scn.MiN_enable_ui = False
-        scn.property_unset("MiN_xy_size")
+        scn.property_unset("MiN_x_size")
+        scn.property_unset("MiN_y_size")
         scn.property_unset("MiN_z_size")
         scn.property_unset("MiN_axes_order")
         scn.property_unset("MiN_load_start_frame")
@@ -117,13 +118,16 @@ def change_array_option(self, context):
             context.scene["_MiN_syncing_input_file"] = False
 
 
-def channel_data_model(ch_ix, axes_order=None, **data_kwargs):
+def channel_data_model(ch_ix, axes_order=None, *, pixel_size=None, **data_kwargs):
     dataset_model = selected_dataset_model()
     if dataset_model is None:
         return None
     channel_data = dataset_model.channels[ch_ix].data
     data = channel_data.model_dump(by_alias=True)
     data.update(data_kwargs)
+    if pixel_size is not None:
+        for axis, size in enumerate(pixel_size):
+            data["affine"][axis][axis] = float(size)
     if axes_order is not None:
         data["axes_order"] = axes_order.replace("c", "")
         data["source_axes_order"] = axes_order
@@ -204,7 +208,8 @@ def _apply_dataset_to_scene(dataset_model, scene, axes_order_override=None):
 
     scene["_MiN_channel_axis_ix"] = _channel_axis_ix(axes_order)
     scene.MiN_axes_order = axes_order
-    scene.MiN_xy_size = float(affine[0][0])
+    scene.MiN_x_size = float(affine[0][0])
+    scene.MiN_y_size = float(affine[1][1])
     scene.MiN_z_size = float(affine[2][2])
     scene.MiN_unit = unit_name(channel_data.unit)
     scene.MiN_channel_nr = len(dataset_model.channels)
