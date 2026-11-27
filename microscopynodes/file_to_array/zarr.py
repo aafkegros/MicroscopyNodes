@@ -116,7 +116,7 @@ class ZarrLoader:
 
         omero = multiscale.ome.omero
         file_globals = {
-            "ch_names": [channel.extra.get("label") for channel in omero.channels] if omero else [],
+            "ch_names": [channel.label or "" for channel in (omero.channels if omero else ())],
             "axes_order": "".join(str(axis) for axis in multiscale.axes),
             "unit": _first_space_unit(multiscale),
         }
@@ -151,7 +151,7 @@ class ZarrLoader:
         return None
 
 
-def _loadable_multiscale(ome_group):
+def _loadable_multiscale(ome_group) -> cs.Multiscale:
     """The first valid multiscale of the group, or an OmeZarrLoadError that says why there is none."""
     if ome_group.multiscales:
         return ome_group.multiscales[0]

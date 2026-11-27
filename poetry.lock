@@ -473,14 +473,14 @@ files = [
 
 [[package]]
 name = "clearscale"
-version = "0.9.0"
+version = "0.9.1"
 description = "Clear multiscale image metadata manipulation"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "clearscale-0.9.0-py3-none-any.whl", hash = "sha256:2019da4704f9324be73bafb077b369f0be3d2456c97e67096ccb6c904f591e85"},
-    {file = "clearscale-0.9.0.tar.gz", hash = "sha256:a4172af29390d34ede9d6c4c184d8c97f11e296be5c48d792c8edbf082022538"},
+    {file = "clearscale-0.9.1-py3-none-any.whl", hash = "sha256:bd03cfce88d6cc06ad1e74bebdc8ca4254b9890bac3a8f40adcda085a3408b68"},
+    {file = "clearscale-0.9.1.tar.gz", hash = "sha256:ecb4f40235e0868efb58d139f7903059b2de2f7eead8f84c36202b544f61480e"},
 ]
 
 [package.extras]
@@ -2639,4 +2639,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.13.13"
-content-hash = "6532889fdf62b7a01cea32ee8513dd4df25992e99e2cf32d570fbaab4a7c8cfc"
+content-hash = "20acadb8ea46a737bd1ad2c76e21dcb9c93a0268c728e54f8b5f00af01684f76"

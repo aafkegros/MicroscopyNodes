@@ -243,10 +243,10 @@ def test_zarr_levels_line_up_with_translation(tmp_path):
     assert center1 == pytest.approx(center0, abs=2e-3)
 
 
-def test_zarr_with_invalid_axis_order_is_rejected(tmp_path):
-    axes = [axis("t", "time", "second"), axis("z"), axis("c", "channel"), axis("y"), axis("x")]
-    levels = [level("0", (2, 3, 2, 8, 8), [1.0] * 5)]
-    scene = load(write_multiscale(tmp_path / "tzcyx.zarr", axes, levels))
+def test_zarr_with_duplicate_axes_is_rejected(tmp_path):
+    axes = [axis("z"), axis("y"), axis("y")]
+    levels = [level("0", (3, 8, 8), [1.0] * 3)]
+    scene = load(write_multiscale(tmp_path / "duplicate_axes.zarr", axes, levels))
 
     assert not scene.MiN_enable_ui
     assert len(scene.MiN_array_options) == 0
